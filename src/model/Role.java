@@ -1,30 +1,11 @@
 package model;
 
-import java.io.Serializable;
-
 /**
- * Vai trò phân quyền trên công trường (Role-Based Access Control).
- * @author Huỳnh Nguyễn Hoàng Khang - SE201461
+ * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
+ * MÔ TẢ:
+ * - Enum định nghĩa các vai trò phân quyền (Role-Based Access Control) trên công trường.
+ * - Các vai trò: WORKER, CONTRACTOR, VISITOR, SAFETY_OFFICER, SITE_MANAGER.
  */
-public enum Role implements Serializable {
-    WORKER("Công nhân"),
-    CONTRACTOR("Nhà thầu"),
-    VISITOR("Khách tham quan"),
-    SAFETY_OFFICER("Cán bộ An toàn"),
-    SITE_MANAGER("Chỉ huy trưởng");
+public enum Role {
 
-    private final String displayName;
-
-    Role(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    @Override
-    public String toString() {
-        return displayName;
-    }
 }
