@@ -8,6 +8,43 @@ package model;
  * - Chịu trách nhiệm quản lý thông tin ngành nghề, chứng chỉ an toàn và tổ đội thi công.
  * - Cài đặt các hành vi hiển thị chi tiết và chuẩn bị dữ liệu xuất báo cáo theo yêu cầu Workshop 1.
  */
-public class Worker extends Person {
+public class Worker {
+      private String personId;
+      private String fullName;
+      private String dateOfBirth;
+      private String gender;
+      private String phoneNumber;
 
+    public Worker() {
+
+    }
+
+    public Worker(String personId, String fullName, String dateOfBirth, String gender, String phoneNumber) {
+        this.personId = personId;
+        this.fullName = fullName;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getPersonId() { return personId; }
+    public void setPersonId(String personId) { this.personId = personId; }
+
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+
+    public abstract void displayInfo();
+
+
+    public abstract List<String> prepareReportData();
 }
