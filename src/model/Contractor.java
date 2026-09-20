@@ -12,16 +12,18 @@ public class Contractor extends Person {
     private String companyName;
     private String contractId;
 
-    public Contractor() {
-        super();
-        this.role = Role.CONTRACTOR;
-    }
-
+    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
     public Contractor(String id, String code, String name, String phoneNumber,
                       String companyName, String contractId) {
         super(id, code, name, phoneNumber, Role.CONTRACTOR);
-        this.companyName = companyName;
-        this.contractId = contractId;
+        if (companyName == null || companyName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
+        }
+        if (contractId == null || contractId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
+        }
+        this.companyName = companyName.trim();
+        this.contractId = contractId.trim();
     }
 
     public String getCompanyName() {
@@ -29,7 +31,10 @@ public class Contractor extends Person {
     }
 
     public void setCompanyName(String companyName) {
-        this.companyName = companyName;
+        if (companyName == null || companyName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
+        }
+        this.companyName = companyName.trim();
     }
 
     public String getContractId() {
@@ -37,7 +42,10 @@ public class Contractor extends Person {
     }
 
     public void setContractId(String contractId) {
-        this.contractId = contractId;
+        if (contractId == null || contractId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
+        }
+        this.contractId = contractId.trim();
     }
 
     @Override

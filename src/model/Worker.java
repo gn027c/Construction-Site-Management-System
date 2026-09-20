@@ -13,17 +13,22 @@ public class Worker extends Person {
     private String safetyCertId;
     private String assignedTeam;
 
-    public Worker() {
-        super();
-        this.role = Role.WORKER;
-    }
-
+    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
     public Worker(String id, String code, String name, String phoneNumber,
                   String trade, String safetyCertId, String assignedTeam) {
         super(id, code, name, phoneNumber, Role.WORKER);
-        this.trade = trade;
-        this.safetyCertId = safetyCertId;
-        this.assignedTeam = assignedTeam;
+        if (trade == null || trade.trim().isEmpty()) {
+            throw new IllegalArgumentException("Ngành nghề (trade) không được để trống.");
+        }
+        if (safetyCertId == null || safetyCertId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã chứng chỉ an toàn không được để trống.");
+        }
+        if (assignedTeam == null || assignedTeam.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tổ đội thi công không được để trống.");
+        }
+        this.trade = trade.trim();
+        this.safetyCertId = safetyCertId.trim();
+        this.assignedTeam = assignedTeam.trim();
     }
 
     public String getTrade() {
@@ -31,7 +36,10 @@ public class Worker extends Person {
     }
 
     public void setTrade(String trade) {
-        this.trade = trade;
+        if (trade == null || trade.trim().isEmpty()) {
+            throw new IllegalArgumentException("Ngành nghề (trade) không được để trống.");
+        }
+        this.trade = trade.trim();
     }
 
     public String getSafetyCertId() {
@@ -39,7 +47,10 @@ public class Worker extends Person {
     }
 
     public void setSafetyCertId(String safetyCertId) {
-        this.safetyCertId = safetyCertId;
+        if (safetyCertId == null || safetyCertId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã chứng chỉ an toàn không được để trống.");
+        }
+        this.safetyCertId = safetyCertId.trim();
     }
 
     public String getAssignedTeam() {
@@ -47,7 +58,10 @@ public class Worker extends Person {
     }
 
     public void setAssignedTeam(String assignedTeam) {
-        this.assignedTeam = assignedTeam;
+        if (assignedTeam == null || assignedTeam.trim().isEmpty()) {
+            throw new IllegalArgumentException("Tổ đội thi công không được để trống.");
+        }
+        this.assignedTeam = assignedTeam.trim();
     }
 
     @Override

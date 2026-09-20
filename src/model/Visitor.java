@@ -13,17 +13,22 @@ public class Visitor extends Person {
     private String hostPersonName;
     private String entryDate;
 
-    public Visitor() {
-        super();
-        this.role = Role.VISITOR;
-    }
-
+    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
     public Visitor(String id, String code, String name, String phoneNumber,
                    String purpose, String hostPersonName, String entryDate) {
         super(id, code, name, phoneNumber, Role.VISITOR);
-        this.purpose = purpose;
-        this.hostPersonName = hostPersonName;
-        this.entryDate = entryDate;
+        if (purpose == null || purpose.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mục đích thăm (purpose) không được để trống.");
+        }
+        if (hostPersonName == null || hostPersonName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Người đón tiếp / bảo lãnh không được để trống.");
+        }
+        if (entryDate == null || entryDate.trim().isEmpty()) {
+            throw new IllegalArgumentException("Ngày đến thăm không được để trống.");
+        }
+        this.purpose = purpose.trim();
+        this.hostPersonName = hostPersonName.trim();
+        this.entryDate = entryDate.trim();
     }
 
     public String getPurpose() {
@@ -31,7 +36,10 @@ public class Visitor extends Person {
     }
 
     public void setPurpose(String purpose) {
-        this.purpose = purpose;
+        if (purpose == null || purpose.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mục đích thăm (purpose) không được để trống.");
+        }
+        this.purpose = purpose.trim();
     }
 
     public String getHostPersonName() {
@@ -39,7 +47,10 @@ public class Visitor extends Person {
     }
 
     public void setHostPersonName(String hostPersonName) {
-        this.hostPersonName = hostPersonName;
+        if (hostPersonName == null || hostPersonName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Người đón tiếp / bảo lãnh không được để trống.");
+        }
+        this.hostPersonName = hostPersonName.trim();
     }
 
     public String getEntryDate() {
@@ -47,7 +58,10 @@ public class Visitor extends Person {
     }
 
     public void setEntryDate(String entryDate) {
-        this.entryDate = entryDate;
+        if (entryDate == null || entryDate.trim().isEmpty()) {
+            throw new IllegalArgumentException("Ngày đến thăm không được để trống.");
+        }
+        this.entryDate = entryDate.trim();
     }
 
     @Override
