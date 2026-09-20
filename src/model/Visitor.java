@@ -18,19 +18,11 @@ public class Visitor extends Person {
  
     // ==================== CONSTRUCTORS ====================
  
-    /**
-     * No-argument constructor.
-     * Implicitly calls super() -> runs Person() -> shared attributes get empty values.
-     * Visitor's own attributes get default values (null, false).
-     */
+   
     public Visitor() {
         super();
     }
  
-    /**
-     * Parameterized constructor.
-     * Used when all data is available at the time the object is created.
-     */
     public Visitor(String id, String fullName, String dateOfBirth, String gender,
                     String phoneNumber, String visitPurpose, String hostGuarantor,
                     String visitDate, boolean approved) {
@@ -56,18 +48,14 @@ public class Visitor extends Person {
  
     // ==================== BUSINESS BEHAVIOR ====================
  
-    /**
-     * Implements Person's abstract method: displays the detailed information
-     * of the visitor / inspection team.
-     */
     @Override
     public void displayInfo() {
         System.out.println("===== VISITOR / INSPECTION TEAM INFORMATION =====");
-        System.out.println("ID: " + getMaNguoi());
-        System.out.println("Full name: " + getHoTen());
-        System.out.println("Date of birth: " + getNgaySinh());
-        System.out.println("Gender: " + getGioiTinh());
-        System.out.println("Phone number: " + getSoDienThoai());
+        System.out.println("ID: " + getId());
+        System.out.println("Full name: " + getFullName());
+        System.out.println("Date of birth: " + getDateOfBirth());
+        System.out.println("Gender: " + getGender());
+        System.out.println("Phone number: " + getPhoneNumber());
         System.out.println("Visit purpose: " + visitPurpose);
         System.out.println("Host/Guarantor: " + hostGuarantor);
         System.out.println("Visit date: " + visitDate);
@@ -75,19 +63,15 @@ public class Visitor extends Person {
         System.out.println("==================================================");
     }
  
-    /**
-     * Implements Person's abstract method: prepares data as a list of fields
-     * to be used for report export (CSV/Excel) as required by Workshop 1.
-     * The returned order must match the corresponding column headers in the report.
-     */
+   
     @Override
     public List<String> prepareReportData() {
         List<String> row = new ArrayList<>();
-        row.add(getMaNguoi());
-        row.add(getHoTen());
-        row.add(getNgaySinh());
-        row.add(getGioiTinh());
-        row.add(getSoDienThoai());
+        row.add(getId());
+        row.add(getFullName());
+        row.add(getDateOfBirth());
+        row.add(getGender());
+        row.add(getPhoneNumber());
         row.add(visitPurpose);
         row.add(hostGuarantor);
         row.add(visitDate);
@@ -98,8 +82,8 @@ public class Visitor extends Person {
     @Override
     public String toString() {
         return "Visitor{" +
-                "id='" + getMaNguoi() + '\'' +
-                ", fullName='" + getHoTen() + '\'' +
+                "id='" + getId() + '\'' +
+                ", fullName='" + getFullName() + '\'' +
                 ", visitPurpose='" + visitPurpose + '\'' +
                 ", hostGuarantor='" + hostGuarantor + '\'' +
                 ", visitDate='" + visitDate + '\'' +
