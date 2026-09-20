@@ -47,3 +47,7 @@ desktop.ini
 # Scratch and temporary scripts
 scratch/
 __pycache__/
+
+# Task and Workshop documentation
+Task/
+Workshop/
