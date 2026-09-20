@@ -43,7 +43,7 @@ public class PersonnelManager {
         if (p == null) {
             return false;
         }
-        p.setFullName(newName);
+        p.setName(newName);
         p.setPhoneNumber(newPhone);
         return true;
     }
