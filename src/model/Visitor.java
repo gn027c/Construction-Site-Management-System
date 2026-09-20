@@ -18,19 +18,11 @@ public class Visitor extends Person {
  
     // ==================== CONSTRUCTORS ====================
  
-    /**
-     * No-argument constructor.
-     * Implicitly calls super() -> runs Person() -> shared attributes get empty values.
-     * Visitor's own attributes get default values (null, false).
-     */
+   
     public Visitor() {
         super();
     }
  
-    /**
-     * Parameterized constructor.
-     * Used when all data is available at the time the object is created.
-     */
     public Visitor(String id, String fullName, String dateOfBirth, String gender,
                     String phoneNumber, String visitPurpose, String hostGuarantor,
                     String visitDate, boolean approved) {
@@ -56,10 +48,7 @@ public class Visitor extends Person {
  
     // ==================== BUSINESS BEHAVIOR ====================
  
-    /**
-     * Implements Person's abstract method: displays the detailed information
-     * of the visitor / inspection team.
-     */
+
     @Override
     public void displayInfo() {
         System.out.println("===== VISITOR / INSPECTION TEAM INFORMATION =====");
@@ -75,11 +64,7 @@ public class Visitor extends Person {
         System.out.println("==================================================");
     }
  
-    /**
-     * Implements Person's abstract method: prepares data as a list of fields
-     * to be used for report export (CSV/Excel) as required by Workshop 1.
-     * The returned order must match the corresponding column headers in the report.
-     */
+   
     @Override
     public List<String> prepareReportData() {
         List<String> row = new ArrayList<>();
