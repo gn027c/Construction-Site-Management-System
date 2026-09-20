@@ -10,79 +10,100 @@ package model;
  */
 public class Visitor extends Person {
 
-   // ==================== THUỘC TÍNH RIÊNG ====================
-    private String mucDichTham;        // Ví dụ: Tham quan, Thanh tra, Kiểm tra tiến độ...
-    private String nguoiBaoLanhTiepDoan; // Người/bộ phận chịu trách nhiệm tiếp đón
-    private String ngayDenTham;        // Ngày khách đến công trường
-    private boolean daDuyet;           // Đoàn/khách đã được duyệt vào công trường hay chưa
-
-  // ==================== KHỞI TẠO ====================
-public Visitor() {
+    // ==================== OWN ATTRIBUTES ====================
+    private String visitPurpose;   // e.g. Site tour, Inspection, Progress check...
+    private String hostGuarantor;  // Person/department responsible for hosting the visit
+    private String visitDate;      // Date the visitor arrives at the site
+    private boolean approved;      // Whether the visitor/team has been approved to enter the site
+ 
+    // ==================== CONSTRUCTORS ====================
+ 
+    /**
+     * No-argument constructor.
+     * Implicitly calls super() -> runs Person() -> shared attributes get empty values.
+     * Visitor's own attributes get default values (null, false).
+     */
+    public Visitor() {
         super();
     }
-
-public Visitor(String maNguoi, String hoTen, String ngaySinh, String gioiTinh,
-                    String soDienThoai, String mucDichTham, String nguoiBaoLanhTiepDoan,
-                    String ngayDenTham, boolean daDuyet) {
-        super(maNguoi, hoTen, ngaySinh, gioiTinh, soDienThoai);
-        this.mucDichTham = mucDichTham;
-        this.nguoiBaoLanhTiepDoan = nguoiBaoLanhTiepDoan;
-        this.ngayDenTham = ngayDenTham;
-        this.daDuyet = daDuyet;
+ 
+    /**
+     * Parameterized constructor.
+     * Used when all data is available at the time the object is created.
+     */
+    public Visitor(String id, String fullName, String dateOfBirth, String gender,
+                    String phoneNumber, String visitPurpose, String hostGuarantor,
+                    String visitDate, boolean approved) {
+        super(id, fullName, dateOfBirth, gender, phoneNumber);
+        this.visitPurpose = visitPurpose;
+        this.hostGuarantor = hostGuarantor;
+        this.visitDate = visitDate;
+        this.approved = approved;
     }
-
-
-    public String getMucDichTham() { return mucDichTham; }
-    public void setMucDichTham(String mucDichTham) { this.mucDichTham = mucDichTham; }
  
-    public String getNguoiBaoLanhTiepDoan() { return nguoiBaoLanhTiepDoan; }
-    public void setNguoiBaoLanhTiepDoan(String nguoiBaoLanhTiepDoan) { this.nguoiBaoLanhTiepDoan = nguoiBaoLanhTiepDoan; }
+    // ==================== GETTERS / SETTERS ====================
+    public String getVisitPurpose() { return visitPurpose; }
+    public void setVisitPurpose(String visitPurpose) { this.visitPurpose = visitPurpose; }
  
-    public String getNgayDenTham() { return ngayDenTham; }
-    public void setNgayDenTham(String ngayDenTham) { this.ngayDenTham = ngayDenTham; }
+    public String getHostGuarantor() { return hostGuarantor; }
+    public void setHostGuarantor(String hostGuarantor) { this.hostGuarantor = hostGuarantor; }
  
-    public boolean isDaDuyet() { return daDuyet; }
-    public void setDaDuyet(boolean daDuyet) { this.daDuyet = daDuyet; }
-
+    public String getVisitDate() { return visitDate; }
+    public void setVisitDate(String visitDate) { this.visitDate = visitDate; }
+ 
+    public boolean isApproved() { return approved; }
+    public void setApproved(boolean approved) { this.approved = approved; }
+ 
+    // ==================== BUSINESS BEHAVIOR ====================
+ 
+    /**
+     * Implements Person's abstract method: displays the detailed information
+     * of the visitor / inspection team.
+     */
     @Override
-    public void hienThiThongTin() {
-        System.out.println("===== THÔNG TIN KHÁCH THAM QUAN / ĐOÀN THANH TRA =====");
-        System.out.println("Mã: " + getMaNguoi());
-        System.out.println("Họ tên: " + getHoTen());
-        System.out.println("Ngày sinh: " + getNgaySinh());
-        System.out.println("Giới tính: " + getGioiTinh());
-        System.out.println("Số điện thoại: " + getSoDienThoai());
-        System.out.println("Mục đích thăm: " + mucDichTham);
-        System.out.println("Người bảo lãnh tiếp đoàn: " + nguoiBaoLanhTiepDoan);
-        System.out.println("Ngày đến thăm: " + ngayDenTham);
-        System.out.println("Tình trạng duyệt: " + (daDuyet ? "Đã duyệt" : "Chưa duyệt"));
-        System.out.println("========================================================");
+    public void displayInfo() {
+        System.out.println("===== VISITOR / INSPECTION TEAM INFORMATION =====");
+        System.out.println("ID: " + getMaNguoi());
+        System.out.println("Full name: " + getHoTen());
+        System.out.println("Date of birth: " + getNgaySinh());
+        System.out.println("Gender: " + getGioiTinh());
+        System.out.println("Phone number: " + getSoDienThoai());
+        System.out.println("Visit purpose: " + visitPurpose);
+        System.out.println("Host/Guarantor: " + hostGuarantor);
+        System.out.println("Visit date: " + visitDate);
+        System.out.println("Approval status: " + (approved ? "Approved" : "Not approved"));
+        System.out.println("==================================================");
     }
+ 
+    /**
+     * Implements Person's abstract method: prepares data as a list of fields
+     * to be used for report export (CSV/Excel) as required by Workshop 1.
+     * The returned order must match the corresponding column headers in the report.
+     */
     @Override
-    public List<String> chuanBiDuLieuXuatBaoCao() {
+    public List<String> prepareReportData() {
         List<String> row = new ArrayList<>();
         row.add(getMaNguoi());
         row.add(getHoTen());
         row.add(getNgaySinh());
         row.add(getGioiTinh());
         row.add(getSoDienThoai());
-        row.add(mucDichTham);
-        row.add(nguoiBaoLanhTiepDoan);
-        row.add(ngayDenTham);
-        row.add(daDuyet ? "Đã duyệt" : "Chưa duyệt");
+        row.add(visitPurpose);
+        row.add(hostGuarantor);
+        row.add(visitDate);
+        row.add(approved ? "Approved" : "Not approved");
         return row;
     }
  
     @Override
     public String toString() {
         return "Visitor{" +
-                "maNguoi='" + getMaNguoi() + '\'' +
-                ", hoTen='" + getHoTen() + '\'' +
-                ", mucDichTham='" + mucDichTham + '\'' +
-                ", nguoiBaoLanhTiepDoan='" + nguoiBaoLanhTiepDoan + '\'' +
-                ", ngayDenTham='" + ngayDenTham + '\'' +
-                ", daDuyet=" + daDuyet +
+                "id='" + getMaNguoi() + '\'' +
+                ", fullName='" + getHoTen() + '\'' +
+                ", visitPurpose='" + visitPurpose + '\'' +
+                ", hostGuarantor='" + hostGuarantor + '\'' +
+                ", visitDate='" + visitDate + '\'' +
+                ", approved=" + approved +
                 '}';
     }
-  
 }
