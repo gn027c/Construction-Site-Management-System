@@ -7,5 +7,9 @@ package model;
  * - Các vai trò: WORKER, CONTRACTOR, VISITOR, SAFETY_OFFICER, SITE_MANAGER.
  */
 public enum Role {
-
+    WORKER,
+    CONTRACTOR,
+    VISITOR,
+    SAFETY_OFFICER,
+    SITE_MANAGER
 }

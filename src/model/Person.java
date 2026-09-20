@@ -12,18 +12,18 @@ import java.io.Serializable;
 public abstract class Person implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private int id;
-    private String code;
-    private String name;
-    private String phoneNumber;
-    private String role;
+    protected String id;
+    protected String code;
+    protected String name;
+    protected String phoneNumber;
+    protected Role role;
 
     // Default Constructor
     public Person() {
     }
 
     // Parameterized Constructor
-    public Person(int id, String code, String name, String phoneNumber, String role) {
+    public Person(String id, String code, String name, String phoneNumber, Role role) {
         this.id = id;
         this.code = code;
         this.name = name;
@@ -31,12 +31,12 @@ public abstract class Person implements Serializable {
         this.role = role;
     }
 
-    // Getters and Setters
-    public int getId() {
+    // Getters and Setters with validation
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -64,23 +64,21 @@ public abstract class Person implements Serializable {
         this.phoneNumber = phoneNumber;
     }
 
-    public String getRole() {
+    public Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(Role role) {
         this.role = role;
     }
 
-
     public abstract void displayDetails();
-
 
     public abstract String toCsvLine();
 
     @Override
     public String toString() {
-        return String.format("ID: %d | Mã: %s | Tên: %s | SĐT: %s | Vai trò: %s",
-                id, code, name, phoneNumber, role);
+        return String.format("ID: %s | Mã: %s | Tên: %s | SĐT: %s | Vai trò: %s",
+                id, code, name, phoneNumber, role != null ? role.name() : "N/A");
     }
 }
