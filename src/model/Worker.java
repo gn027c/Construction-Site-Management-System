@@ -16,7 +16,11 @@ public class Worker {
       private String phoneNumber;
 
     public Worker() {
-
+        this.maNguoi = "";
+        this.hoTen = "";
+        this.ngaySinh = "";
+        this.gioiTinh = "";
+        this.soDienThoai = "";
     }
 
     public Worker(String personId, String fullName, String dateOfBirth, String gender, String phoneNumber) {
@@ -43,8 +47,9 @@ public class Worker {
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
 
+    /** Displays detailed information – each subclass defines its own display method. */
     public abstract void displayInfo();
-
-
+ 
+    /** Prepares data (list of fields) for report generation. */
     public abstract List<String> prepareReportData();
 }
