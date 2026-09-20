@@ -51,3 +51,7 @@ __pycache__/
 # Task and Workshop documentation
 Task/
 Workshop/
+
+# Agents configuration & rules
+.agents/
+
