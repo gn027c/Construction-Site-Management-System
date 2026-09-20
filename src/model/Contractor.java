@@ -6,7 +6,7 @@ package model;
  * - Lớp đại diện cho đối tượng Nhà thầu phụ hoặc đối tác thi công.
  * - Kế thừa từ lớp trừu tượng Person.
  * - Quản lý thông tin công ty thầu (companyName), hợp đồng thi công (contractId).
- * - Cài đặt các hành vi displayDetails() và toCsvLine() theo yêu cầu Workshop 1.
+ * - Cài đặt các hành vi displayDetails() và toCsvLine().
  */
 public class Contractor extends Person {
     private String companyName;

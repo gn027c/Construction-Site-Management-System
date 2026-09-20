@@ -6,7 +6,7 @@ package model;
  * - Lớp con mẫu đại diện cho đối tượng Công nhân thi công trên công trường.
  * - Kế thừa từ lớp trừu tượng Person.
  * - Quản lý thông tin ngành nghề (trade), chứng chỉ an toàn (safetyCertId), và tổ đội thi công (assignedTeam).
- * - Cài đặt các hành vi displayDetails() và toCsvLine() theo yêu cầu Workshop 1.
+ * - Cài đặt các hành vi displayDetails() và toCsvLine().
  */
 public class Worker extends Person {
     private String trade;

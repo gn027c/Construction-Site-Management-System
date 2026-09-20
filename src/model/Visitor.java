@@ -6,7 +6,7 @@ package model;
  * - Lớp đại diện cho đối tượng Khách tham quan hoặc đoàn thanh tra vãng lai.
  * - Kế thừa từ lớp trừu tượng Person.
  * - Quản lý thông tin mục đích thăm (purpose), người bảo lãnh tiếp đoàn (hostPersonName), và ngày đến thăm (entryDate).
- * - Cài đặt các hành vi displayDetails() và toCsvLine() theo yêu cầu Workshop 1.
+ * - Cài đặt các hành vi displayDetails() và toCsvLine().
  */
 public class Visitor extends Person {
     private String purpose;
