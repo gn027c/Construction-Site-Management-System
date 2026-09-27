@@ -1,5 +1,7 @@
 import view.MenuView;
 import util.InputHelper;
+import controller.ZoneManager;
+import controller.IncidentManager;
 import java.util.Scanner;
 
 /**
@@ -9,6 +11,9 @@ import java.util.Scanner;
  * - Contains main() method to manage navigation and the main menu loop.
  */
 public class Main {
+
+    private static final ZoneManager zoneManager = new ZoneManager();
+    private static final IncidentManager incidentManager = new IncidentManager();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
