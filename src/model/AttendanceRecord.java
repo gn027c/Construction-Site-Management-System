@@ -10,6 +10,7 @@ import java.io.Serializable;
  *   thời điểm quẹt thẻ (timestamp) và loại thao tác (CHECK_IN / CHECK_OUT).
  */
 public class AttendanceRecord implements Serializable {
+    private static final long serialVersionUID = 1L;
     public enum CheckType {
         CHECK_IN,
         CHECK_OUT
