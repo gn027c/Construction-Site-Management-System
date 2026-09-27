@@ -51,6 +51,9 @@ public class MenuView {
         System.out.println("\n--- INCIDENT MANAGEMENT ---");
         System.out.println("1. Report New Incident");
         System.out.println("2. Display Incident List");
+        System.out.println("3. Assign Incident Handler");
+        System.out.println("4. Resolve Incident");
+        System.out.println("5. Purge Resolved Incidents");
         System.out.println("0. Back to Main Menu");
     }
 }
