@@ -5,7 +5,11 @@ import controller.IncidentManager;
 import java.util.Scanner;
 
 /**
- * TASK: Member 1 (Huynh Nguyen Hoang Khang - SE201461)
+ * TASK (shared file - each member edits only their own handler):
+ * - Member 1 (Huynh Nguyen Hoang Khang - SE201461): main() loop, controller wiring, final integration.
+ * - Member 2 (Tran Ngoc Anh Tuan - SE201513): handlePersonMenu().
+ * - Member 3 (Le Tan Thien - SE201852): handleZoneMenu().
+ * - Member 4 (Nguyen Tan Loi - SE211059): handleAttendanceMenu(), handleIncidentMenu().
  * DESCRIPTION:
  * - Application Console Entry Point.
  * - Contains main() method to manage navigation and the main menu loop.
