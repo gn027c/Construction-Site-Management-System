@@ -10,13 +10,16 @@ import java.util.List;
  * NHIỆM VỤ: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
  * MÔ TẢ:
  * - Module quản lý chu kỳ quẹt thẻ điểm danh ra/vào (Attendance Lifecycle).
- * - Chịu trách nhiệm thực hiện thuật toán: Quẹt thẻ FSM (chặn check-in kép, check-out sai khu vực).
+ * - Chịu trách nhiệm thực hiện thuật toán: Quẹt thẻ FSM (chặn check-in kép,
+ * check-out sai khu vực).
  * - Nghiệp vụ sự cố được tách sang IncidentManager.
  */
 public class AttendanceManager {
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();
     private int recordCounter = 1;
 
+    // Flow: validate đầu vào -> tìm bản ghi gần nhất của nhân sự -> áp dụng FSM
+    // vào/ra -> sinh recordId + timestamp -> lưu vào attendanceList
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
         if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty()
                 || type == null) {
@@ -36,7 +39,8 @@ public class AttendanceManager {
             }
         }
 
-        // FSM: không CHECK_IN khi đang ở trong; CHECK_OUT chỉ hợp lệ khi đang ở trong đúng khu vực đã CHECK_IN
+        // FSM: không CHECK_IN khi đang ở trong; CHECK_OUT chỉ hợp lệ khi đang ở trong
+        // đúng khu vực đã CHECK_IN
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
             if (lastRecord != null && lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
                 return false;
