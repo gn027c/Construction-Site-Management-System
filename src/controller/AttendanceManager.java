@@ -63,4 +63,47 @@ public class AttendanceManager {
     public List<AttendanceRecord> getAllAttendanceRecords() {
         return new ArrayList<>(attendanceList);
     }
+
+    public void displayAllAttendanceRecords() {
+        if (attendanceList.isEmpty()) {
+            System.out.println("No attendance records yet.");
+            return;
+        }
+        for (AttendanceRecord r : attendanceList) {
+            System.out.println(r);
+        }
+    }
+
+    /**
+     * Nghiệp vụ điểm danh kết nối liên module:
+     * 1. Xác thực nhân sự tồn tại qua PersonnelManager.
+     * 2. Nếu là CHECK_IN, xác thực quyền an toàn qua ZoneManager (đa hình Zone.checkAccess).
+     * 3. Xử lý FSM quẹt thẻ qua processAttendance.
+     * 4. Gọi đa hình person.displayDetails() khi thành công.
+     */
+    public boolean recordAttendance(PersonnelManager personnelManager, ZoneManager zoneManager,
+                                   String personCode, String zoneId, AttendanceRecord.CheckType type) {
+        if (personCode == null || zoneId == null || type == null) {
+            System.out.println("Error: Invalid attendance parameters!");
+            return false;
+        }
+        model.Person person = personnelManager.findPersonByCode(personCode);
+        if (person == null) {
+            System.out.println("Error: Person '" + personCode + "' not found!");
+            return false;
+        }
+
+        if (type == AttendanceRecord.CheckType.CHECK_IN && !zoneManager.verifyAccess(zoneId, person)) {
+            return false;
+        }
+
+        if (processAttendance(person.getCode(), zoneId, type)) {
+            System.out.println(type + " recorded successfully for:");
+            person.displayDetails();
+            return true;
+        } else {
+            System.out.println("Error: " + type + " rejected (already checked in, or checking out of a different zone).");
+            return false;
+        }
+    }
 }

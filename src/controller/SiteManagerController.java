@@ -1,8 +1,6 @@
 package controller;
 
 import model.AttendanceRecord;
-import model.Incident;
-import model.Person;
 
 /**
  * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
@@ -45,58 +43,22 @@ public class SiteManagerController {
         return incidentManager;
     }
 
-    // --- Cross-module Business Workflows (Facade Methods) ---
+    // --- Cross-module Business Workflows (Facade Delegation) ---
 
     /**
-     * Nghiệp vụ điểm danh tổng hợp:
-     * 1. Xác thực nhân sự tồn tại trong hệ thống.
-     * 2. Nếu là CHECK_IN, xác thực quyền vào phân vùng thi công (đa hình Zone.checkAccess).
-     * 3. Kiểm tra chu kỳ vào/ra qua máy trạng thái FSM (AttendanceManager.processAttendance).
-     * 4. Hiển thị thông tin nhân sự đa hình (Person.displayDetails) khi thành công.
+     * Nghiệp vụ điểm danh tổng hợp (ủy nhiệm cho AttendanceManager):
+     * Xác thực nhân sự -> Xác thực quyền phân vùng an toàn -> Xử lý FSM -> Hiển thị đa hình.
      */
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
-        if (personCode == null || zoneId == null || type == null) {
-            System.out.println("Error: Invalid attendance parameters!");
-            return false;
-        }
-        Person person = personnelManager.findPersonByCode(personCode);
-        if (person == null) {
-            System.out.println("Error: Person '" + personCode + "' not found!");
-            return false;
-        }
-
-        // Chỉ khi vào khu vực mới cần kiểm tra quyền an toàn; ra khỏi khu vực do FSM kiểm soát
-        if (type == AttendanceRecord.CheckType.CHECK_IN && !zoneManager.verifyAccess(zoneId, person)) {
-            return false;
-        }
-
-        if (attendanceManager.processAttendance(person.getCode(), zoneId, type)) {
-            System.out.println(type + " recorded successfully for:");
-            person.displayDetails();
-            return true;
-        } else {
-            System.out.println("Error: " + type + " rejected (already checked in, or checking out of a different zone).");
-            return false;
-        }
+        return attendanceManager.recordAttendance(personnelManager, zoneManager, personCode, zoneId, type);
     }
 
     /**
-     * Nghiệp vụ phân công sự cố an toàn:
-     * 1. Xác thực nhân sự được phân công có tồn tại trong hệ thống.
-     * 2. Gán người xử lý và chuyển trạng thái sang ASSIGNED (IncidentManager.assignIncident).
+     * Nghiệp vụ phân công sự cố an toàn (ủy nhiệm cho IncidentManager):
+     * Xác thực nhân sự phụ trách -> Gán người xử lý và cập nhật trạng thái.
      */
     public boolean assignIncident(String incidentId, String assigneeCode) {
-        if (personnelManager.findPersonByCode(assigneeCode) == null) {
-            System.out.println("Error: Person '" + assigneeCode + "' not found!");
-            return false;
-        }
-        if (incidentManager.assignIncident(incidentId, assigneeCode)) {
-            System.out.println("Incident assigned successfully.");
-            return true;
-        } else {
-            System.out.println("Error: Incident not found or already RESOLVED.");
-            return false;
-        }
+        return incidentManager.assignIncident(personnelManager, incidentId, assigneeCode);
     }
 }
 

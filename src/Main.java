@@ -3,7 +3,6 @@ import util.InputHelper;
 import controller.SiteManagerController;
 import model.AttendanceRecord;
 import model.Incident;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -99,17 +98,18 @@ public class Main {
             MenuView.showAttendanceMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
-                case 1:
-                    recordCheckInOut(scanner);
+                case 1: {
+                    String personCode = InputHelper.getString(scanner, "Person code: ");
+                    String zoneId = InputHelper.getString(scanner, "Zone ID: ");
+                    int typeChoice = InputHelper.getInt(scanner, "1. Check-in  2. Check-out: ", 1, 2);
+                    AttendanceRecord.CheckType type = (typeChoice == 1)
+                            ? AttendanceRecord.CheckType.CHECK_IN
+                            : AttendanceRecord.CheckType.CHECK_OUT;
+                    controller.recordAttendance(personCode, zoneId, type);
                     break;
+                }
                 case 2:
-                    List<AttendanceRecord> records = controller.getAttendanceManager().getAllAttendanceRecords();
-                    if (records.isEmpty()) {
-                        System.out.println("No attendance records yet.");
-                    }
-                    for (AttendanceRecord r : records) {
-                        System.out.println(r);
-                    }
+                    controller.getAttendanceManager().displayAllAttendanceRecords();
                     break;
                 case 0:
                     back = true;
@@ -118,34 +118,23 @@ public class Main {
         }
     }
 
-    private static void recordCheckInOut(Scanner scanner) {
-        String personCode = InputHelper.getString(scanner, "Person code: ");
-        String zoneId = InputHelper.getString(scanner, "Zone ID: ");
-        int typeChoice = InputHelper.getInt(scanner, "1. Check-in  2. Check-out: ", 1, 2);
-        AttendanceRecord.CheckType type = (typeChoice == 1)
-                ? AttendanceRecord.CheckType.CHECK_IN
-                : AttendanceRecord.CheckType.CHECK_OUT;
-
-        controller.recordAttendance(personCode, zoneId, type);
-    }
-
     private static void handleIncidentMenu(Scanner scanner) {
         boolean back = false;
         while (!back) {
             MenuView.showIncidentMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
             switch (choice) {
-                case 1:
-                    reportIncident(scanner);
+                case 1: {
+                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
+                    String title = InputHelper.getString(scanner, "Title: ");
+                    String description = InputHelper.getString(scanner, "Description: ");
+                    Incident.IncidentSeverity[] levels = Incident.IncidentSeverity.values();
+                    int level = InputHelper.getInt(scanner, "Severity (1-LOW, 2-MEDIUM, 3-HIGH, 4-CRITICAL): ", 1, levels.length);
+                    controller.getIncidentManager().reportIncident(incidentId, title, description, levels[level - 1]);
                     break;
+                }
                 case 2:
-                    List<Incident> incidents = controller.getIncidentManager().getAllIncidents();
-                    if (incidents.isEmpty()) {
-                        System.out.println("No incidents recorded.");
-                    }
-                    for (Incident inc : incidents) {
-                        System.out.println(inc);
-                    }
+                    controller.getIncidentManager().displayAllIncidents();
                     break;
                 case 3: {
                     String incidentId = InputHelper.getString(scanner, "Incident ID: ");
@@ -155,35 +144,16 @@ public class Main {
                 }
                 case 4: {
                     String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-                    if (controller.getIncidentManager().resolveIncident(incidentId)) {
-                        System.out.println("Incident resolved.");
-                    } else {
-                        System.out.println("Error: Incident not found or not ASSIGNED yet.");
-                    }
+                    controller.getIncidentManager().resolveIncidentAndNotify(incidentId);
                     break;
                 }
                 case 5:
-                    System.out.println("Purged " + controller.getIncidentManager().purgeResolvedIncidents() + " resolved incident(s).");
+                    controller.getIncidentManager().purgeResolvedAndNotify();
                     break;
                 case 0:
                     back = true;
                     break;
             }
-        }
-    }
-
-    private static void reportIncident(Scanner scanner) {
-        String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-        String title = InputHelper.getString(scanner, "Title: ");
-        String description = InputHelper.getString(scanner, "Description: ");
-        Incident.IncidentSeverity[] levels = Incident.IncidentSeverity.values();
-        int level = InputHelper.getInt(scanner, "Severity (1-LOW, 2-MEDIUM, 3-HIGH, 4-CRITICAL): ", 1, levels.length);
-        Incident incident = new Incident(incidentId, title, description,
-                levels[level - 1], Incident.IncidentStatus.OPEN, "");
-        if (controller.getIncidentManager().reportIncident(incident)) {
-            System.out.println("Incident reported with status OPEN.");
-        } else {
-            System.out.println("Error: Incident ID '" + incidentId + "' already exists!");
         }
     }
 }
