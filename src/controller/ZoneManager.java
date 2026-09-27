@@ -1,5 +1,6 @@
 package controller;
 
+import model.Person;
 import model.Zone;
 import model.RestrictedZone;
 import java.util.ArrayList;
@@ -85,13 +86,17 @@ public class ZoneManager {
     }
 
     // Verify access rights (Using Polymorphic checkAccess method)
-    public boolean verifyAccess(String zoneId, String personCode) {
+    public boolean verifyAccess(String zoneId, Person person) {
         Zone z = findZoneById(zoneId);
         if (z == null) {
             System.out.println("Error: Zone ID '" + zoneId + "' does not exist!");
             return false;
         }
-        boolean hasAccess = z.checkAccess(personCode);
+        if (person == null) {
+            return false;
+        }
+        String personCode = person.getId();
+        boolean hasAccess = z.checkAccess(person);
         if (hasAccess) {
             System.out.println("ACCESS GRANTED: Person '" + personCode + "' is permitted to enter zone: " + z.getZoneName());
         } else {
