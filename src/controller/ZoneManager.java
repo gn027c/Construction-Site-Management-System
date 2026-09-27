@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TASK: Member 3 (Le Tan Thien - SE201382)
+ * TASK: Member 3 (Le Tan Thien - SE201852)
  * DESCRIPTION:
  * - Manages construction zones and restricted zones.
  * - Handles access grant, revoke, and access verification logic.
@@ -20,7 +20,7 @@ public class ZoneManager {
     }
 
     public List<Zone> getZoneList() {
-        return zoneList;
+        return new ArrayList<>(zoneList);
     }
 
     // Add a new zone (Check for duplicate zoneId)
@@ -95,7 +95,7 @@ public class ZoneManager {
         if (person == null) {
             return false;
         }
-        String personCode = person.getId();
+        String personCode = person.getCode();
         boolean hasAccess = z.checkAccess(person);
         if (hasAccess) {
             System.out.println("ACCESS GRANTED: Person '" + personCode + "' is permitted to enter zone: " + z.getZoneName());
