@@ -14,10 +14,10 @@ public class PersonnelManager {
     private final List<Person> personList = new ArrayList<>();
     
     public boolean addPerson(Person p) {
-        if (p == null || p.getId() == null) {
+        if (p == null || p.getCode() == null) {
             return false;
         }
-        if (findPersonByCode(p.getId()) != null) {
+        if (findPersonByCode(p.getCode()) != null) {
             // A person with this code already exists -> reject duplicate
             return false;
         }
@@ -30,7 +30,7 @@ public class PersonnelManager {
             return null;
         }
         for (Person p : personList) {
-            if (code.equals(p.getId())) {
+            if (p.getCode().equalsIgnoreCase(code.trim())) {
                 return p;
             }
         }
