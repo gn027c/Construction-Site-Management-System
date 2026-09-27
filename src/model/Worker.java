@@ -2,6 +2,7 @@ package model;
 
 /**
  * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
+ * MỞ RỘNG ĐA HÌNH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
  * MÔ TẢ:
  * - Lớp con mẫu đại diện cho đối tượng Công nhân thi công trên công trường.
  * - Kế thừa từ lớp trừu tượng Person.

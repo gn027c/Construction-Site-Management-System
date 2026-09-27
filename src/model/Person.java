@@ -2,6 +2,7 @@ package model;
 
 /**
  * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
+ * MỞ RỘNG ĐA HÌNH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
  * MÔ TẢ:
  * - Lớp cha trừu tượng (abstract class) cơ sở đại diện cho mọi cá nhân trên công trường.
  * - Chịu trách nhiệm quản lý các thuộc tính chung (id, code, name, phoneNumber, role).
