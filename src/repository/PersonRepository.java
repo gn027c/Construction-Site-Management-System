@@ -45,4 +45,14 @@ public class PersonRepository {
     public List<Person> findAll() {
         return new ArrayList<>(personList);
     }
+
+    public boolean loadFromCsv(String filePath) {
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt đọc dữ liệu từ persons.csv vào personList (Workshop 5)
+        return false;
+    }
+
+    public boolean saveToCsv(String filePath) {
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt ghi dữ liệu personList ra persons.csv với UTF-8 BOM (Workshop 5)
+        return false;
+    }
 }

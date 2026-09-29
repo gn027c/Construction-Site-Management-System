@@ -63,14 +63,16 @@ public class RestrictedZone extends Zone {
     }
 
     /**
-     * Ghi đè kiểm tra quyền truy cập:
-     * - Chỉ người có mã trong allowedPersonCodes mới được vào khu vực hạn chế.
+     * Ghi đè kiểm tra quyền truy cập đa hình:
+     * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
      */
     @Override
     public boolean checkAccess(Person person) {
         if (person == null || person.getCode() == null) {
             return false;
         }
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) mở rộng kiểm tra đa tầng kết hợp allowedPersonCodes,
+        // person.hasValidSafetyCredential() và requiredSafetyLevel
         return allowedPersonCodes.contains(person.getCode().trim());
     }
 

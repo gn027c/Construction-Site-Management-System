@@ -36,4 +36,14 @@ public class AttendanceRepository {
     public List<AttendanceRecord> findAll() {
         return new ArrayList<>(attendanceList);
     }
+
+    public boolean loadFromCsv(String filePath) {
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt đọc dữ liệu từ attendance.csv vào attendanceList (Workshop 5)
+        return false;
+    }
+
+    public boolean saveToCsv(String filePath) {
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt ghi attendanceList ra attendance.csv với UTF-8 BOM (Workshop 5)
+        return false;
+    }
 }

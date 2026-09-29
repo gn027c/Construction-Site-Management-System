@@ -1,7 +1,6 @@
 package service;
 
 import model.AttendanceRecord;
-import model.Person;
 import repository.AttendanceRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -59,34 +58,21 @@ public class AttendanceService {
         return attendanceRepository.save(newRecord);
     }
 
+    public PersonnelService getPersonnelService() {
+        return personnelService;
+    }
+
+    public ZoneService getZoneService() {
+        return zoneService;
+    }
+
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
-        if (personCode == null || zoneId == null || type == null) {
-            System.out.println("Error: Invalid attendance parameters!");
-            return false;
-        }
-        if (personnelService == null || zoneService == null) {
-            System.out.println("Error: Required services are not initialized!");
-            return false;
-        }
-
-        Person person = personnelService.findPersonByCode(personCode);
-        if (person == null) {
-            System.out.println("Error: Person '" + personCode + "' not found!");
-            return false;
-        }
-
-        if (type == AttendanceRecord.CheckType.CHECK_IN && !zoneService.verifyAccess(zoneId, person)) {
-            return false;
-        }
-
-        if (processAttendance(person.getCode(), zoneId, type)) {
-            System.out.println(type + " recorded successfully for:");
-            person.displayDetails();
-            return true;
-        } else {
-            System.out.println("Error: " + type + " rejected (already checked in, or checking out of a different zone).");
-            return false;
-        }
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt:
+        // 1. Kiểm tra tồn tại nhân sự qua personnelService.findPersonByCode
+        // 2. Nếu CHECK_IN, kiểm tra quyền vào khu vực qua zoneService.verifyAccess (đa hình)
+        // 3. Gọi processAttendance để cập nhật trạng thái FSM
+        // 4. In thông tin chi tiết qua person.displayDetails() khi thành công
+        return false;
     }
 
     public List<AttendanceRecord> getAllAttendanceRecords() {

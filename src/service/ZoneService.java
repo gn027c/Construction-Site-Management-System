@@ -1,7 +1,6 @@
 package service;
 
 import model.Person;
-import model.RestrictedZone;
 import model.Zone;
 import repository.ZoneRepository;
 import java.util.List;
@@ -45,55 +44,17 @@ public class ZoneService {
     }
 
     public boolean grantZoneAccess(String zoneId, String personCode) {
-        Zone z = findZoneById(zoneId);
-        if (z == null) {
-            System.out.println("Error: Zone ID '" + zoneId + "' not found!");
-            return false;
-        }
-        if (z instanceof RestrictedZone) {
-            RestrictedZone rZone = (RestrictedZone) z;
-            rZone.grantAccess(personCode);
-            System.out.println("Granted access to person '" + personCode + "' for restricted zone: " + rZone.getZoneName());
-            return true;
-        } else {
-            System.out.println("Notice: Zone '" + z.getZoneName() + "' is a general zone. Access control is not required!");
-            return false;
-        }
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt cấp quyền vào RestrictedZone
+        return false;
     }
 
     public boolean revokeZoneAccess(String zoneId, String personCode) {
-        Zone z = findZoneById(zoneId);
-        if (z == null) {
-            System.out.println("Error: Zone ID '" + zoneId + "' not found!");
-            return false;
-        }
-        if (z instanceof RestrictedZone) {
-            RestrictedZone rZone = (RestrictedZone) z;
-            rZone.revokeAccess(personCode);
-            System.out.println("Revoked access of person '" + personCode + "' from restricted zone: " + rZone.getZoneName());
-            return true;
-        } else {
-            System.out.println("Notice: Zone '" + z.getZoneName() + "' is not a restricted zone!");
-            return false;
-        }
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt thu hồi quyền khỏi RestrictedZone
+        return false;
     }
 
     public boolean verifyAccess(String zoneId, Person person) {
-        Zone z = findZoneById(zoneId);
-        if (z == null) {
-            System.out.println("Error: Zone ID '" + zoneId + "' does not exist!");
-            return false;
-        }
-        if (person == null) {
-            return false;
-        }
-        String personCode = person.getCode();
-        boolean hasAccess = z.checkAccess(person);
-        if (hasAccess) {
-            System.out.println("ACCESS GRANTED: Person '" + personCode + "' is permitted to enter zone: " + z.getZoneName());
-        } else {
-            System.out.println("ACCESS DENIED: Person '" + personCode + "' DOES NOT have permission to enter restricted zone: " + z.getZoneName());
-        }
-        return hasAccess;
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt kiểm tra quyền truy cập đa hình qua z.checkAccess(person)
+        return false;
     }
 }
