@@ -1,13 +1,16 @@
 import view.MenuView;
 import util.InputHelper;
-import controller.SiteManagerController;
+import service.PersonnelService;
+import service.ZoneService;
+import service.AttendanceService;
+import service.IncidentService;
 import model.AttendanceRecord;
 import model.Incident;
 import java.util.Scanner;
 
 /**
  * TASK (shared file - each member edits only their own handler):
- * - Member 1 (Huynh Nguyen Hoang Khang - SE201461): main() loop, controller wiring, final integration.
+ * - Member 1 (Huynh Nguyen Hoang Khang - SE201461): main() loop, service wiring, final integration.
  * - Member 2 (Tran Ngoc Anh Tuan - SE201513): handlePersonMenu().
  * - Member 3 (Le Tan Thien - SE201852): handleZoneMenu().
  * - Member 4 (Nguyen Tan Loi - SE211059): handleAttendanceMenu(), handleIncidentMenu().
@@ -17,7 +20,10 @@ import java.util.Scanner;
  */
 public class Main {
 
-    static final SiteManagerController controller = new SiteManagerController();
+    static final PersonnelService personnelService = new PersonnelService();
+    static final ZoneService zoneService = new ZoneService();
+    static final AttendanceService attendanceService = new AttendanceService(personnelService, zoneService);
+    static final IncidentService incidentService = new IncidentService(personnelService);
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -105,11 +111,11 @@ public class Main {
                     AttendanceRecord.CheckType type = (typeChoice == 1)
                             ? AttendanceRecord.CheckType.CHECK_IN
                             : AttendanceRecord.CheckType.CHECK_OUT;
-                    controller.recordAttendance(personCode, zoneId, type);
+                    attendanceService.recordAttendance(personCode, zoneId, type);
                     break;
                 }
                 case 2:
-                    controller.getAttendanceManager().displayAllAttendanceRecords();
+                    attendanceService.displayAllAttendanceRecords();
                     break;
                 case 0:
                     back = true;
@@ -130,25 +136,25 @@ public class Main {
                     String description = InputHelper.getString(scanner, "Description: ");
                     Incident.IncidentSeverity[] levels = Incident.IncidentSeverity.values();
                     int level = InputHelper.getInt(scanner, "Severity (1-LOW, 2-MEDIUM, 3-HIGH, 4-CRITICAL): ", 1, levels.length);
-                    controller.getIncidentManager().reportIncident(incidentId, title, description, levels[level - 1]);
+                    incidentService.reportIncident(incidentId, title, description, levels[level - 1]);
                     break;
                 }
                 case 2:
-                    controller.getIncidentManager().displayAllIncidents();
+                    incidentService.displayAllIncidents();
                     break;
                 case 3: {
                     String incidentId = InputHelper.getString(scanner, "Incident ID: ");
                     String assigneeCode = InputHelper.getString(scanner, "Assignee person code: ");
-                    controller.assignIncident(incidentId, assigneeCode);
+                    incidentService.assignIncident(incidentId, assigneeCode);
                     break;
                 }
                 case 4: {
                     String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-                    controller.getIncidentManager().resolveIncidentAndNotify(incidentId);
+                    incidentService.resolveIncidentAndNotify(incidentId);
                     break;
                 }
                 case 5:
-                    controller.getIncidentManager().purgeResolvedAndNotify();
+                    incidentService.purgeResolvedAndNotify();
                     break;
                 case 0:
                     back = true;
