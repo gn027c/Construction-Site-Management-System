@@ -1,12 +1,16 @@
 import view.MenuView;
 import util.InputHelper;
-import controller.ZoneManager;
-import controller.IncidentManager;
+import service.PersonnelService;
+import service.ZoneService;
+import service.AttendanceService;
+import service.IncidentService;
+import model.AttendanceRecord;
+import model.Incident;
 import java.util.Scanner;
 
 /**
  * TASK (shared file - each member edits only their own handler):
- * - Member 1 (Huynh Nguyen Hoang Khang - SE201461): main() loop, controller wiring, final integration.
+ * - Member 1 (Huynh Nguyen Hoang Khang - SE201461): main() loop, service wiring, final integration.
  * - Member 2 (Tran Ngoc Anh Tuan - SE201513): handlePersonMenu().
  * - Member 3 (Le Tan Thien - SE201852): handleZoneMenu().
  * - Member 4 (Nguyen Tan Loi - SE211059): handleAttendanceMenu(), handleIncidentMenu().
@@ -16,8 +20,10 @@ import java.util.Scanner;
  */
 public class Main {
 
-    private static final ZoneManager zoneManager = new ZoneManager();
-    private static final IncidentManager incidentManager = new IncidentManager();
+    static final PersonnelService personnelService = new PersonnelService();
+    static final ZoneService zoneService = new ZoneService();
+    static final AttendanceService attendanceService = new AttendanceService(personnelService, zoneService);
+    static final IncidentService incidentService = new IncidentService(personnelService);
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -98,11 +104,18 @@ public class Main {
             MenuView.showAttendanceMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
-                case 1:
-                    // Call check-in / check-out function here
+                case 1: {
+                    String personCode = InputHelper.getString(scanner, "Person code: ");
+                    String zoneId = InputHelper.getString(scanner, "Zone ID: ");
+                    int typeChoice = InputHelper.getInt(scanner, "1. Check-in  2. Check-out: ", 1, 2);
+                    AttendanceRecord.CheckType type = (typeChoice == 1)
+                            ? AttendanceRecord.CheckType.CHECK_IN
+                            : AttendanceRecord.CheckType.CHECK_OUT;
+                    attendanceService.recordAttendance(personCode, zoneId, type);
                     break;
+                }
                 case 2:
-                    // Call view attendance history function here
+                    attendanceService.displayAllAttendanceRecords();
                     break;
                 case 0:
                     back = true;
@@ -115,13 +128,33 @@ public class Main {
         boolean back = false;
         while (!back) {
             MenuView.showIncidentMenu();
-            int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
+            int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
             switch (choice) {
-                case 1:
-                    // Call report incident function here
+                case 1: {
+                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
+                    String title = InputHelper.getString(scanner, "Title: ");
+                    String description = InputHelper.getString(scanner, "Description: ");
+                    Incident.IncidentSeverity[] levels = Incident.IncidentSeverity.values();
+                    int level = InputHelper.getInt(scanner, "Severity (1-LOW, 2-MEDIUM, 3-HIGH, 4-CRITICAL): ", 1, levels.length);
+                    incidentService.reportIncident(incidentId, title, description, levels[level - 1]);
                     break;
+                }
                 case 2:
-                    // Call display incident list function here
+                    incidentService.displayAllIncidents();
+                    break;
+                case 3: {
+                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
+                    String assigneeCode = InputHelper.getString(scanner, "Assignee person code: ");
+                    incidentService.assignIncident(incidentId, assigneeCode);
+                    break;
+                }
+                case 4: {
+                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
+                    incidentService.resolveIncidentAndNotify(incidentId);
+                    break;
+                }
+                case 5:
+                    incidentService.purgeResolvedAndNotify();
                     break;
                 case 0:
                     back = true;
