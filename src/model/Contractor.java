@@ -62,6 +62,12 @@ public class Contractor extends Person {
     }
 
     @Override
+    public boolean hasValidSafetyCredential() {
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt kiểm tra hợp lệ của contractId
+        return false;
+    }
+
+    @Override
     public String toCsvLine() {
         return String.format("%s,%s,%s,%s,%s,%s,%s",
                 getId(), getCode(), getName(), getPhoneNumber(), getRole(),

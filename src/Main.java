@@ -4,8 +4,6 @@ import service.PersonnelService;
 import service.ZoneService;
 import service.AttendanceService;
 import service.IncidentService;
-import model.AttendanceRecord;
-import model.Incident;
 import java.util.Scanner;
 
 /**
@@ -64,13 +62,13 @@ public class Main {
             int choice = InputHelper.getInt(scanner, "Enter option (0-3): ", 0, 3);
             switch (choice) {
                 case 1:
-                    // Call add person function here
+                    // TODO: Member 2 (Tran Ngoc Anh Tuan - SE201513) call add person
                     break;
                 case 2:
-                    // Call display person list function here
+                    // TODO: Member 2 (Tran Ngoc Anh Tuan - SE201513) call display person list
                     break;
                 case 3:
-                    // Call search / update person function here
+                    // TODO: Member 2 (Tran Ngoc Anh Tuan - SE201513) call search / update person
                     break;
                 case 0:
                     back = true;
@@ -86,10 +84,10 @@ public class Main {
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
                 case 1:
-                    // Call add zone function here
+                    // TODO: Member 3 (Le Tan Thien - SE201852) call add zone
                     break;
                 case 2:
-                    // Call display zone list function here
+                    // TODO: Member 3 (Le Tan Thien - SE201852) call display zone list
                     break;
                 case 0:
                     back = true;
@@ -104,18 +102,11 @@ public class Main {
             MenuView.showAttendanceMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
-                case 1: {
-                    String personCode = InputHelper.getString(scanner, "Person code: ");
-                    String zoneId = InputHelper.getString(scanner, "Zone ID: ");
-                    int typeChoice = InputHelper.getInt(scanner, "1. Check-in  2. Check-out: ", 1, 2);
-                    AttendanceRecord.CheckType type = (typeChoice == 1)
-                            ? AttendanceRecord.CheckType.CHECK_IN
-                            : AttendanceRecord.CheckType.CHECK_OUT;
-                    attendanceService.recordAttendance(personCode, zoneId, type);
+                case 1:
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call check-in / check-out
                     break;
-                }
                 case 2:
-                    attendanceService.displayAllAttendanceRecords();
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call display attendance records
                     break;
                 case 0:
                     back = true;
@@ -130,31 +121,20 @@ public class Main {
             MenuView.showIncidentMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
             switch (choice) {
-                case 1: {
-                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-                    String title = InputHelper.getString(scanner, "Title: ");
-                    String description = InputHelper.getString(scanner, "Description: ");
-                    Incident.IncidentSeverity[] levels = Incident.IncidentSeverity.values();
-                    int level = InputHelper.getInt(scanner, "Severity (1-LOW, 2-MEDIUM, 3-HIGH, 4-CRITICAL): ", 1, levels.length);
-                    incidentService.reportIncident(incidentId, title, description, levels[level - 1]);
+                case 1:
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call report incident
                     break;
-                }
                 case 2:
-                    incidentService.displayAllIncidents();
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call display incident list
                     break;
-                case 3: {
-                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-                    String assigneeCode = InputHelper.getString(scanner, "Assignee person code: ");
-                    incidentService.assignIncident(incidentId, assigneeCode);
+                case 3:
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call assign incident
                     break;
-                }
-                case 4: {
-                    String incidentId = InputHelper.getString(scanner, "Incident ID: ");
-                    incidentService.resolveIncidentAndNotify(incidentId);
+                case 4:
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call resolve incident
                     break;
-                }
                 case 5:
-                    incidentService.purgeResolvedAndNotify();
+                    // TODO: Member 4 (Nguyen Tan Loi - SE211059) call purge resolved incidents
                     break;
                 case 0:
                     back = true;

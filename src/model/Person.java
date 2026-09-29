@@ -99,6 +99,14 @@ public abstract class Person {
 
     public abstract String toCsvLine();
 
+    /**
+     * Phương thức trừu tượng kiểm tra điều kiện chứng chỉ/hợp đồng an toàn hợp lệ.
+     * PHỤ TRÁCH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
+     *
+     * @return true nếu đáp ứng tiêu chuẩn an toàn công trường, ngược lại false.
+     */
+    public abstract boolean hasValidSafetyCredential();
+
     @Override
     public String toString() {
         return String.format("ID: %s | Mã: %s | Tên: %s | SĐT: %s | Vai trò: %s",

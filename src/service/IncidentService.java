@@ -47,37 +47,23 @@ public class IncidentService {
         }
     }
 
+    public PersonnelService getPersonnelService() {
+        return personnelService;
+    }
+
     public Incident findIncidentById(String incidentId) {
         return incidentRepository.findById(incidentId);
     }
 
     public boolean assignIncident(String incidentId, String assigneeCode) {
-        if (assigneeCode == null || assigneeCode.trim().isEmpty()) {
-            System.out.println("Error: Assignee code cannot be empty!");
-            return false;
-        }
-        if (personnelService != null && personnelService.findPersonByCode(assigneeCode) == null) {
-            System.out.println("Error: Person '" + assigneeCode + "' not found!");
-            return false;
-        }
-        Incident inc = findIncidentById(incidentId);
-        if (inc == null || inc.getStatus() == Incident.IncidentStatus.RESOLVED) {
-            System.out.println("Error: Incident not found or already RESOLVED.");
-            return false;
-        }
-        inc.setAssignedTo(assigneeCode.trim());
-        inc.setStatus(Incident.IncidentStatus.ASSIGNED);
-        System.out.println("Incident assigned successfully.");
-        return true;
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt phân công xử lý sự cố (trạng thái ASSIGNED)
+        // và xác thực mã nhân sự qua personnelService
+        return false;
     }
 
     public boolean resolveIncident(String incidentId) {
-        Incident inc = findIncidentById(incidentId);
-        if (inc == null || inc.getStatus() != Incident.IncidentStatus.ASSIGNED) {
-            return false;
-        }
-        inc.setStatus(Incident.IncidentStatus.RESOLVED);
-        return true;
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt đóng sự cố (chuyển sang trạng thái RESOLVED)
+        return false;
     }
 
     public boolean resolveIncidentAndNotify(String incidentId) {
@@ -91,7 +77,8 @@ public class IncidentService {
     }
 
     public int purgeResolvedIncidents() {
-        return incidentRepository.deleteResolved();
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt xóa các sự cố đã RESOLVED khỏi danh sách
+        return 0;
     }
 
     public int purgeResolvedAndNotify() {

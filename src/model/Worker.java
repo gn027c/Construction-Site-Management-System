@@ -80,6 +80,12 @@ public class Worker extends Person {
     }
 
     @Override
+    public boolean hasValidSafetyCredential() {
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt kiểm tra hợp lệ của safetyCertId
+        return false;
+    }
+
+    @Override
     public String toCsvLine() {
         return String.format("%s,%s,%s,%s,%s,%s,%s,%s",
                 getId(), getCode(), getName(), getPhoneNumber(), getRole(),

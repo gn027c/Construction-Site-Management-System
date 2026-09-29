@@ -79,6 +79,12 @@ public class Visitor extends Person {
     }
 
     @Override
+    public boolean hasValidSafetyCredential() {
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt: khách tham quan không có chứng chỉ an toàn (mặc định false)
+        return false;
+    }
+
+    @Override
     public String toCsvLine() {
         return String.format("%s,%s,%s,%s,%s,%s,%s,%s",
                 getId(), getCode(), getName(), getPhoneNumber(), getRole(),

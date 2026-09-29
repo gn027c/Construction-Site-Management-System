@@ -43,4 +43,14 @@ public class IncidentRepository {
     public List<Incident> findAll() {
         return new ArrayList<>(incidentList);
     }
+
+    public boolean loadFromCsv(String filePath) {
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt đọc dữ liệu từ incidents.csv vào incidentList (Workshop 5)
+        return false;
+    }
+
+    public boolean saveToCsv(String filePath) {
+        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt ghi incidentList ra incidents.csv với UTF-8 BOM (Workshop 5)
+        return false;
+    }
 }

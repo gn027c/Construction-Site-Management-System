@@ -37,4 +37,14 @@ public class ZoneRepository {
     public List<Zone> findAll() {
         return new ArrayList<>(zoneList);
     }
+
+    public boolean loadFromCsv(String filePath) {
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt đọc dữ liệu từ zones.csv vào zoneList (Workshop 5)
+        return false;
+    }
+
+    public boolean saveToCsv(String filePath) {
+        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt ghi dữ liệu zoneList ra zones.csv với UTF-8 BOM (Workshop 5)
+        return false;
+    }
 }
