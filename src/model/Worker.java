@@ -97,4 +97,32 @@ public class Worker extends Person {
         return String.format("Worker{%s, trade='%s', safetyCertId='%s', assignedTeam='%s'}",
                 super.toString(), trade, safetyCertId, assignedTeam);
     }
+
+    package model;
+
+public class Worker extends Person {
+    private String safetyCertId;
+
+    public Worker(String id, String name, String safetyCertId) {
+        super(id, name);
+        this.safetyCertId = safetyCertId;
+    }
+
+    public String getSafetyCertId() { return safetyCertId; }
+    public void setSafetyCertId(String safetyCertId) { this.safetyCertId = safetyCertId; }
+
+    // Valid when safetyCertId is not empty and ends with "_SAFE"
+    @Override
+    public boolean hasValidSafetyCredential() {
+        return safetyCertId != null && !safetyCertId.trim().isEmpty()
+                && safetyCertId.endsWith("_SAFE");
+    }
+
+    @Override
+    public void displayDetails() {
+        System.out.print("[Worker] ");
+        super.displayDetails();
+        System.out.println("   Safety cert ID: " + safetyCertId);
+    }
+}
 }
