@@ -113,3 +113,27 @@ public abstract class Person {
                 id, code, name, phoneNumber, role != null ? role.name() : "N/A");
     }
 }
+
+package model;
+
+public abstract class Person {
+    protected String id;
+    protected String name;
+
+    public Person(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public abstract boolean hasValidSafetyCredential();
+
+    public void displayDetails() {
+        System.out.println("ID: " + id + " | Name: " + name
+                + " | Valid safety credential: " + hasValidSafetyCredential());
+    }
+}
