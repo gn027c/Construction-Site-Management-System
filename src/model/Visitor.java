@@ -96,4 +96,32 @@ public class Visitor extends Person {
         return String.format("Visitor{%s, purpose='%s', hostPersonName='%s', entryDate='%s'}",
                 super.toString(), purpose, hostPersonName, entryDate);
     }
+
+
+    package model;
+
+public class Visitor extends Person {
+
+    public Visitor(String id, String name) {
+        super(id, name);
+    }
+
+    // Visitors never hold a safety credential
+    @Override
+    public boolean hasValidSafetyCredential() {
+        return false;
+    }
+
+    @Override
+    public void displayDetails() {
+        System.out.println("[Visitor] ID: " + id + " | Name: " + name
+                + " | Valid safety credential: " + hasValidSafetyCredential());
+    }
+
+    // Visitor has no type-specific field, so the last column is empty
+    @Override
+    public String toCsvLine() {
+        return "VISITOR," + csv(id) + "," + csv(name) + ",";
+    }
+}
 }
