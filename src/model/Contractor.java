@@ -8,7 +8,23 @@ package model;
  * - Chịu trách nhiệm quản lý thông tin công ty thầu, hợp đồng thi công và chức danh đại diện.
  * - Cài đặt các hành vi hiển thị chi tiết và chuẩn bị dữ liệu xuất báo cáo theo yêu cầu Workshop 1.
  */
-// Valid when contractId is not empty and starts with "CTR-"
+public class Contractor extends Person {
+    private String companyName;
+    private String contractId;
+
+    public Contractor(String id, String code, String name, String phoneNumber,
+                      String companyName, String contractId) {
+        super(id, code, name, phoneNumber, Role.CONTRACTOR);
+        this.companyName = companyName;
+        this.contractId = contractId;
+    }
+
+    public String getCompanyName() { return companyName; }
+    public String getContractId() { return contractId; }
+    public void setCompanyName(String companyName) { this.companyName = companyName; }
+    public void setContractId(String contractId) { this.contractId = contractId; }
+
+    // Valid when contractId is not empty and starts with "CTR-"
     @Override
     public boolean hasValidSafetyCredential() {
         return contractId != null
