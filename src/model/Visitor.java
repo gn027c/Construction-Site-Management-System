@@ -10,4 +10,23 @@ package model;
  */
 public class Visitor extends Person {
 
-}
+    public Visitor(String id, String code, String name, String phoneNumber) {
+        super(id, code, name, phoneNumber, Role.VISITOR);
+    }
+
+    // Visitors never hold a safety credential
+    @Override
+    public boolean hasValidSafetyCredential() {
+        return false;
+    }
+
+    @Override
+    public String toCsvLine() {
+        return String.format("%s,%s,%s,%s,%s",
+                getId(), getCode(), getName(), getPhoneNumber(), getRole());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Visitor{%s}", super.toString());
+    }
