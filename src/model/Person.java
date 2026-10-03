@@ -114,26 +114,21 @@ public abstract class Person {
     }
 }
 
-package model;
-
-public abstract class Person {
-    protected String id;
-    protected String name;
-
-    public Person(String id, String name) {
-        this.id = id;
-        this.name = name;
-    }
-
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
+   // Each subclass decides whether the person holds a valid safety credential
     public abstract boolean hasValidSafetyCredential();
-
-    public void displayDetails() {
-        System.out.println("ID: " + id + " | Name: " + name
-                + " | Valid safety credential: " + hasValidSafetyCredential());
+ 
+    // Each subclass prints its own details to the console
+    public abstract void displayDetails();
+ 
+    // Each subclass returns one CSV line: TYPE,id,name,<type-specific field>
+    public abstract String toCsvLine();
+ 
+    // Helper for subclasses: wrap a value in quotes if it contains a comma, quote or newline
+    protected static String csv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }
