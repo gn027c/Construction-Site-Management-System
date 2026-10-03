@@ -54,8 +54,6 @@ public class Main {
         }
         scanner.close();
     }
-
-    private static final List<Person> people = new ArrayList<>();
  
     private static void handlePersonMenu(Scanner scanner) {
         boolean back = false;
@@ -64,102 +62,21 @@ public class Main {
             int choice = InputHelper.getInt(scanner, "Enter option (0-3): ", 0, 3);
             switch (choice) {
                 case 1:
-                    addPerson(scanner);
+                   // (Tran Ngoc Anh Tuan - SE201513
                     break;
                 case 2:
-                    displayPersonList();
+                    //(Tran Ngoc Anh Tuan - SE201513
                     break;
                 case 3:
-                    searchAndUpdatePerson(scanner);
+                    //(Tran Ngoc Anh Tuan - SE201513
                     break;
                 case 0:
-                    back = true;
+                  // (Tran Ngoc Anh Tuan - SE201513
                     break;
             }
         }
     }
  
-    // ---------- 1. Add person ----------
-    private static void addPerson(Scanner scanner) {
-        int type = InputHelper.getInt(scanner,
-                "Select type (1-Worker, 2-Contractor, 3-Visitor, 0-Cancel): ", 0, 3);
-        if (type == 0) return;
- 
-        String id = readNonEmpty(scanner, "ID: ");
-        if (findPersonById(id) != null) {
-            System.out.println("ID already exists. Person was not added.");
-            return;
-        }
-        String name = readNonEmpty(scanner, "Name: ");
- 
-        switch (type) {
-            case 1: {
-                String cert = readNonEmpty(scanner, "Safety cert ID: ");
-                people.add(new Worker(id, name, cert));
-                System.out.println("Worker added.");
-                break;
-            }
-            case 2: {
-                String contract = readNonEmpty(scanner, "Contract ID: ");
-                people.add(new Contractor(id, name, contract));
-                System.out.println("Contractor added.");
-                break;
-            }
-            case 3:
-                people.add(new Visitor(id, name));
-                System.out.println("Visitor added.");
-                break;
-        }
-    }
- 
-    // ---------- 2. Display person list (polymorphism) ----------
-    private static void displayPersonList() {
-        if (people.isEmpty()) {
-            System.out.println("The personnel list is empty.");
-            return;
-        }
-        for (Person p : people) {
-            p.displayDetails(); // runs Worker / Contractor / Visitor version
-        }
-    }
- 
-    // ---------- 3. Search / update person ----------
-    private static void searchAndUpdatePerson(Scanner scanner) {
-        String id = readNonEmpty(scanner, "Enter ID to search: ");
-        Person p = findPersonById(id);
-        if (p == null) {
-            System.out.println("Person not found.");
-            return;
-        }
-        p.displayDetails();
- 
-        int update = InputHelper.getInt(scanner, "Update this person? (1-Yes, 0-No): ", 0, 1);
-        if (update == 0) return;
- 
-        System.out.print("New name (press Enter to keep current): ");
-        String name = scanner.nextLine().trim();
-        if (!name.isEmpty()) p.setName(name);
- 
-        if (p instanceof Worker) {
-            System.out.print("New safety cert ID (press Enter to keep current): ");
-            String v = scanner.nextLine().trim();
-            if (!v.isEmpty()) ((Worker) p).setSafetyCertId(v);
-        } else if (p instanceof Contractor) {
-            System.out.print("New contract ID (press Enter to keep current): ");
-            String v = scanner.nextLine().trim();
-            if (!v.isEmpty()) ((Contractor) p).setContractId(v);
-        }
-        System.out.println("Updated successfully.");
-        p.displayDetails();
-    }
- 
-    // ---------- Helpers ----------
-    private static Person findPersonById(String id) {
-        for (Person p : people) {
-            if (p.getId().equalsIgnoreCase(id)) return p;
-        }
-        return null;
-    }
  
     private static String readNonEmpty(Scanner scanner, String prompt) {
         String s;
