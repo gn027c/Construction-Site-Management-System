@@ -81,31 +81,22 @@ public class Contractor extends Person {
     }
 
 
-    package model;
-
-public class Contractor extends Person {
-    private String contractId;
-
-    public Contractor(String id, String name, String contractId) {
-        super(id, name);
-        this.contractId = contractId;
-    }
-
-    public String getContractId() { return contractId; }
-    public void setContractId(String contractId) { this.contractId = contractId; }
-
-    // Valid when contractId is not empty and starts with "CTR-"
+  // Valid when contractId is not empty and starts with "CTR-"
     @Override
     public boolean hasValidSafetyCredential() {
         return contractId != null && !contractId.trim().isEmpty()
                 && contractId.startsWith("CTR-");
     }
-
+ 
     @Override
     public void displayDetails() {
-        System.out.print("[Contractor] ");
-        super.displayDetails();
-        System.out.println("   Contract ID: " + contractId);
+        System.out.println("[Contractor] ID: " + id + " | Name: " + name
+                + " | Contract ID: " + contractId
+                + " | Valid safety credential: " + hasValidSafetyCredential());
     }
-}
+ 
+    @Override
+    public String toCsvLine() {
+        return "CONTRACTOR," + csv(id) + "," + csv(name) + "," + csv(contractId);
+    }
 }
