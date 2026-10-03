@@ -98,14 +98,6 @@ public class Visitor extends Person {
     }
 
 
-    package model;
-
-public class Visitor extends Person {
-
-    public Visitor(String id, String name) {
-        super(id, name);
-    }
-
     // Visitors never hold a safety credential
     @Override
     public boolean hasValidSafetyCredential() {
