@@ -79,50 +79,24 @@ public class Worker extends Person {
         System.out.println("========================================");
     }
 
+// Valid when safetyCertId is not empty and ends with "_SAFE"
     @Override
     public boolean hasValidSafetyCredential() {
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt kiểm tra hợp lệ của safetyCertId
-        return false;
-    }
-
-    @Override
-    public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s,%s",
-                getId(), getCode(), getName(), getPhoneNumber(), getRole(),
-                trade, safetyCertId, assignedTeam);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("Worker{%s, trade='%s', safetyCertId='%s', assignedTeam='%s'}",
-                super.toString(), trade, safetyCertId, assignedTeam);
-    }
-
-    package model;
-
-public class Worker extends Person {
-    private String safetyCertId;
-
-    public Worker(String id, String name, String safetyCertId) {
-        super(id, name);
-        this.safetyCertId = safetyCertId;
-    }
-
-    public String getSafetyCertId() { return safetyCertId; }
-    public void setSafetyCertId(String safetyCertId) { this.safetyCertId = safetyCertId; }
-
-    // Valid when safetyCertId is not empty and ends with "_SAFE"
-    @Override
-    public boolean hasValidSafetyCredential() {
-        return safetyCertId != null && !safetyCertId.trim().isEmpty()
+        return safetyCertId != null
+                && !safetyCertId.trim().isEmpty()
                 && safetyCertId.endsWith("_SAFE");
     }
 
     @Override
-    public void displayDetails() {
-        System.out.print("[Worker] ");
-        super.displayDetails();
-        System.out.println("   Safety cert ID: " + safetyCertId);
+    public String toCsvLine() {
+        return String.format("%s,%s,%s,%s,%s,%s",
+                getId(), getCode(), getName(), getPhoneNumber(), getRole(),
+                safetyCertId);
     }
-}
+
+    @Override
+    public String toString() {
+        return String.format("Worker{%s, safetyCertId='%s'}",
+                super.toString(), safetyCertId);
+    }
 }
