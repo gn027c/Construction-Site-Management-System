@@ -105,30 +105,21 @@ public abstract class Person {
      *
      * @return true nếu đáp ứng tiêu chuẩn an toàn công trường, ngược lại false.
      */
+    
     public abstract boolean hasValidSafetyCredential();
+
+    // CSV line used when saving to file
+    public abstract String toCsvLine();
+
+    // Polymorphic display: each subclass prints its own details via toString()
+    public void displayDetails() {
+        System.out.println(this);
+        System.out.println("   Valid safety credential: " + hasValidSafetyCredential());
+    }
 
     @Override
     public String toString() {
-        return String.format("ID: %s | Mã: %s | Tên: %s | SĐT: %s | Vai trò: %s",
+        return String.format("ID: %s | Code: %s | Name: %s | Phone: %s | Role: %s",
                 id, code, name, phoneNumber, role != null ? role.name() : "N/A");
-    }
-}
-
-   // Each subclass decides whether the person holds a valid safety credential
-    public abstract boolean hasValidSafetyCredential();
- 
-    // Each subclass prints its own details to the console
-    public abstract void displayDetails();
- 
-    // Each subclass returns one CSV line: TYPE,id,name,<type-specific field>
-    public abstract String toCsvLine();
- 
-    // Helper for subclasses: wrap a value in quotes if it contains a comma, quote or newline
-    protected static String csv(String value) {
-        if (value == null) return "";
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
     }
 }
