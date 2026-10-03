@@ -61,10 +61,12 @@ public class Contractor extends Person {
         System.out.println("===========================================");
     }
 
+    // Valid when contractId is not empty and starts with "CTR-"
     @Override
     public boolean hasValidSafetyCredential() {
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt kiểm tra hợp lệ của contractId
-        return false;
+        return contractId != null
+                && !contractId.trim().isEmpty()
+                && contractId.startsWith("CTR-");
     }
 
     @Override
@@ -80,23 +82,4 @@ public class Contractor extends Person {
                 super.toString(), companyName, contractId);
     }
 
-
-  // Valid when contractId is not empty and starts with "CTR-"
-    @Override
-    public boolean hasValidSafetyCredential() {
-        return contractId != null && !contractId.trim().isEmpty()
-                && contractId.startsWith("CTR-");
-    }
- 
-    @Override
-    public void displayDetails() {
-        System.out.println("[Contractor] ID: " + id + " | Name: " + name
-                + " | Contract ID: " + contractId
-                + " | Valid safety credential: " + hasValidSafetyCredential());
-    }
- 
-    @Override
-    public String toCsvLine() {
-        return "CONTRACTOR," + csv(id) + "," + csv(name) + "," + csv(contractId);
-    }
 }
