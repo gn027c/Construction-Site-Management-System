@@ -78,42 +78,20 @@ public class Visitor extends Person {
         System.out.println("===============================================");
     }
 
+// Visitors never hold a safety credential
     @Override
     public boolean hasValidSafetyCredential() {
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt: khách tham quan không có chứng chỉ an toàn (mặc định false)
         return false;
     }
 
     @Override
     public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s,%s",
-                getId(), getCode(), getName(), getPhoneNumber(), getRole(),
-                purpose, hostPersonName, entryDate);
+        return String.format("%s,%s,%s,%s,%s",
+                getId(), getCode(), getName(), getPhoneNumber(), getRole());
     }
 
     @Override
     public String toString() {
-        return String.format("Visitor{%s, purpose='%s', hostPersonName='%s', entryDate='%s'}",
-                super.toString(), purpose, hostPersonName, entryDate);
+        return String.format("Visitor{%s}", super.toString());
     }
-
-
-    // Visitors never hold a safety credential
-    @Override
-    public boolean hasValidSafetyCredential() {
-        return false;
-    }
-
-    @Override
-    public void displayDetails() {
-        System.out.println("[Visitor] ID: " + id + " | Name: " + name
-                + " | Valid safety credential: " + hasValidSafetyCredential());
-    }
-
-    // Visitor has no type-specific field, so the last column is empty
-    @Override
-    public String toCsvLine() {
-        return "VISITOR," + csv(id) + "," + csv(name) + ",";
-    }
-}
 }
