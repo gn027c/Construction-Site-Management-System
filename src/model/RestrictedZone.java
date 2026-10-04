@@ -8,9 +8,9 @@ import java.util.Set;
  * MÔ TẢ:
  * - Lớp đại diện cho khu vực nguy hiểm / hạn chế tiếp cận trên công trường.
  * - Kế thừa từ lớp cơ sở Zone.
+ * - Quản lý cấp độ an toàn yêu cầu (requiredSafetyLevel) và danh sách mã nhân sự được cấp phép (allowedPersonCodes).
+ * - Ghi đè phương thức checkAccess(Person person) để kiểm tra quyền truy cập nghiêm ngặt.
  * - Khai báo Enum SafetyLevel bên trong để định nghĩa cấp độ an toàn.
- * - Quản lý danh sách mã nhân sự được cấp phép (allowedPersonCodes).
- * - Ghi đè phương thức checkAccess(Person person) để kiểm tra quyền truy cập.
  */
 public class RestrictedZone extends Zone {
 
