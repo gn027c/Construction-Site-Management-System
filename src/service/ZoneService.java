@@ -1,6 +1,7 @@
 package service;
 
 import model.Person;
+import model.RestrictedZone;
 import model.Zone;
 import repository.ZoneRepository;
 import java.util.List;
@@ -44,17 +45,28 @@ public class ZoneService {
     }
 
     public boolean grantZoneAccess(String zoneId, String personCode) {
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt cấp quyền vào RestrictedZone
+        Zone zone = findZoneById(zoneId);
+        if (zone instanceof RestrictedZone) {
+            ((RestrictedZone) zone).grantAccess(personCode);
+            return true;
+        }
         return false;
     }
 
     public boolean revokeZoneAccess(String zoneId, String personCode) {
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt thu hồi quyền khỏi RestrictedZone
+        Zone zone = findZoneById(zoneId);
+        if (zone instanceof RestrictedZone) {
+            ((RestrictedZone) zone).revokeAccess(personCode);
+            return true;
+        }
         return false;
     }
 
     public boolean verifyAccess(String zoneId, Person person) {
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt kiểm tra quyền truy cập đa hình qua z.checkAccess(person)
-        return false;
+        Zone zone = findZoneById(zoneId);
+        if (zone == null || person == null) {
+            return false;
+        }
+        return zone.checkAccess(person);
     }
 }
