@@ -95,11 +95,47 @@ public class Main {
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
                 case 1:
-                    // TODO: Member 3 (Le Tan Thien - SE201852) call add zone
+                    System.out.println("\n--- ADD ZONE ---");
+                    String zoneId = readNonEmpty(scanner, "Enter Zone ID: ");
+                    String zoneName = readNonEmpty(scanner, "Enter Zone Name: ");
+
+                    System.out.println("Select Zone Type: 1. Normal Zone | 2. Restricted Zone");
+                    int type = InputHelper.getInt(scanner, "Choice (1-2): ", 1, 2);
+
+                    if (type == 1) {
+                        Zone zone = new Zone(zoneId, zoneName);
+                        zoneService.addZone(zone);
+                        System.out.println("Normal zone added successfully!");
+                    } else {
+                        System.out.println("Select Safety Level: 1. LOW | 2. MEDIUM | 3. HIGH | 4. CRITICAL");
+                        int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
+                        
+                        RestrictedZone.SafetyLevel level;
+                        switch (levelOpt) {
+                            case 1: level = RestrictedZone.SafetyLevel.LOW; break;
+                            case 3: level = RestrictedZone.SafetyLevel.HIGH; break;
+                            case 4: level = RestrictedZone.SafetyLevel.CRITICAL; break;
+                            default: level = RestrictedZone.SafetyLevel.MEDIUM; break;
+                        }
+
+                        RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new java.util.HashSet<>());
+                        zoneService.addZone(restrictedZone);
+                        System.out.println("Restricted zone added successfully!");
+                    }
                     break;
+
                 case 2:
-                    // TODO: Member 3 (Le Tan Thien - SE201852) call display zone list
+                    System.out.println("\n--- ZONE LIST ---");
+                    java.util.List<Zone> zones = zoneService.getAllZones();
+                    if (zones.isEmpty()) {
+                        System.out.println("No zones available.");
+                    } else {
+                        for (Zone z : zones) {
+                            System.out.println(z.toString());
+                        }
+                    }
                     break;
+
                 case 0:
                     back = true;
                     break;

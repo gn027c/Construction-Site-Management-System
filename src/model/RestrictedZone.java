@@ -10,33 +10,43 @@ import java.util.Set;
  * - Kế thừa từ lớp cơ sở Zone.
  * - Quản lý cấp độ an toàn yêu cầu (requiredSafetyLevel) và danh sách mã nhân sự được cấp phép (allowedPersonCodes).
  * - Ghi đè phương thức checkAccess(Person person) để kiểm tra quyền truy cập nghiêm ngặt.
+ * - Khai báo Enum SafetyLevel bên trong để định nghĩa cấp độ an toàn.
  */
 public class RestrictedZone extends Zone {
-    private String requiredSafetyLevel;
+
+
+    public enum SafetyLevel {
+        LOW,
+        MEDIUM,
+        HIGH,
+        CRITICAL
+    }
+
+    private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
-    // Parameterized Constructor - Yêu cầu đầy đủ thông tin bắt buộc
-    public RestrictedZone(String zoneId, String zoneName, String requiredSafetyLevel, Set<String> allowedPersonCodes) {
+    // Parameterized Constructor
+    public RestrictedZone(String zoneId, String zoneName, SafetyLevel requiredSafetyLevel, Set<String> allowedPersonCodes) {
         super(zoneId, zoneName);
-        if (requiredSafetyLevel == null || requiredSafetyLevel.trim().isEmpty()) {
-            throw new IllegalArgumentException("Cấp độ an toàn yêu cầu không được để trống.");
+        if (requiredSafetyLevel == null) {
+            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
         }
         if (allowedPersonCodes == null) {
             throw new IllegalArgumentException("Danh sách nhân sự được cấp phép không được null.");
         }
-        this.requiredSafetyLevel = requiredSafetyLevel.trim();
+        this.requiredSafetyLevel = requiredSafetyLevel;
         this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
     }
 
-    public String getRequiredSafetyLevel() {
+    public SafetyLevel getRequiredSafetyLevel() {
         return requiredSafetyLevel;
     }
 
-    public void setRequiredSafetyLevel(String requiredSafetyLevel) {
-        if (requiredSafetyLevel == null || requiredSafetyLevel.trim().isEmpty()) {
-            throw new IllegalArgumentException("Cấp độ an toàn yêu cầu không được để trống.");
+    public void setRequiredSafetyLevel(SafetyLevel requiredSafetyLevel) {
+        if (requiredSafetyLevel == null) {
+            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
         }
-        this.requiredSafetyLevel = requiredSafetyLevel.trim();
+        this.requiredSafetyLevel = requiredSafetyLevel;
     }
 
     public Set<String> getAllowedPersonCodes() {
@@ -45,7 +55,7 @@ public class RestrictedZone extends Zone {
 
     public void setAllowedPersonCodes(Set<String> allowedPersonCodes) {
         if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự được cấp phép không được null.");
+            throw new IllegalArgumentException("Danh sách nhân sự không được null.");
         }
         this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
     }
@@ -62,23 +72,20 @@ public class RestrictedZone extends Zone {
         }
     }
 
-    /**
-     * Ghi đè kiểm tra quyền truy cập đa hình:
-     * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
-     */
     @Override
     public boolean checkAccess(Person person) {
         if (person == null || person.getCode() == null) {
             return false;
         }
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) mở rộng kiểm tra đa tầng kết hợp allowedPersonCodes,
-        // person.hasValidSafetyCredential() và requiredSafetyLevel
-        return allowedPersonCodes.contains(person.getCode().trim());
+        boolean isAccessGranted = allowedPersonCodes.contains(person.getCode().trim());
+        boolean hasValidSafety = person.hasValidSafetyCredential();
+
+        return isAccessGranted && hasValidSafety;
     }
 
     @Override
     public String toString() {
-        return String.format("RestrictedZone{%s, requiredSafetyLevel='%s', allowedCount=%d}",
+        return String.format("RestrictedZone{%s, requiredSafetyLevel=%s, allowedCount=%d}",
                 super.toString(), requiredSafetyLevel, allowedPersonCodes.size());
     }
 }
