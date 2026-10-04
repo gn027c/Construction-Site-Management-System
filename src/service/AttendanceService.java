@@ -67,12 +67,37 @@ public class AttendanceService {
     }
 
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt:
-        // 1. Kiểm tra tồn tại nhân sự qua personnelService.findPersonByCode
-        // 2. Nếu CHECK_IN, kiểm tra quyền vào khu vực qua zoneService.verifyAccess (đa hình)
-        // 3. Gọi processAttendance để cập nhật trạng thái FSM
-        // 4. In thông tin chi tiết qua person.displayDetails() khi thành công
-        return false;
+        if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty() || type == null) {
+            System.out.println("Error: Invalid attendance parameters!");
+            return false;
+        }
+
+        // 1. Kiểm tra tồn tại nhân sự
+        model.Person person = personnelService.findPersonByCode(personCode.trim());
+        if (person == null) {
+            System.out.println("Error: Person with code '" + personCode + "' not found.");
+            return false;
+        }
+
+        // 2. Nếu CHECK_IN, kiểm tra quyền truy cập vào khu vực qua verifyAccess (đa hình)
+        if (type == AttendanceRecord.CheckType.CHECK_IN) {
+            if (!zoneService.verifyAccess(zoneId.trim(), person)) {
+                System.out.println("Access Denied: Person '" + person.getName() + "' is not authorized for zone '" + zoneId + "'.");
+                return false;
+            }
+        }
+
+        // 3. Cập nhật trạng thái máy FSM (chặn vào trùng hoặc ra sai khu vực)
+        boolean success = processAttendance(personCode, zoneId, type);
+        if (!success) {
+            System.out.println("Error: Invalid attendance sequence (FSM violation).");
+            return false;
+        }
+
+        // 4. In thông tin chi tiết nhân sự khi thành công (đa hình displayDetails)
+        System.out.println("Attendance recorded successfully: " + type + " at zone " + zoneId);
+        person.displayDetails();
+        return true;
     }
 
     public List<AttendanceRecord> getAllAttendanceRecords() {

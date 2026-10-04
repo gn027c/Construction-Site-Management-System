@@ -95,17 +95,12 @@ public abstract class Person {
         this.role = role;
     }
 
-    public abstract void displayDetails();
-
-    public abstract String toCsvLine();
-
     /**
      * Phương thức trừu tượng kiểm tra điều kiện chứng chỉ/hợp đồng an toàn hợp lệ.
      * PHỤ TRÁCH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
      *
      * @return true nếu đáp ứng tiêu chuẩn an toàn công trường, ngược lại false.
      */
-    
     public abstract boolean hasValidSafetyCredential();
 
     // CSV line used when saving to file

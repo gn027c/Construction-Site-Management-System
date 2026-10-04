@@ -56,14 +56,50 @@ public class IncidentService {
     }
 
     public boolean assignIncident(String incidentId, String assigneeCode) {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt phân công xử lý sự cố (trạng thái ASSIGNED)
-        // và xác thực mã nhân sự qua personnelService
-        return false;
+        if (incidentId == null || incidentId.trim().isEmpty() || assigneeCode == null || assigneeCode.trim().isEmpty()) {
+            System.out.println("Error: Incident ID and Assignee Code cannot be empty!");
+            return false;
+        }
+
+        Incident inc = findIncidentById(incidentId.trim());
+        if (inc == null) {
+            System.out.println("Error: Incident '" + incidentId + "' not found.");
+            return false;
+        }
+
+        if (inc.getStatus() != Incident.IncidentStatus.OPEN) {
+            System.out.println("Error: Only OPEN incidents can be assigned. Current status: " + inc.getStatus());
+            return false;
+        }
+
+        // Xác thực nhân sự phụ trách tồn tại qua personnelService
+        if (personnelService != null && personnelService.findPersonByCode(assigneeCode.trim()) == null) {
+            System.out.println("Error: Person with code '" + assigneeCode + "' not found in personnel registry!");
+            return false;
+        }
+
+        inc.setAssignedTo(assigneeCode.trim());
+        inc.setStatus(Incident.IncidentStatus.ASSIGNED);
+        System.out.println("Incident '" + incidentId + "' assigned to '" + assigneeCode + "'. Status is now ASSIGNED.");
+        return true;
     }
 
     public boolean resolveIncident(String incidentId) {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt đóng sự cố (chuyển sang trạng thái RESOLVED)
-        return false;
+        if (incidentId == null || incidentId.trim().isEmpty()) {
+            return false;
+        }
+
+        Incident inc = findIncidentById(incidentId.trim());
+        if (inc == null) {
+            return false;
+        }
+
+        if (inc.getStatus() != Incident.IncidentStatus.ASSIGNED) {
+            return false;
+        }
+
+        inc.setStatus(Incident.IncidentStatus.RESOLVED);
+        return true;
     }
 
     public boolean resolveIncidentAndNotify(String incidentId) {
@@ -77,8 +113,7 @@ public class IncidentService {
     }
 
     public int purgeResolvedIncidents() {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt xóa các sự cố đã RESOLVED khỏi danh sách
-        return 0;
+        return incidentRepository.deleteResolved();
     }
 
     public int purgeResolvedAndNotify() {

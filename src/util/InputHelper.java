@@ -43,4 +43,23 @@ public class InputHelper {
         }
         return value;
     }
+
+    /**
+     * Prompts the user to input a date in "dd/MM/yyyy" format and validates it.
+     */
+    public static String getDate(Scanner scanner, String prompt) {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+        sdf.setLenient(false);
+
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            try {
+                sdf.parse(input);
+                return input;
+            } catch (java.text.ParseException e) {
+                System.out.println("Error: Invalid date format or non-existent date! Please use dd/MM/yyyy (e.g., 25/12/2024).");
+            }
+        }
+    }
 }
