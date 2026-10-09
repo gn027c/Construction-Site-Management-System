@@ -14,7 +14,25 @@ package exception;
  */
 public class DuplicatePersonCodeException extends SiteManagementException {
 
-    public DuplicatePersonCodeException(String code) {
-        super("Personnel code already exists in the system: " + code);
+   public class PersonnelService {
+ 
+    private final PersonRepository repository;
+ 
+    public PersonnelService(PersonRepository repository) {
+        this.repository = repository;
+    }
+ 
+    public void addPerson(Person person) throws DuplicatePersonCodeException {
+        if (person == null) {
+            throw new IllegalArgumentException("Person must not be null");
+        }
+        if (repository.existsByCode(person.getCode())) {
+            throw new DuplicatePersonCodeException(person.getCode());
+        }
+        repository.save(person);
+    }
+ 
+    public List<Person> getAllPersons() {
+        return repository.findAll();
     }
 }
