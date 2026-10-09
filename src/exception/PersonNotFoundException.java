@@ -9,8 +9,8 @@ package exception;
  * NOTE DÀNH CHO TUẤN:
  * - VỊ TRÍ CẦN LÀM:
  *   1. Sử dụng exception này trong PersonnelService.java (phương thức findPersonByCode, updatePerson, deletePerson).
- *   2. Thay vì chỉ trả về null hoặc false khi không tìm thấy mã nhân sự, Tuấn có thể ném exception này:
- *      throw new PersonNotFoundException("Không tìm thấy nhân sự với mã: " + code);
+ *   2. Thay vì chỉ trả về null hoặc false khi không tìm thấy mã nhân sự, Tuấn ném exception này:
+ *      throw new PersonNotFoundException(code);
  */
 public class PersonNotFoundException extends SiteManagementException {
 

@@ -10,7 +10,7 @@ package exception;
  * - VỊ TRÍ CẦN LÀM:
  *   1. Sử dụng exception này trong ZoneRepository.java hoặc ZoneService.java (phương thức findZoneById, verifyAccess).
  *   2. Nếu người dùng nhập mã phân vùng không tồn tại trong danh sách:
- *      throw new ZoneNotFoundException("Không tìm thấy phân vùng: " + zoneId);
+ *      throw new ZoneNotFoundException(zoneId);
  */
 public class ZoneNotFoundException extends SiteManagementException {
 

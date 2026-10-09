@@ -10,7 +10,7 @@ package exception;
  * - VỊ TRÍ CẦN LÀM:
  *   1. Sử dụng exception này trong PersonRepository.java hoặc PersonnelService.java (phương thức addPerson).
  *   2. Kiểm tra nếu mã nhân sự (Person.getCode()) đã tồn tại trong danh sách thì ném exception này:
- *      throw new DuplicatePersonCodeException("Mã nhân sự đã tồn tại: " + code);
+ *      throw new DuplicatePersonCodeException(code);
  */
 public class DuplicatePersonCodeException extends SiteManagementException {
 

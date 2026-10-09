@@ -10,7 +10,7 @@ package exception;
  * - VỊ TRÍ CẦN LÀM:
  *   1. Sử dụng exception này trong ZoneRepository.java hoặc ZoneService.java (phương thức addZone).
  *   2. Kiểm tra nếu mã phân vùng (Zone.getZoneId()) đã tồn tại thì ném exception:
- *      throw new DuplicateZoneIdException("Mã phân vùng đã tồn tại: " + zoneId);
+ *      throw new DuplicateZoneIdException(zoneId);
  */
 public class DuplicateZoneIdException extends SiteManagementException {
 

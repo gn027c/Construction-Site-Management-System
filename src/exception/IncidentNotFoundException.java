@@ -10,7 +10,7 @@ package exception;
  * - VỊ TRÍ CẦN LÀM:
  *   1. Sử dụng exception này trong IncidentRepository.java hoặc IncidentService.java.
  *   2. Ném ra khi tra cứu, gán người xử lý, giải quyết hoặc đóng sự cố mà mã sự cố không tồn tại:
- *      throw new IncidentNotFoundException("Không tìm thấy sự cố với mã: " + incidentId);
+ *      throw new IncidentNotFoundException(incidentId);
  */
 public class IncidentNotFoundException extends SiteManagementException {
 
