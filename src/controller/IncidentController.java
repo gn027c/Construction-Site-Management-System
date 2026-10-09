@@ -75,7 +75,11 @@ public class IncidentController {
         System.out.println("\n--- ASSIGN INCIDENT HANDLER ---");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
-        incidentService.assignIncident(incidentId, assigneeCode);
+        try {
+            incidentService.assignIncident(incidentId, assigneeCode);
+        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
+            System.out.println("Assignment Error: " + e.getMessage());
+        }
     }
 
     private void resolveIncidentFlow(Scanner scanner) {
