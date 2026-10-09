@@ -14,7 +14,38 @@ package exception;
  */
 public class InvalidPhoneNumberException extends SiteManagementException {
 
-    public InvalidPhoneNumberException(String phone) {
-        super("Invalid phone number format: " + phone + ". Expected 10 digits starting with 0.");
+    public class Person {
+    private String phoneNumber;
+    // ... các field khác
+
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
+
+    public void setPhoneNumber(String phoneNumber) throws InvalidPhoneNumberException {
+        if (!isValidPhone(phoneNumber)) {
+            throw new InvalidPhoneNumberException(phoneNumber);
+        }
+        this.phoneNumber = phoneNumber;
+    }
+
+    /** 10 chữ số, bắt đầu bằng 0, chỉ chứa chữ số */
+    public static boolean isValidPhone(String phone) {
+        return phone != null && phone.matches("^0\\d{9}$");
+    }
+
+       public void addPerson(Person p) throws InvalidPhoneNumberException {
+    if (!Person.isValidPhone(p.getPhoneNumber())) {
+        throw new InvalidPhoneNumberException(p.getPhoneNumber());
+    }
+    // ... thêm vào danh sách
+}
+
+public void updatePhone(String id, String newPhone) throws InvalidPhoneNumberException {
+    Person p = findById(id);
+    if (p != null) {
+        p.setPhoneNumber(newPhone); // setter tự ném exception nếu sai
+    }
+}
+}
 }
