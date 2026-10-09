@@ -55,7 +55,8 @@ public class IncidentService {
         return incidentRepository.findById(incidentId);
     }
 
-    public boolean assignIncident(String incidentId, String assigneeCode) {
+    public boolean assignIncident(String incidentId, String assigneeCode)
+            throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
         if (incidentId == null || incidentId.trim().isEmpty() || assigneeCode == null || assigneeCode.trim().isEmpty()) {
             System.out.println("Error: Incident ID and Assignee Code cannot be empty!");
             return false;
@@ -63,13 +64,12 @@ public class IncidentService {
 
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
-            System.out.println("Error: Incident '" + incidentId + "' not found.");
-            return false;
+            throw new exception.IncidentNotFoundException(incidentId.trim());
         }
 
         if (inc.getStatus() != Incident.IncidentStatus.OPEN) {
-            System.out.println("Error: Only OPEN incidents can be assigned. Current status: " + inc.getStatus());
-            return false;
+            throw new exception.InvalidIncidentStateException(incidentId.trim(),
+                    inc.getStatus().name(), "Only OPEN incidents can be assigned to personnel.");
         }
 
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
@@ -84,18 +84,20 @@ public class IncidentService {
         return true;
     }
 
-    public boolean resolveIncident(String incidentId) {
+    public boolean resolveIncident(String incidentId)
+            throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
         if (incidentId == null || incidentId.trim().isEmpty()) {
             return false;
         }
 
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
-            return false;
+            throw new exception.IncidentNotFoundException(incidentId.trim());
         }
 
         if (inc.getStatus() != Incident.IncidentStatus.ASSIGNED) {
-            return false;
+            throw new exception.InvalidIncidentStateException(incidentId.trim(),
+                    inc.getStatus().name(), "Only ASSIGNED incidents can be transitioned to RESOLVED.");
         }
 
         inc.setStatus(Incident.IncidentStatus.RESOLVED);
@@ -103,13 +105,15 @@ public class IncidentService {
     }
 
     public boolean resolveIncidentAndNotify(String incidentId) {
-        if (resolveIncident(incidentId)) {
-            System.out.println("Incident resolved.");
-            return true;
-        } else {
-            System.out.println("Error: Incident not found or not ASSIGNED yet.");
-            return false;
+        try {
+            if (resolveIncident(incidentId)) {
+                System.out.println("Incident resolved.");
+                return true;
+            }
+        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
+            System.out.println("Incident State Error: " + e.getMessage());
         }
+        return false;
     }
 
     public int purgeResolvedIncidents() {

@@ -54,6 +54,10 @@ public class AttendanceController {
                 ? AttendanceRecord.CheckType.CHECK_IN 
                 : AttendanceRecord.CheckType.CHECK_OUT;
 
-        attendanceService.recordAttendance(personCode, zoneId, type);
+        try {
+            attendanceService.recordAttendance(personCode, zoneId, type);
+        } catch (exception.AttendanceOrderException e) {
+            System.out.println("Attendance Order Violation: " + e.getMessage());
+        }
     }
 }

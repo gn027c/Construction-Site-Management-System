@@ -29,7 +29,8 @@ public class AttendanceService {
         this.zoneService = zoneService;
     }
 
-    public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
+    public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
+            throws exception.AttendanceOrderException {
         if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty()
                 || type == null) {
             return false;
@@ -43,12 +44,21 @@ public class AttendanceService {
         // FSM: Chặn CHECK_IN khi đang ở trong; Chặn CHECK_OUT khi chưa vào hoặc sai khu vực
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
             if (lastRecord != null && lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
-                return false;
+                throw new exception.AttendanceOrderException(cleanPersonCode,
+                        "Already CHECKED_IN at zone '" + lastRecord.getZoneId() + "'. Cannot CHECK_IN twice sequentially.");
             }
         } else if (type == AttendanceRecord.CheckType.CHECK_OUT) {
-            if (lastRecord == null || lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_OUT
-                    || !lastRecord.getZoneId().equalsIgnoreCase(cleanZoneId)) {
-                return false;
+            if (lastRecord == null) {
+                throw new exception.AttendanceOrderException(cleanPersonCode,
+                        "Cannot CHECK_OUT without prior CHECK_IN record.");
+            }
+            if (lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_OUT) {
+                throw new exception.AttendanceOrderException(cleanPersonCode,
+                        "Already CHECKED_OUT. Cannot CHECK_OUT again without CHECK_IN.");
+            }
+            if (!lastRecord.getZoneId().equalsIgnoreCase(cleanZoneId)) {
+                throw new exception.AttendanceOrderException(cleanPersonCode,
+                        "Zone mismatch on CHECK_OUT! Currently inside zone '" + lastRecord.getZoneId() + "', but attempting to CHECK_OUT at zone '" + cleanZoneId + "'.");
             }
         }
 
@@ -66,7 +76,8 @@ public class AttendanceService {
         return zoneService;
     }
 
-    public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type) {
+    public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
+            throws exception.AttendanceOrderException {
         if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty() || type == null) {
             System.out.println("Error: Invalid attendance parameters!");
             return false;
@@ -87,10 +98,9 @@ public class AttendanceService {
             }
         }
 
-        // 3. Cập nhật trạng thái máy FSM (chặn vào trùng hoặc ra sai khu vực)
+        // 3. Cập nhật trạng thái máy FSM (ném AttendanceOrderException khi vi phạm thứ tự vào/ra)
         boolean success = processAttendance(personCode, zoneId, type);
         if (!success) {
-            System.out.println("Error: Invalid attendance sequence (FSM violation).");
             return false;
         }
 
