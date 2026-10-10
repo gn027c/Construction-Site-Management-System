@@ -17,7 +17,7 @@ public class DuplicatePersonCodeException extends SiteManagementException {
    public DuplicatePersonCodeException(String message) {
         super(message);
     }
-   public void addPerson(Person newPerson) throws SiteManagementException {
+  public void addPerson(Person newPerson) throws SiteManagementException {
     if (newPerson == null) {
         throw new SiteManagementException("Person must not be null");
     }
@@ -26,7 +26,7 @@ public class DuplicatePersonCodeException extends SiteManagementException {
 
     for (Person p : personList) {
         if (p.getCode().equalsIgnoreCase(code)) {
-            throw new DuplicatePersonCodeException("Mã nhân sự đã tồn tại: " + code);
+            throw new DuplicatePersonCodeException("Personnel code already exists: " + code);
         }
     }
 
