@@ -20,30 +20,43 @@ public class PersonnelService {
         this.personRepository = (personRepository != null) ? personRepository : new PersonRepository();
     }
 
-    public boolean addPerson(Person p) {
-        if (p == null || p.getCode() == null) {
-            return false;
-        }
-        return personRepository.save(p);
+   public boolean addPerson(Person p) {
+    if (p == null || p.getCode() == null) {
+        return false;
     }
+
+    // Check for duplicate code
+    if (isDuplicate(p.getCode())) {
+        return false;
+    }
+
+    return personRepository.save(p);
+}
+
+private boolean isDuplicate(String code) {
+    return personRepository.findByCode(code) != null;
+}
 
     public Person findPersonByCode(String code) {
-        return personRepository.findByCode(code);
+    Person person = personRepository.findByCode(code);
+    if (person == null) {
+        throw new PersonNotFoundException(code);
     }
+    return person;
+}
 
-    public boolean updatePerson(String code, String newName, String newPhone) {
-        Person p = findPersonByCode(code);
-        if (p == null) {
-            return false;
-        }
-        p.setName(newName);
-        p.setPhoneNumber(newPhone);
-        return true;
-    }
+   public boolean updatePerson(String code, String newName, String newPhone) {
+    Person p = findPersonByCode(code); // throws PersonNotFoundException if not found
 
-    public boolean deletePerson(String code) {
-        return personRepository.deleteByCode(code);
-    }
+    p.setName(newName);
+    p.setPhoneNumber(newPhone);
+    return true;
+}
+
+   public boolean deletePerson(String code) {
+    Person existing = findPersonByCode(code); // throws if not found
+    return personRepository.delete(existing);
+}
 
     public List<Person> getAllPersons() {
         return personRepository.findAll();
