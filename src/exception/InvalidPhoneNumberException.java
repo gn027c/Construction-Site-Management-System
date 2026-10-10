@@ -13,8 +13,36 @@ package exception;
  *      throw new InvalidPhoneNumberException(phone);
  */
 public class InvalidPhoneNumberException extends SiteManagementException {
+    public abstract class Person {
+    // Regex: starts with 0, followed by exactly 9 digits => 10 digits total
+    private static final String PHONE_REGEX = "0\\d{9}";
 
-    public InvalidPhoneNumberException(String phone) {
-        super("Invalid phone number format: " + phone + ". Expected 10 digits starting with 0.");
+    private String phoneNumber;
+    // ... other fields
+
+    public void setPhoneNumber(String phoneNumber) throws InvalidPhoneNumberException {
+        if (phoneNumber == null || !phoneNumber.trim().matches(PHONE_REGEX)) {
+            throw new InvalidPhoneNumberException(phoneNumber);
+        }
+        this.phoneNumber = phoneNumber.trim();
     }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+}
+
+public void addPerson(Person p) throws SiteManagementException {
+    // The phone was already validated when the Person was created,
+    // but you can check again if the Person may come from elsewhere
+    if (p == null) {
+        throw new SiteManagementException("Person must not be null");
+    }
+    personList.add(p);
+}
+
+public void updatePhone(String id, String newPhone) throws SiteManagementException {
+    Person p = findById(id);          // may throw PersonNotFoundException
+    p.setPhoneNumber(newPhone);       // throws InvalidPhoneNumberException if invalid
+}
 }
