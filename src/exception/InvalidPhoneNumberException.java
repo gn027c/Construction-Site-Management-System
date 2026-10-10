@@ -13,39 +13,36 @@ package exception;
  *      throw new InvalidPhoneNumberException("Số điện thoại không hợp lệ: " + phone);
  */
 public class InvalidPhoneNumberException extends SiteManagementException {
+    public abstract class Person {
+    // Regex: starts with 0, followed by exactly 9 digits => 10 digits total
+    private static final String PHONE_REGEX = "0\\d{9}";
 
-    public class Person {
     private String phoneNumber;
-    // ... các field khác
+    // ... other fields
+
+    public void setPhoneNumber(String phoneNumber) throws InvalidPhoneNumberException {
+        if (phoneNumber == null || !phoneNumber.trim().matches(PHONE_REGEX)) {
+            throw new InvalidPhoneNumberException(phoneNumber);
+        }
+        this.phoneNumber = phoneNumber.trim();
+    }
 
     public String getPhoneNumber() {
         return phoneNumber;
     }
-
-    public void setPhoneNumber(String phoneNumber) throws InvalidPhoneNumberException {
-        if (!isValidPhone(phoneNumber)) {
-            throw new InvalidPhoneNumberException(phoneNumber);
-        }
-        this.phoneNumber = phoneNumber;
-    }
-
-    /** 10 chữ số, bắt đầu bằng 0, chỉ chứa chữ số */
-    public static boolean isValidPhone(String phone) {
-        return phone != null && phone.matches("^0\\d{9}$");
-    }
-
-       public void addPerson(Person p) throws InvalidPhoneNumberException {
-    if (!Person.isValidPhone(p.getPhoneNumber())) {
-        throw new InvalidPhoneNumberException(p.getPhoneNumber());
-    }
-    // ... thêm vào danh sách
 }
 
-public void updatePhone(String id, String newPhone) throws InvalidPhoneNumberException {
-    Person p = findById(id);
-    if (p != null) {
-        p.setPhoneNumber(newPhone); // setter tự ném exception nếu sai
+public void addPerson(Person p) throws SiteManagementException {
+    // The phone was already validated when the Person was created,
+    // but you can check again if the Person may come from elsewhere
+    if (p == null) {
+        throw new SiteManagementException("Person must not be null");
     }
+    personList.add(p);
 }
+
+public void updatePhone(String id, String newPhone) throws SiteManagementException {
+    Person p = findById(id);          // may throw PersonNotFoundException
+    p.setPhoneNumber(newPhone);       // throws InvalidPhoneNumberException if invalid
 }
 }
