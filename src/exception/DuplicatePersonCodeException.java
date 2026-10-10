@@ -14,25 +14,22 @@ package exception;
  */
 public class DuplicatePersonCodeException extends SiteManagementException {
 
-   public class PersonnelService {
- 
-    private final PersonRepository repository;
- 
-    public PersonnelService(PersonRepository repository) {
-        this.repository = repository;
+   public DuplicatePersonCodeException(String message) {
+        super(message);
     }
- 
-    public void addPerson(Person person) throws DuplicatePersonCodeException {
-        if (person == null) {
-            throw new IllegalArgumentException("Person must not be null");
+   public void addPerson(Person newPerson) throws SiteManagementException {
+    if (newPerson == null) {
+        throw new SiteManagementException("Person must not be null");
+    }
+
+    String code = newPerson.getCode();
+
+    for (Person p : personList) {
+        if (p.getCode().equalsIgnoreCase(code)) {
+            throw new DuplicatePersonCodeException("Mã nhân sự đã tồn tại: " + code);
         }
-        if (repository.existsByCode(person.getCode())) {
-            throw new DuplicatePersonCodeException(person.getCode());
-        }
-        repository.save(person);
     }
- 
-    public List<Person> getAllPersons() {
-        return repository.findAll();
-    }
+
+    personList.add(newPerson);
+}
 }
