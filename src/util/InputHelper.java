@@ -1,5 +1,8 @@
 package util;
 
+import exception.DataValidationException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Scanner;
 
 /**
@@ -10,55 +13,75 @@ import java.util.Scanner;
  */
 public class InputHelper {
 
-    
-    public static String getString(Scanner scanner, String prompt) {
-        String input = "";
-        while (true) {
-            System.out.print(prompt);
-            input = scanner.nextLine().trim();
-            if (!input.isEmpty()) {
-                break;
-            }
-            System.out.println("Error: Input cannot be empty! Please try again.");
+    public static void validateString(String input, String fieldName) throws DataValidationException {
+        if (input == null || input.trim().isEmpty()) {
+            throw new DataValidationException(fieldName, "Cannot be empty or whitespace.");
         }
-        return input;
+    }
+
+    
+    public static void validateInt(String input, String fieldName, int min, int max) throws DataValidationException {
+        validateString(input, fieldName);
+        try {
+            int value = Integer.parseInt(input.trim());
+            if (value < min || value > max) {
+                throw new DataValidationException(fieldName, "Value must be between " + min + " and " + max + ".");
+            }
+        } catch (NumberFormatException e) {
+            throw new DataValidationException(fieldName, "Invalid number format! Must be an integer.");
+        }
+    }
+
+    
+    public static void validateDate(String input, String fieldName) throws DataValidationException {
+        validateString(input, fieldName);
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        sdf.setLenient(false);
+        try {
+            sdf.parse(input.trim());
+        } catch (ParseException e) {
+            throw new DataValidationException(fieldName, "Invalid date format or non-existent date! Must be dd/MM/yyyy.");
+        }
     }
 
    
-    public static int getInt(Scanner scanner, String prompt, int min, int max) {
-        int value = 0;
+    public static String getString(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
-            String input = scanner.nextLine().trim();
+            String input = scanner.nextLine();
             try {
-                value = Integer.parseInt(input);
-                if (value >= min && value <= max) {
-                    break;
-                } else {
-                    System.out.printf("Error: Value must be between %d and %d!\n", min, max);
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Error: Invalid number format! Please enter an integer.");
+                validateString(input, "Input");
+                return input.trim();
+            } catch (DataValidationException e) {
+                System.out.println("Error: " + e.getMessage());
             }
         }
-        return value;
     }
 
-    /**
-     * Prompts the user to input a date in "dd/MM/yyyy" format and validates it.
-     */
-    public static String getDate(Scanner scanner, String prompt) {
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-        sdf.setLenient(false);
-
+    
+    public static int getInt(Scanner scanner, String prompt, int min, int max) {
         while (true) {
             System.out.print(prompt);
-            String input = scanner.nextLine().trim();
+            String input = scanner.nextLine();
             try {
-                sdf.parse(input);
-                return input;
-            } catch (java.text.ParseException e) {
-                System.out.println("Error: Invalid date format or non-existent date! Please use dd/MM/yyyy (e.g., 25/12/2024).");
+                validateInt(input, "Integer Value", min, max);
+                return Integer.parseInt(input.trim());
+            } catch (DataValidationException e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+
+    
+    public static String getDate(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine();
+            try {
+                validateDate(input, "Date");
+                return input.trim();
+            } catch (DataValidationException e) {
+                System.out.println("Error: " + e.getMessage());
             }
         }
     }
