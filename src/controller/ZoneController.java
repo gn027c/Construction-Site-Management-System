@@ -1,5 +1,8 @@
 package controller;
 
+import exception.DuplicateZoneIdException;
+import exception.RestrictedZoneViolationException;
+import exception.ZoneNotFoundException;
 import model.RestrictedZone;
 import model.Zone;
 import service.ZoneService;
@@ -14,7 +17,7 @@ import java.util.Scanner;
  * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
  * MÔ TẢ:
  * - Điều hướng luồng tương tác Console cho Menu Quản lý Phân vùng.
- * - Thu thập input, gọi ZoneService và hiển thị kết quả ra giao diện.
+ * - Thu thập input, gọi ZoneService, bọc try-catch bắt ngoại lệ Workshop 4 và hiển thị kết quả.
  */
 public class ZoneController {
     private final ZoneService zoneService;
@@ -50,23 +53,27 @@ public class ZoneController {
         String zoneId = InputHelper.getString(scanner, "Enter Zone ID (e.g., Z01): ");
         String zoneName = InputHelper.getString(scanner, "Enter Zone Name: ");
 
-        if (type == 1) {
-            Zone zone = new Zone(zoneId, zoneName);
-            zoneService.addZone(zone);
-        } else {
-            System.out.println("Select Safety Level: 1. LOW | 2. MEDIUM | 3. HIGH | 4. CRITICAL");
-            int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
-            
-            RestrictedZone.SafetyLevel level;
-            switch (levelOpt) {
-                case 1: level = RestrictedZone.SafetyLevel.LOW; break;
-                case 3: level = RestrictedZone.SafetyLevel.HIGH; break;
-                case 4: level = RestrictedZone.SafetyLevel.CRITICAL; break;
-                default: level = RestrictedZone.SafetyLevel.MEDIUM; break;
-            }
+        try {
+            if (type == 1) {
+                Zone zone = new Zone(zoneId, zoneName);
+                zoneService.addZone(zone);
+            } else {
+                System.out.println("Select Safety Level: 1. LOW | 2. MEDIUM | 3. HIGH | 4. CRITICAL");
+                int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
+                
+                RestrictedZone.SafetyLevel level;
+                switch (levelOpt) {
+                    case 1: level = RestrictedZone.SafetyLevel.LOW; break;
+                    case 3: level = RestrictedZone.SafetyLevel.HIGH; break;
+                    case 4: level = RestrictedZone.SafetyLevel.CRITICAL; break;
+                    default: level = RestrictedZone.SafetyLevel.MEDIUM; break;
+                }
 
-            RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
-            zoneService.addZone(restrictedZone);
+                RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
+                zoneService.addZone(restrictedZone);
+            }
+        } catch (DuplicateZoneIdException e) {
+            System.out.println("Zone Error: " + e.getMessage());
         }
     }
 
