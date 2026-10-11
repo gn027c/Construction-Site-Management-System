@@ -1,5 +1,7 @@
 package repository;
 
+import exception.DuplicateZoneIdException;
+import exception.ZoneNotFoundException;
 import model.Zone;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,17 +9,17 @@ import java.util.List;
 /**
  * TẦNG LƯU TRỮ (REPOSITORY LAYER)
  * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Zone trong bộ nhớ.
+ * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Zone trong bộ nhớ có xử lý Exception.
  */
 public class ZoneRepository {
     private final List<Zone> zoneList = new ArrayList<>();
 
-    public boolean save(Zone zone) {
+    public boolean save(Zone zone) throws DuplicateZoneIdException {
         if (zone == null || zone.getZoneId() == null || zone.getZoneId().trim().isEmpty()) {
             return false;
         }
         if (findById(zone.getZoneId()) != null) {
-            return false;
+            throw new DuplicateZoneIdException(zone.getZoneId());
         }
         return zoneList.add(zone);
     }
@@ -34,17 +36,25 @@ public class ZoneRepository {
         return null;
     }
 
+    public Zone findByIdOrThrow(String zoneId) throws ZoneNotFoundException {
+        Zone z = findById(zoneId);
+        if (z == null) {
+            throw new ZoneNotFoundException(zoneId);
+        }
+        return z;
+    }
+
     public List<Zone> findAll() {
         return new ArrayList<>(zoneList);
     }
 
     public boolean loadFromCsv(String filePath) {
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt đọc dữ liệu từ zones.csv vào zoneList (Workshop 5)
+        // TODO: Workshop 5
         return false;
     }
 
     public boolean saveToCsv(String filePath) {
-        // TODO: Thành viên 3 (Lê Tấn Thiên - SE201852) cài đặt ghi dữ liệu zoneList ra zones.csv với UTF-8 BOM (Workshop 5)
+        // TODO: Workshop 5
         return false;
     }
 }
