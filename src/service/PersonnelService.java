@@ -20,14 +20,14 @@ public class PersonnelService {
         this.personRepository = (personRepository != null) ? personRepository : new PersonRepository();
     }
 
-   public boolean addPerson(Person p) {
+   public boolean addPerson(Person p) throws DuplicatePersonException {
     if (p == null || p.getCode() == null) {
         return false;
     }
 
     // Check for duplicate code
     if (isDuplicate(p.getCode())) {
-        return false;
+        throw new DuplicatePersonException(p.getCode());
     }
 
     return personRepository.save(p);
@@ -45,17 +45,24 @@ private boolean isDuplicate(String code) {
     return person;
 }
 
-   public boolean updatePerson(String code, String newName, String newPhone) {
-    Person p = findPersonByCode(code); // throws PersonNotFoundException if not found
+   public boolean updatePerson(String code, String newName, String newPhone)
+        throws PersonNotFoundException {
+    if (newName == null || newName.isBlank() || newPhone == null || newPhone.isBlank()) {
+        throw new IllegalArgumentException("Name and phone must not be empty");
+    }
+
+    Person p = findPersonByCode(code);
 
     p.setName(newName);
     p.setPhoneNumber(newPhone);
     return true;
 }
 
-   public boolean deletePerson(String code) {
-    Person existing = findPersonByCode(code); // throws if not found
-    return personRepository.delete(existing);
+   public boolean deletePerson(String code) throws PersonNotFoundException {
+    if (!personRepository.deleteByCode(code)) {
+        throw new PersonNotFoundException(code);
+    }
+    return true;
 }
 
     public List<Person> getAllPersons() {
