@@ -3,8 +3,8 @@ package service;
 import model.Person;
 import repository.PersonRepository;
 import java.util.List;
-import com.example.exception.DuplicatePersonCodeException;   
-import com.example.exception.PersonNotFoundException;   
+import exception.DuplicatePersonCodeException;   
+import exception.PersonNotFoundException;   
 
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
