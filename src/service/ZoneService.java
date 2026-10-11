@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
  * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ: Xử lý quy tắc nghiệp vụ phân vùng, kiểm soát quyền truy cập kết hợp Exception Handling.
+ * MÔ TẢ: Xử lý các quy tắc nghiệp vụ phân vùng, kiểm soát quyền truy cập kết hợp Exception Handling.
  */
 public class ZoneService {
     private final ZoneRepository zoneRepository;
@@ -42,7 +42,11 @@ public class ZoneService {
     }
 
     public Zone findZoneById(String zoneId) throws ZoneNotFoundException {
-        return zoneRepository.findByIdOrThrow(zoneId);
+        Zone zone = zoneRepository.findById(zoneId);
+        if (zone == null) {
+            throw new ZoneNotFoundException(zoneId);
+        }
+        return zone;
     }
 
     public boolean grantZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
@@ -68,10 +72,11 @@ public class ZoneService {
         if (person == null) {
             return false;
         }
-        
+
+        // Gọi phương thức checkAccess đã cài đặt đa hình ở model
         boolean hasAccess = zone.checkAccess(person);
-        if (!hasAccess && zone instanceof RestrictedZone) {
-            throw new RestrictedZoneViolationException(person.getCode(), zoneId, "Nhân sự không nằm trong danh sách cấp phép hoặc không có chứng chỉ an toàn hợp lệ.");
+        if (!hasAccess) {
+            throw new RestrictedZoneViolationException(person.getCode(), zoneId, "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ.");
         }
         return hasAccess;
     }
