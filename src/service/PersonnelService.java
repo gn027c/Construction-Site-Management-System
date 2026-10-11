@@ -20,32 +20,52 @@ public class PersonnelService {
         this.personRepository = (personRepository != null) ? personRepository : new PersonRepository();
     }
 
-    public boolean addPerson(Person p) {
-        if (p == null || p.getCode() == null) {
-            return false;
-        }
-        return personRepository.save(p);
+   public boolean addPerson(Person p) throws DuplicatePersonException {
+    if (p == null || p.getCode() == null) {
+        return false;
     }
+
+    // Check for duplicate code
+    if (isDuplicate(p.getCode())) {
+        throw new DuplicatePersonException(p.getCode());
+    }
+
+    return personRepository.save(p);
+}
+
+private boolean isDuplicate(String code) {
+    return personRepository.findByCode(code) != null;
+}
 
     public Person findPersonByCode(String code) {
-        return personRepository.findByCode(code);
+    Person person = personRepository.findByCode(code);
+    if (person == null) {
+        throw new PersonNotFoundException(code);
+    }
+    return person;
+}
+
+   public boolean updatePerson(String code, String newName, String newPhone)
+        throws PersonNotFoundException {
+    if (newName == null || newName.isBlank() || newPhone == null || newPhone.isBlank()) {
+        throw new IllegalArgumentException("Name and phone must not be empty");
     }
 
-    public boolean updatePerson(String code, String newName, String newPhone) {
-        Person p = findPersonByCode(code);
-        if (p == null) {
-            return false;
-        }
-        p.setName(newName);
-        p.setPhoneNumber(newPhone);
-        return true;
-    }
+    Person p = findPersonByCode(code);
 
-    public boolean deletePerson(String code) {
-        return personRepository.deleteByCode(code);
+    p.setName(newName);
+    p.setPhoneNumber(newPhone);
+    return true;
+}
+
+   public boolean deletePerson(String code) throws PersonNotFoundException {
+    if (!personRepository.deleteByCode(code)) {
+        throw new PersonNotFoundException(code);
     }
+    return true;
+}
 
     public List<Person> getAllPersons() {
         return personRepository.findAll();
     }
-}
+    
