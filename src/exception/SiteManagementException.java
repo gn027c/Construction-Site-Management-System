@@ -15,10 +15,10 @@ package exception;
  * ============================================================================
  * 
  * NOTE DÀNH CHO THÀNH VIÊN:
- * - Đây là lớp ngoại lệ cha (Checked Exception) kế thừa từ java.lang.Exception.
+ * - Đây là lớp ngoại lệ cha (Unchecked Exception) kế thừa từ java.lang.RuntimeException.
  * - Mọi custom exception đặc thù của các module khác đều kế thừa từ lớp này.
  */
-public class SiteManagementException extends Exception {
+public class SiteManagementException extends RuntimeException {
 
     public SiteManagementException() {
         super("An error occurred in SmartSite Management System.");
