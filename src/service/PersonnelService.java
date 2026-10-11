@@ -3,6 +3,8 @@ package service;
 import model.Person;
 import repository.PersonRepository;
 import java.util.List;
+import com.example.exception.DuplicatePersonCodeException;   
+import com.example.exception.PersonNotFoundException;   
 
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
@@ -25,12 +27,12 @@ public class PersonnelService {
         return false;
     }
 
-    // Check for duplicate code
-    if (isDuplicate(p.getCode())) {
-        throw new DuplicatePersonException(p.getCode());
-    }
+   // Check for duplicate code
+if (isDuplicate(p.getCode())) {
+    throw new DuplicatePersonCodeException(p.getCode());
+}
 
-    return personRepository.save(p);
+return personRepository.save(p);
 }
 
 private boolean isDuplicate(String code) {
