@@ -16,6 +16,7 @@ public class PersonRepository {
         if (person == null || person.getCode() == null) {
             return false;
         }
+        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) ném DuplicatePersonCodeException nếu trùng mã (WS4 tồn đọng)
         if (findByCode(person.getCode()) != null) {
             return false;
         }
