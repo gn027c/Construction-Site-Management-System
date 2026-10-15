@@ -1,5 +1,7 @@
 package repository;
 
+import exception.DuplicatePersonCodeException;
+import exception.PersonNotFoundException;
 import model.Person;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,18 +9,17 @@ import java.util.List;
 /**
  * TẦNG LƯU TRỮ (REPOSITORY LAYER)
  * PHỤ TRÁCH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
- * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Person trong bộ nhớ.
+ * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Person trong bộ nhớ có xử lý Exception.
  */
 public class PersonRepository {
     private final List<Person> personList = new ArrayList<>();
 
-    public boolean save(Person person) {
-        if (person == null || person.getCode() == null) {
+    public boolean save(Person person) throws DuplicatePersonCodeException {
+        if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
             return false;
         }
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) ném DuplicatePersonCodeException nếu trùng mã (WS4 tồn đọng)
         if (findByCode(person.getCode()) != null) {
-            return false;
+            throw new DuplicatePersonCodeException(person.getCode().trim());
         }
         return personList.add(person);
     }
@@ -35,11 +36,16 @@ public class PersonRepository {
         return null;
     }
 
-    public boolean deleteByCode(String code) {
+    public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
         Person p = findByCode(code);
         if (p == null) {
-            return false;
+            throw new PersonNotFoundException(code != null ? code.trim() : "null");
         }
+        return p;
+    }
+
+    public boolean deleteByCode(String code) throws PersonNotFoundException {
+        Person p = findByCodeOrThrow(code);
         return personList.remove(p);
     }
 

@@ -73,9 +73,13 @@ public class IncidentService {
         }
 
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
-        if (personnelService != null && personnelService.findPersonByCode(assigneeCode.trim()) == null) {
-            System.out.println("Error: Person with code '" + assigneeCode + "' not found in personnel registry!");
-            return false;
+        if (personnelService != null) {
+            try {
+                personnelService.findPersonByCode(assigneeCode.trim());
+            } catch (exception.PersonNotFoundException e) {
+                System.out.println("Error: Person with code '" + assigneeCode + "' not found in personnel registry!");
+                return false;
+            }
         }
 
         inc.setAssignedTo(assigneeCode.trim());

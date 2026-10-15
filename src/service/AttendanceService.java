@@ -84,9 +84,11 @@ public class AttendanceService {
         }
 
         // 1. Kiểm tra tồn tại nhân sự
-        model.Person person = personnelService.findPersonByCode(personCode.trim());
-        if (person == null) {
-            System.out.println("Error: Person with code '" + personCode + "' not found.");
+        model.Person person;
+        try {
+            person = personnelService.findPersonByCode(personCode.trim());
+        } catch (exception.PersonNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
             return false;
         }
 
