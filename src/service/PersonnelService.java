@@ -13,7 +13,9 @@ import java.util.List;
  * MÔ TẢ: Xử lý các quy tắc nghiệp vụ liên quan đến hồ sơ nhân sự có xử lý Exception.
  */
 public class PersonnelService {
-    public static final String PHONE_REGEX = "0\\d{9}";
+    // Phone number: 10 digits, starts with 0
+    private static final String PHONE_REGEX = "0\\d{9}";
+
     private final PersonRepository personRepository;
 
     public PersonnelService() {
@@ -24,51 +26,49 @@ public class PersonnelService {
         this.personRepository = (personRepository != null) ? personRepository : new PersonRepository();
     }
 
+    // Add a new person
     public boolean addPerson(Person p) throws DuplicatePersonCodeException, InvalidPhoneNumberException {
         if (p == null || p.getCode() == null || p.getCode().trim().isEmpty()) {
             System.out.println("Error: Invalid person data!");
             return false;
         }
 
-        // Kiểm tra hợp lệ số điện thoại (10 chữ số bắt đầu bằng 0)
-        String phone = p.getPhoneNumber();
-        if (phone == null || !phone.trim().matches(PHONE_REGEX)) {
-            throw new InvalidPhoneNumberException(phone);
-        }
-
-        // Lưu vào repository (tự động ném DuplicatePersonCodeException nếu trùng mã)
-        if (personRepository.save(p)) {
-            System.out.println("Successfully added person: " + p.getName() + " (" + p.getCode() + ")");
-            return true;
-        }
-        return false;
+        checkPhone(p.getPhoneNumber()); // throws InvalidPhoneNumberException
+        return personRepository.save(p); // throws DuplicatePersonCodeException
     }
 
+    // Find a person by code
     public Person findPersonByCode(String code) throws PersonNotFoundException {
-        return personRepository.findByCodeOrThrow(code);
+        return personRepository.findByCodeOrThrow(code); // throws PersonNotFoundException
     }
 
+    // Update name and phone number of a person
     public boolean updatePerson(String code, String newName, String newPhone)
             throws PersonNotFoundException, InvalidPhoneNumberException {
-        Person p = findPersonByCode(code);
-
-        if (newPhone == null || !newPhone.trim().matches(PHONE_REGEX)) {
-            throw new InvalidPhoneNumberException(newPhone);
-        }
+        Person p = findPersonByCode(code); // throws PersonNotFoundException
+        checkPhone(newPhone); // throws InvalidPhoneNumberException
 
         if (newName != null && !newName.trim().isEmpty()) {
             p.setName(newName.trim());
         }
         p.setPhoneNumber(newPhone.trim());
-        System.out.println("Successfully updated person: " + p.getCode());
         return true;
     }
 
+    // Delete a person by code
     public boolean deletePerson(String code) throws PersonNotFoundException {
         return personRepository.deleteByCode(code);
     }
 
+    // Get all persons
     public List<Person> getAllPersons() {
         return personRepository.findAll();
+    }
+
+    // Throw InvalidPhoneNumberException if the phone number is not valid
+    private void checkPhone(String phone) throws InvalidPhoneNumberException {
+        if (phone == null || !phone.trim().matches(PHONE_REGEX)) {
+            throw new InvalidPhoneNumberException(phone);
+        }
     }
 }
