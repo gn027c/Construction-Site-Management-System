@@ -26,7 +26,8 @@ public class PersonnelController {
     public PersonnelController(PersonnelService personnelService) {
         this.personnelService = personnelService;
     }
-
+    
+ // Person menu: 1-Add, 2-Display list, 3-Search & update phone, 0-Back
     public void handleMenu(Scanner scanner) {
         boolean back = false;
         while (!back) {
@@ -48,7 +49,7 @@ public class PersonnelController {
             }
         }
     }
-
+ // ---------- Case 1: Add Worker / Contractor / Visitor ----------
     private void addPersonFlow(Scanner scanner) {
         System.out.println("\n--- ADD NEW PERSON ---");
         System.out.println("Select Person Type:");
@@ -58,6 +59,7 @@ public class PersonnelController {
         int type = InputHelper.getInt(scanner, "Choice (1-3, 0-Cancel): ", 0, 3);
         if (type == 0) return;
 
+         // Common information for every person type
         String id = InputHelper.getString(scanner, "Enter ID (e.g., ID001): ");
         String code = InputHelper.getString(scanner, "Enter Person Code (e.g., W01, C01, V01): ");
         String name = InputHelper.getString(scanner, "Enter Full Name: ");
@@ -65,6 +67,8 @@ public class PersonnelController {
 
         try {
             Person newPerson;
+
+             // Extra information depends on the person type
             switch (type) {
                 case 1:
                     String trade = InputHelper.getString(scanner, "Enter Trade/Skill (e.g., Welder, Electrician): ");
@@ -87,28 +91,39 @@ public class PersonnelController {
                     return;
             }
 
-            personnelService.addPerson(newPerson);
+             if (personnelService.addPerson(newPerson)) {
+                System.out.println("Success: Person '" + name + "' (" + code + ") has been added.");
+            } else {
+                System.out.println("Could not add the person. Please check the entered data.");
+            }
+ 
         } catch (DuplicatePersonCodeException e) {
-            System.out.println("Personnel Duplicate Error: " + e.getMessage());
+            System.out.println("Error: Person code '" + code + "' already exists. " + e.getMessage());
         } catch (InvalidPhoneNumberException e) {
-            System.out.println("Phone Validation Error: " + e.getMessage());
+            System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         } catch (IllegalArgumentException e) {
-            System.out.println("Input Data Error: " + e.getMessage());
+            System.out.println("Error: Invalid input data. " + e.getMessage());
         }
     }
 
+    // ---------- Case 2: Display the personnel list (polymorphism) ----------
     private void displayPersonListFlow() {
         System.out.println("\n--- PERSONNEL LIST ---");
         List<Person> list = personnelService.getAllPersons();
+ 
         if (list.isEmpty()) {
             System.out.println("No personnel available.");
-        } else {
-            for (Person p : list) {
-                p.displayDetails();
-            }
+            return;
+        }
+ 
+        int index = 1;
+        for (Person p : list) {
+            System.out.println("\n#" + index++);
+            // Polymorphism: Worker, Contractor and Visitor each print their own details
+            p.displayDetails();
         }
     }
-
+// ---------- Case 3: Search by code and update phone number ----------
     private void searchAndUpdatePersonFlow(Scanner scanner) {
         System.out.println("\n--- SEARCH & UPDATE PERSON ---");
         String code = InputHelper.getString(scanner, "Enter Person Code to search: ");
@@ -117,24 +132,27 @@ public class PersonnelController {
             System.out.println("\n[Current Information]");
             p.displayDetails();
 
-            System.out.println("\nEnter new details (or leave blank to keep unchanged):");
-            System.out.print("Enter New Name [Press Enter to keep '" + p.getName() + "']: ");
+           System.out.println("\nEnter new details (press Enter to keep the current value):");
+            
+            System.out.print("New Name [" + p.getName() + "]: ");
             String newName = scanner.nextLine().trim();
             if (newName.isEmpty()) {
                 newName = p.getName();
             }
 
-            System.out.print("Enter New Phone [Press Enter to keep '" + p.getPhoneNumber() + "']: ");
+            System.out.print("New Phone [" + p.getPhoneNumber() + "]: ");
             String newPhone = scanner.nextLine().trim();
             if (newPhone.isEmpty()) {
                 newPhone = p.getPhoneNumber();
             }
-
-            personnelService.updatePerson(code, newName, newPhone);
+            
+           personnelService.updatePerson(code, newName, newPhone);
+            System.out.println("Success: Person '" + code + "' has been updated.");
+ 
         } catch (PersonNotFoundException e) {
-            System.out.println("Search Error: " + e.getMessage());
+            System.out.println("Error: No person found with code '" + code + "'. " + e.getMessage());
         } catch (InvalidPhoneNumberException e) {
-            System.out.println("Phone Validation Error: " + e.getMessage());
+            System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         }
     }
 }
