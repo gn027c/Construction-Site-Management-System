@@ -12,36 +12,23 @@ import java.util.List;
  * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Person trong bộ nhớ có xử lý Exception.
  */
 public class PersonRepository {
-    private final List<Person> personList = new ArrayList<>();
-
-    public boolean save(Person person) throws DuplicatePersonCodeException {
-        if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
-            return false;
+    private final Map<String, Person> store = new LinkedHashMap<>();
+ 
+    /** Saves a person; throws DuplicatePersonCodeException if the code already exists. */
+    public void save(Person person) {
+        if (store.containsKey(person.getCode())) {
+            throw new DuplicatePersonCodeException(person.getCode());
         }
-        if (findByCode(person.getCode()) != null) {
-            throw new DuplicatePersonCodeException(person.getCode().trim());
-        }
-        return personList.add(person);
+        store.put(person.getCode(), person);
     }
 
+    /** Looks up a person by code; throws PersonNotFoundException if not found. */
     public Person findByCode(String code) {
-        if (code == null) {
-            return null;
+        Person person = store.get(code);
+        if (person == null) {
+            throw new PersonNotFoundException(code);
         }
-        for (Person p : personList) {
-            if (p.getCode().equalsIgnoreCase(code.trim())) {
-                return p;
-            }
-        }
-        return null;
-    }
-
-    public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
-        Person p = findByCode(code);
-        if (p == null) {
-            throw new PersonNotFoundException(code != null ? code.trim() : "null");
-        }
-        return p;
+        return person;
     }
 
     public boolean deleteByCode(String code) throws PersonNotFoundException {
