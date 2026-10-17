@@ -14,7 +14,6 @@ import java.util.Set;
  */
 public class RestrictedZone extends Zone {
 
-
     public enum SafetyLevel {
         LOW,
         MEDIUM,
@@ -81,6 +80,15 @@ public class RestrictedZone extends Zone {
         boolean hasValidSafety = person.hasValidSafetyCredential();
 
         return isAccessGranted && hasValidSafety;
+    }
+
+    @Override
+    public String toCsvLine() {
+        String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty()) 
+                ? "NONE" 
+                : String.join(";", allowedPersonCodes);
+        return String.format("RESTRICTED,%s,%s,%s,%s", 
+                zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
     }
 
     @Override

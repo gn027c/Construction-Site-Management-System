@@ -11,7 +11,6 @@ public class Zone {
     protected String zoneId;
     protected String zoneName;
 
-    // Parameterized Constructor - Yêu cầu đầy đủ thông tin bắt buộc
     public Zone(String zoneId, String zoneName) {
         if (zoneId == null || zoneId.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã khu vực (zoneId) không được để trống.");
@@ -45,12 +44,12 @@ public class Zone {
         this.zoneName = zoneName.trim();
     }
 
-    /**
-     * Kiểm tra quyền truy cập cơ bản của một cá nhân vào khu vực.
-     * Mặc định khu vực thông thường cho phép nhân sự hợp lệ vào.
-     */
     public boolean checkAccess(Person person) {
         return person != null;
+    }
+
+    public String toCsvLine() {
+        return String.format("REGULAR,%s,%s,NONE,NONE", zoneId, zoneName);
     }
 
     @Override
