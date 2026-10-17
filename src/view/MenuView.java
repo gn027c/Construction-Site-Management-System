@@ -12,12 +12,13 @@ public class MenuView {
     // Main Menu Layout
     public static void showMainMenu() {
         System.out.println("\n╔══════════════════════════════════════════════════════════╗");
-        System.out.println("║        SMARTSITE CONSTRUCTION MANAGEMENT SYSTEM          ║");
+        System.out.println("║         SMARTSITE CONSTRUCTION MANAGEMENT SYSTEM         ║");
         System.out.println("╠══════════════════════════════════════════════════════════╣");
         System.out.println("║  [1] Person Management                                   ║");
         System.out.println("║  [2] Zone Management                                     ║");
         System.out.println("║  [3] Attendance / Access Control                         ║");
         System.out.println("║  [4] Incident Management                                 ║");
+        System.out.println("║  [5] Data Management / Persistence                       ║");
         System.out.println("║  [0] Exit Program                                        ║");
         System.out.println("╚══════════════════════════════════════════════════════════╝");
     }
@@ -25,7 +26,7 @@ public class MenuView {
     // Sub-menu: Person Management
     public static void showPersonMenu() {
         System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                  PERSON MANAGEMENT                       │");
+        System.out.println("│                   PERSON MANAGEMENT                      │");
         System.out.println("├──────────────────────────────────────────────────────────┤");
         System.out.println("│  1. Add New Person                                       │");
         System.out.println("│  2. Display Person List                                  │");
@@ -37,7 +38,7 @@ public class MenuView {
     // Sub-menu: Zone Management
     public static void showZoneMenu() {
         System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                   ZONE MANAGEMENT                        │");
+        System.out.println("│                    ZONE MANAGEMENT                       │");
         System.out.println("├──────────────────────────────────────────────────────────┤");
         System.out.println("│  1. Add New Zone                                         │");
         System.out.println("│  2. Display Zone List                                    │");
@@ -48,7 +49,7 @@ public class MenuView {
     // Sub-menu: Attendance
     public static void showAttendanceMenu() {
         System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│             ATTENDANCE & ACCESS CONTROL                  │");
+        System.out.println("│               ATTENDANCE & ACCESS CONTROL                │");
         System.out.println("├──────────────────────────────────────────────────────────┤");
         System.out.println("│  1. Record Check-In/Out                                  │");
         System.out.println("│  2. View Attendance History                              │");
@@ -59,13 +60,24 @@ public class MenuView {
     // Sub-menu: Incident
     public static void showIncidentMenu() {
         System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                 INCIDENT MANAGEMENT                      │");
+        System.out.println("│                   INCIDENT MANAGEMENT                    │");
         System.out.println("├──────────────────────────────────────────────────────────┤");
         System.out.println("│  1. Report New Incident                                  │");
         System.out.println("│  2. Display Incident List                                │");
         System.out.println("│  3. Assign Incident Handler                              │");
         System.out.println("│  4. Resolve Incident                                     │");
         System.out.println("│  5. Purge Resolved Incidents                             │");
+        System.out.println("│  0. Back to Main Menu                                    │");
+        System.out.println("└──────────────────────────────────────────────────────────┘");
+    }
+
+    // Sub-menu: Data Management / Persistence (Task 1.3)
+    public static void showDataMenu() {
+        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
+        System.out.println("│               DATA MANAGEMENT / PERSISTENCE              │");
+        System.out.println("├──────────────────────────────────────────────────────────┤");
+        System.out.println("│  1. Reload Data From CSV Files                           │");
+        System.out.println("│  2. Save Data Manually To CSV Files                      │");
         System.out.println("│  0. Back to Main Menu                                    │");
         System.out.println("└──────────────────────────────────────────────────────────┘");
     }
