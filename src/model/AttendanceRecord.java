@@ -69,6 +69,11 @@ public class AttendanceRecord implements Serializable {
         this.checkType = checkType;
     }
 
+    public String toCsvLine() {
+        return String.format("%s,%s,%s,%s,%s",
+                recordId, personCode, zoneId, timestamp, checkType != null ? checkType.name() : "");
+    }
+
     @Override
     public String toString() {
         return String.format("AttendanceRecord: recordId=%s, personCode=%s, zoneId=%s, timestamp=%s, checkType=%s",

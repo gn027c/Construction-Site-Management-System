@@ -80,4 +80,20 @@ public class ZoneService {
         }
         return hasAccess;
     }
+
+    public boolean loadFromCsv() {
+        return loadFromCsv("data/zones.csv");
+    }
+
+    public boolean loadFromCsv(String filePath) {
+        return zoneRepository.loadFromCsv(filePath);
+    }
+
+    public boolean saveToCsv() {
+        return saveToCsv("data/zones.csv");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        return zoneRepository.saveToCsv(filePath);
+    }
 }

@@ -144,4 +144,20 @@ public class IncidentService {
             System.out.println(inc);
         }
     }
+
+    public boolean loadFromCsv() {
+        return loadFromCsv("data/incidents.csv");
+    }
+
+    public boolean loadFromCsv(String filePath) {
+        return incidentRepository.loadFromCsv(filePath);
+    }
+
+    public boolean saveToCsv() {
+        return saveToCsv("data/incidents.csv");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        return incidentRepository.saveToCsv(filePath);
+    }
 }

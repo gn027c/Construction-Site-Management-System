@@ -126,4 +126,20 @@ public class AttendanceService {
             System.out.println(r);
         }
     }
+
+    public boolean loadFromCsv() {
+        return loadFromCsv("data/attendance.csv");
+    }
+
+    public boolean loadFromCsv(String filePath) {
+        return attendanceRepository.loadFromCsv(filePath);
+    }
+
+    public boolean saveToCsv() {
+        return saveToCsv("data/attendance.csv");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        return attendanceRepository.saveToCsv(filePath);
+    }
 }

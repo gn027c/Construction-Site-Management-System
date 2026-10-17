@@ -117,6 +117,16 @@ public class Incident {
         this.assignedTo = (assignedTo != null) ? assignedTo.trim() : "";
     }
 
+    public String toCsvLine() {
+        return String.format("%s,%s,%s,%s,%s,%s",
+                incidentId,
+                util.CsvHelper.escapeSpecialCharacters(title),
+                util.CsvHelper.escapeSpecialCharacters(description),
+                severity != null ? severity.name() : "",
+                status != null ? status.name() : "",
+                assignedTo != null ? assignedTo : "");
+    }
+
     @Override
     public String toString() {
         return String.format("Incident{incidentId='%s', title='%s', severity=%s, status=%s, assignedTo='%s'}",

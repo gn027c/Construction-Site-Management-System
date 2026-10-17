@@ -45,12 +45,49 @@ public class IncidentRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt đọc dữ liệu từ incidents.csv vào incidentList (Workshop 5)
-        return false;
+        List<String> lines = util.CsvHelper.readAllLines(filePath);
+        if (lines.isEmpty()) {
+            return false;
+        }
+        incidentList.clear();
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (i == 0 && line.toLowerCase().startsWith("incidentid")) {
+                continue;
+            }
+            String[] parts = line.split(",", -1);
+            if (parts.length >= 6) {
+                String incidentId = parts[0].trim();
+                String title = parts[1].trim();
+                String description = parts[2].trim();
+                Incident.IncidentSeverity severity;
+                try {
+                    severity = Incident.IncidentSeverity.valueOf(parts[3].trim().toUpperCase());
+                } catch (Exception e) {
+                    severity = Incident.IncidentSeverity.MEDIUM;
+                }
+                Incident.IncidentStatus status;
+                try {
+                    status = Incident.IncidentStatus.valueOf(parts[4].trim().toUpperCase());
+                } catch (Exception e) {
+                    status = Incident.IncidentStatus.OPEN;
+                }
+                String assignedTo = parts[5].trim();
+                incidentList.add(new Incident(incidentId, title, description, severity, status, assignedTo));
+            }
+        }
+        return true;
     }
 
     public boolean saveToCsv(String filePath) {
-        // TODO: Thành viên 4 (Nguyễn Tấn Lợi - SE211059) cài đặt ghi incidentList ra incidents.csv với UTF-8 BOM (Workshop 5)
-        return false;
+        List<String> lines = new ArrayList<>();
+        lines.add("incidentId,title,description,severity,status,assignedTo");
+        for (Incident inc : incidentList) {
+            lines.add(inc.toCsvLine());
+        }
+        return util.CsvHelper.writeAllLines(filePath, lines);
     }
 }

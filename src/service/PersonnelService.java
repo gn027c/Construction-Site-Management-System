@@ -71,4 +71,20 @@ public class PersonnelService {
             throw new InvalidPhoneNumberException(phone);
         }
     }
+
+    public boolean loadFromCsv() {
+        return loadFromCsv("data/persons.csv");
+    }
+
+    public boolean loadFromCsv(String filePath) {
+        return personRepository.loadFromCsv(filePath);
+    }
+
+    public boolean saveToCsv() {
+        return saveToCsv("data/persons.csv");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        return personRepository.saveToCsv(filePath);
+    }
 }

@@ -68,6 +68,13 @@ public class CsvHelper {
         if (lines == null) {
             return false;
         }
+        try {
+            java.io.File parent = new java.io.File(filePath).getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+        } catch (Exception ignored) {
+        }
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8))) {
             

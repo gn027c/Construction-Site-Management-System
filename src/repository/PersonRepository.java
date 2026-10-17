@@ -56,12 +56,55 @@ public class PersonRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt đọc dữ liệu từ persons.csv vào store (Workshop 5)
-        return false;
+        List<String> lines = util.CsvHelper.readAllLines(filePath);
+        if (lines.isEmpty()) {
+            return false;
+        }
+        store.clear();
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (i == 0 && line.toLowerCase().startsWith("type")) {
+                continue;
+            }
+            String[] parts = line.split(",", -1);
+            if (parts.length < 6) {
+                continue;
+            }
+            String type = parts[0].trim().toUpperCase();
+            String id = parts[1].trim();
+            String code = parts[2].trim();
+            String name = parts[3].trim();
+            String phone = parts[4].trim();
+
+            try {
+                if (type.equals("WORKER") && parts.length >= 7) {
+                    String cert = parts[6].trim();
+                    store.put(code, new model.Worker(id, code, name, phone, "Construction", cert, "Team A"));
+                } else if (type.equals("CONTRACTOR") && parts.length >= 8) {
+                    String contractId = parts[6].trim();
+                    String companyName = parts[7].trim();
+                    store.put(code, new model.Contractor(id, code, name, phone, companyName, contractId));
+                } else if (type.equals("VISITOR") && parts.length >= 8) {
+                    String purpose = parts[6].trim();
+                    String hostPersonName = parts[7].trim();
+                    store.put(code, new model.Visitor(id, code, name, phone, purpose, hostPersonName, "01/01/2026"));
+                }
+            } catch (Exception e) {
+                System.out.println("Error parsing person record: " + line + " - " + e.getMessage());
+            }
+        }
+        return true;
     }
 
     public boolean saveToCsv(String filePath) {
-        // TODO: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513) cài đặt ghi dữ liệu store ra persons.csv với UTF-8 BOM (Workshop 5)
-        return false;
+        List<String> lines = new ArrayList<>();
+        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2");
+        for (Person p : store.values()) {
+            lines.add(p.toCsvLine());
+        }
+        return util.CsvHelper.writeAllLines(filePath, lines);
     }
 }
