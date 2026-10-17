@@ -87,13 +87,12 @@ public class Worker extends Person {
                 && safetyCertId.endsWith("_SAFE");
     }
 
-    @Override
-    public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s",
-                getId(), getCode(), getName(), getPhoneNumber(), getRole(),
-                safetyCertId);
-    }
-
+  @Override
+public String toCsvLine() {
+    // WORKER,id,code,name,phoneNumber,role,safetyCertId
+    return baseCsv("WORKER") + "," + safetyCertId;
+}
+    
     @Override
     public String toString() {
         return String.format("Worker{%s, safetyCertId='%s'}",
