@@ -53,6 +53,14 @@ public class Zone {
         return person != null;
     }
 
+    /**
+     * Xuất thông tin khu vực thông thường thành chuỗi định dạng CSV chuẩn (Task 3.1)
+     * Format: type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes
+     */
+    public String toCsvLine() {
+        return String.format("REGULAR,%s,%s,NONE,NONE", zoneId, zoneName);
+    }
+
     @Override
     public String toString() {
         return String.format("Zone{zoneId='%s', zoneName='%s'}", zoneId, zoneName);
