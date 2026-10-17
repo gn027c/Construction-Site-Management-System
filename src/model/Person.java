@@ -106,6 +106,20 @@ public abstract class Person {
     // CSV line used when saving to file
     public abstract String toCsvLine();
 
+    /**
+ * Helper: tạo phần đầu chung của dòng CSV cho mọi subclass.
+ * Định dạng: TYPE,id,code,name,phoneNumber,role
+ */
+protected String baseCsv(String type) {
+    return String.join(",",
+            type,
+            id,
+            code,
+            name,
+            phoneNumber,
+            role.name());
+}
+
     // Polymorphic display: each subclass prints its own details via toString()
     public void displayDetails() {
         System.out.println(this);
