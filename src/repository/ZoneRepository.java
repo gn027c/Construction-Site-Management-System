@@ -68,7 +68,7 @@ public class ZoneRepository {
 
             while ((line = reader.readLine()) != null) {
                 if (isFirstLine) {
-                    if (line.startsWith("\uFEFF")) {
+                    if (line.startsWith("﻿")) {
                         line = line.substring(1);
                     }
                     isFirstLine = false;
@@ -83,7 +83,7 @@ public class ZoneRepository {
 
                 String[] parts = line.split(",", -1);
                 if (parts.length < 3) {
-                    continue; 
+                    continue;
                 }
 
                 String type = parts[0].trim();
@@ -95,7 +95,7 @@ public class ZoneRepository {
                     zoneList.add(zone);
                 } else if (type.equalsIgnoreCase("RESTRICTED")) {
                     if (parts.length < 5) continue;
-                    
+
                     String levelStr = parts[3].trim();
                     RestrictedZone.SafetyLevel safetyLevel;
                     try {
@@ -128,9 +128,9 @@ public class ZoneRepository {
 
     public boolean saveToCsv(String filePath) {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8))) {
-            
-            writer.write("\uFEFF");
-            
+
+            writer.write("﻿");
+
             writer.write("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes");
             writer.newLine();
 

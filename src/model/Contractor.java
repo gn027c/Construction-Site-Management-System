@@ -70,11 +70,10 @@ public class Contractor extends Person {
     }
 
     @Override
-    public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s,%s",
-                getId(), getCode(), getName(), getPhoneNumber(), getRole(),
-                companyName, contractId);
-    }
+public String toCsvLine() {
+    // CONTRACTOR,id,code,name,phoneNumber,role,contractId,companyName
+    return baseCsv("CONTRACTOR") + "," + contractId + "," + companyName;
+}
 
     @Override
     public String toString() {
