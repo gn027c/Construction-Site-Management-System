@@ -40,6 +40,26 @@ public class SiteManagerController {
         this.incidentController = new IncidentController(incidentService);
     }
 
+    /**
+     * Task 1.2: Nạp tự động dữ liệu từ tệp CSV của cả 4 module/repository khi ứng dụng khởi chạy
+     */
+    public void loadAllData() {
+        personnelService.loadFromCsv();
+        zoneService.loadFromCsv();
+        attendanceService.loadFromCsv();
+        incidentService.loadFromCsv();
+    }
+
+    /**
+     * Task 1.2: Lưu tự động toàn bộ dữ liệu ra tệp CSV của cả 4 module/repository trước khi thoát hoặc lưu thủ công
+     */
+    public void saveAllData() {
+        personnelService.saveToCsv();
+        zoneService.saveToCsv();
+        attendanceService.saveToCsv();
+        incidentService.saveToCsv();
+    }
+
     public void handlePersonMenu(Scanner scanner) {
         personnelController.handleMenu(scanner);
     }
