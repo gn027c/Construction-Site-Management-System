@@ -1,5 +1,12 @@
 package util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,8 +33,28 @@ public class CsvHelper {
      * @return danh sách các dòng văn bản đọc được từ tệp
      */
     public static List<String> readAllLines(String filePath) {
-        // TODO: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) cài đặt đọc tệp và xử lý UTF-8 BOM (Workshop 5)
-        return new ArrayList<>();
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
+            
+            String line;
+            boolean isFirstLine = true;
+            
+            while ((line = reader.readLine()) != null) {
+                // Xử lý ký tự UTF-8 BOM ở dòng đầu tiên nếu có
+                if (isFirstLine) {
+                    if (line.startsWith(UTF8_BOM)) {
+                        line = line.substring(1);
+                    }
+                    isFirstLine = false;
+                }
+                lines.add(line);
+            }
+        } catch (Exception e) {
+            // Khi gặp lỗi hoặc tệp chưa tồn tại, trả về danh sách rỗng an toàn
+            return new ArrayList<>();
+        }
+        return lines;
     }
 
     /**
@@ -38,8 +65,26 @@ public class CsvHelper {
      * @return true nếu ghi thành công, false nếu phát sinh lỗi I/O
      */
     public static boolean writeAllLines(String filePath, List<String> lines) {
-        // TODO: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) cài đặt ghi tệp kèm UTF-8 BOM (Workshop 5)
-        return false;
+        if (lines == null) {
+            return false;
+        }
+        try (BufferedWriter writer = new BufferedWriter(
+                new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8))) {
+            
+            // Ghi tiền tố UTF-8 BOM ở đầu tệp
+            writer.write(UTF8_BOM);
+            
+            for (int i = 0; i < lines.size(); i++) {
+                writer.write(lines.get(i));
+                if (i < lines.size() - 1) {
+                    writer.newLine();
+                }
+            }
+            writer.flush();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
@@ -49,7 +94,21 @@ public class CsvHelper {
      * @return chuỗi đã được chuẩn hóa an toàn theo chuẩn RFC 4180
      */
     public static String escapeSpecialCharacters(String field) {
-        // TODO: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) cài đặt xử lý escape chuỗi CSV (Workshop 5)
-        return field != null ? field : "";
+        if (field == null) {
+            return "";
+        }
+        String escapedField = field;
+        
+        // Theo chuẩn RFC 4180: Nếu chuỗi chứa dấu nháy kép, thay thế bằng cặp dấu nháy kép ""
+        if (escapedField.contains("\"")) {
+            escapedField = escapedField.replace("\"", "\"\"");
+        }
+        
+        // Nếu chứa dấu phẩy, nháy kép, hoặc xuống dòng thì bao bọc cả ô bằng dấu nháy kép
+        if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
+            escapedField = "\"" + escapedField + "\"";
+        }
+        
+        return escapedField;
     }
 }
