@@ -83,12 +83,11 @@ public class Visitor extends Person {
     public boolean hasValidSafetyCredential() {
         return false;
     }
-
-    @Override
-    public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s",
-                getId(), getCode(), getName(), getPhoneNumber(), getRole());
-    }
+@Override
+public String toCsvLine() {
+    // VISITOR,id,code,name,phoneNumber,role,visitPurpose,hostPersonCode
+    return baseCsv("VISITOR") + "," + visitPurpose + "," + hostPersonCode;
+}
 
     @Override
     public String toString() {
