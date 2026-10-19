@@ -27,6 +27,23 @@ public class AttendanceService {
         this.attendanceRepository = (attendanceRepository != null) ? attendanceRepository : new AttendanceRepository();
         this.personnelService = personnelService;
         this.zoneService = zoneService;
+        syncRecordCounter();
+    }
+
+    /**
+     * Đặt recordCounter = (số REC lớn nhất đang có trong repository) + 1.
+     * Không dùng size() + 1: nếu có bản ghi bị xóa thì size() có thể trùng mã đang tồn tại.
+     * Bản ghi có mã không theo dạng REC#### (ví dụ ATT-001 trong dữ liệu mẫu) được bỏ qua.
+     */
+    private void syncRecordCounter() {
+        int maxNumber = 0;
+        for (AttendanceRecord record : attendanceRepository.findAll()) {
+            String id = record.getRecordId();
+            if (id != null && id.matches("REC\\d{1,9}")) {
+                maxNumber = Math.max(maxNumber, Integer.parseInt(id.substring(3)));
+            }
+        }
+        this.recordCounter = maxNumber + 1;
     }
 
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
@@ -132,7 +149,11 @@ public class AttendanceService {
     }
 
     public boolean loadFromCsv(String filePath) {
-        return attendanceRepository.loadFromCsv(filePath);
+        boolean loaded = attendanceRepository.loadFromCsv(filePath);
+        if (loaded) {
+            syncRecordCounter();
+        }
+        return loaded;
     }
 
     public boolean saveToCsv() {
