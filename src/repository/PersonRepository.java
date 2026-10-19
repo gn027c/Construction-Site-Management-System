@@ -79,6 +79,10 @@ public class PersonRepository {
             String name = parts[3].trim();
             String phone = parts[4].trim();
 
+            // TODO (WS6 - Thành viên 2: Trần Ngọc Anh Tuấn - SE201513, nhánh tuantna-final-verification):
+            // Kiểm tra toàn vẹn dữ liệu persons.csv (Task 2.2): Worker đang được nạp lại với trade = "Construction"
+            // và team = "Team A" cố định, Visitor với entryDate = "01/01/2026" cố định, nên các giá trị thật bị mất
+            // sau một lần lưu/nạp. Ghi log thực tế cho TC-PERS-01..06.
             try {
                 if (type.equals("WORKER") && parts.length >= 7) {
                     String cert = parts[6].trim();

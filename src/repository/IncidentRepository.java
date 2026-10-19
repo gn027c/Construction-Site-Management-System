@@ -58,6 +58,9 @@ public class IncidentRepository {
             if (i == 0 && line.toLowerCase().startsWith("incidentid")) {
                 continue;
             }
+            // TODO (WS6 - Thành viên 4: Nguyễn Tấn Lợi - SE211059, nhánh loint-final-verification):
+            // Thay split(",", -1) bằng hàm đọc dòng CSV của CsvHelper để mô tả sự cố chứa dấu phẩy, dấu nháy kép
+            // được nạp lại nguyên vẹn (TC-IO-04 đang FAIL), sau đó chạy lại TC-ATT-01..06 và TC-INC-01..04.
             String[] parts = line.split(",", -1);
             if (parts.length >= 6) {
                 String incidentId = parts[0].trim();

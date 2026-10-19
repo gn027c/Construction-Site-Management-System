@@ -71,6 +71,9 @@ public class RestrictedZone extends Zone {
         }
     }
 
+    // TODO (WS6 - Thành viên 3: Lê Tấn Thiên - SE201852, nhánh thientt-final-verification):
+    // requiredSafetyLevel hiện chỉ được lưu/nạp từ zones.csv, chưa tham gia vào checkAccess(). Đối chiếu với Task 3.1
+    // (chặn truy cập khi thiếu cấp độ an toàn), kiểm tra whitelist phân tách bằng ';' và ghi log TC-ZONE-01..05.
     @Override
     public boolean checkAccess(Person person) {
         if (person == null || person.getCode() == null) {

@@ -94,6 +94,9 @@ public class CsvHelper {
         }
     }
 
+    // TODO (WS6 - Thành viên 1: Huỳnh Nguyễn Hoàng Khang - SE201461, nhánh khanghnh-final-integration):
+    // Bổ sung hàm đọc một dòng CSV có ô bọc dấu nháy kép theo RFC 4180 (ngược lại với escapeSpecialCharacters).
+    // Hiện các Repository tách cột bằng split(",", -1) nên ô chứa dấu phẩy bị cắt đôi (lỗi TC-IO-04).
     /**
      * Bao bọc và thoát ký tự đặc biệt cho một ô dữ liệu CSV nếu chứa dấu phẩy hoặc nháy kép.
      *
