@@ -37,6 +37,22 @@ public class AttendanceRepository {
         return new ArrayList<>(attendanceList);
     }
 
+    /**
+     * Chuẩn hóa thời gian điểm danh về yyyy-MM-dd HH:mm:ss (cùng định dạng code đang ghi).
+     * Chấp nhận dữ liệu cũ dd/MM/yyyy HH:mm (dữ liệu mẫu). Giá trị không nhận ra thì giữ nguyên.
+     */
+    static String normalizeTimestamp(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(\\d{2})/(\\d{2})/(\\d{4}) (\\d{2}):(\\d{2})").matcher(raw);
+        if (m.matches()) {
+            return m.group(3) + "-" + m.group(2) + "-" + m.group(1) + " " + m.group(4) + ":" + m.group(5) + ":00";
+        }
+        return raw;
+    }
+
     public boolean loadFromCsv(String filePath) {
         List<String> lines = util.CsvHelper.readAllLines(filePath);
         if (lines.isEmpty()) {
@@ -56,7 +72,7 @@ public class AttendanceRepository {
                 String recordId = parts[0].trim();
                 String personCode = parts[1].trim();
                 String zoneId = parts[2].trim();
-                String timestamp = parts[3].trim();
+                String timestamp = normalizeTimestamp(parts[3].trim());
                 AttendanceRecord.CheckType checkType;
                 try {
                     checkType = AttendanceRecord.CheckType.valueOf(parts[4].trim().toUpperCase());
