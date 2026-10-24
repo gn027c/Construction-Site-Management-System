@@ -73,11 +73,26 @@ public class ZoneService {
             return false;
         }
 
-        // Gọi phương thức checkAccess đã cài đặt đa hình ở model
         boolean hasAccess = zone.checkAccess(person);
         if (!hasAccess) {
-            throw new RestrictedZoneViolationException(person.getCode(), zoneId, "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ.");
+            throw new RestrictedZoneViolationException(person.getCode(), zoneId, "Access denied: Insufficient permissions or invalid safety credentials.");
         }
         return hasAccess;
+    }
+
+    public boolean loadFromCsv() {
+        return loadFromCsv("data/zones.csv");
+    }
+
+    public boolean loadFromCsv(String filePath) {
+        return zoneRepository.loadFromCsv(filePath);
+    }
+
+    public boolean saveToCsv() {
+        return saveToCsv("data/zones.csv");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        return zoneRepository.saveToCsv(filePath);
     }
 }
