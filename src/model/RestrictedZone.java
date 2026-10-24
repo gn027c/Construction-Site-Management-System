@@ -24,14 +24,13 @@ public class RestrictedZone extends Zone {
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
-    // Parameterized Constructor
     public RestrictedZone(String zoneId, String zoneName, SafetyLevel requiredSafetyLevel, Set<String> allowedPersonCodes) {
         super(zoneId, zoneName);
         if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
+            throw new IllegalArgumentException("SafetyLevel cannot be null.");
         }
         if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự được cấp phép không được null.");
+            throw new IllegalArgumentException("Allowed person codes set cannot be null.");
         }
         this.requiredSafetyLevel = requiredSafetyLevel;
         this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
@@ -43,7 +42,7 @@ public class RestrictedZone extends Zone {
 
     public void setRequiredSafetyLevel(SafetyLevel requiredSafetyLevel) {
         if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
+            throw new IllegalArgumentException("SafetyLevel cannot be null.");
         }
         this.requiredSafetyLevel = requiredSafetyLevel;
     }
@@ -54,7 +53,7 @@ public class RestrictedZone extends Zone {
 
     public void setAllowedPersonCodes(Set<String> allowedPersonCodes) {
         if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự không được null.");
+            throw new IllegalArgumentException("Allowed person codes set cannot be null.");
         }
         this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
     }
@@ -79,10 +78,12 @@ public class RestrictedZone extends Zone {
         if (person == null || person.getCode() == null) {
             return false;
         }
-        boolean isAccessGranted = allowedPersonCodes.contains(person.getCode().trim());
+    
+        boolean isWhitelisted = allowedPersonCodes.contains(person.getCode().trim());
+        
         boolean hasValidSafety = person.hasValidSafetyCredential();
 
-        return isAccessGranted && hasValidSafety;
+        return isWhitelisted && hasValidSafety;
     }
 
     @Override
@@ -90,8 +91,7 @@ public class RestrictedZone extends Zone {
         String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty()) 
                 ? "NONE" 
                 : String.join(";", allowedPersonCodes);
-        return String.format("RESTRICTED,%s,%s,%s,%s", 
-                zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
+        return String.format("RESTRICTED,%s,%s,%s,%s", zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
     }
 
     @Override
