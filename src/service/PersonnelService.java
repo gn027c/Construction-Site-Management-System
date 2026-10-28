@@ -29,7 +29,7 @@ public class PersonnelService {
     // Add a new person
     public boolean addPerson(Person p) throws DuplicatePersonCodeException, InvalidPhoneNumberException {
         if (p == null || p.getCode() == null || p.getCode().trim().isEmpty()) {
-            System.out.println("Error: Invalid person data!");
+
             return false;
         }
 

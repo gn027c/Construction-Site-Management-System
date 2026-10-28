@@ -32,7 +32,9 @@ public class IncidentController {
                     reportIncidentFlow(scanner);
                     break;
                 case 2:
-                    incidentService.displayAllIncidents();
+                    java.util.List<Incident> incidents = incidentService.getAllIncidents();
+                    if (incidents.isEmpty()) view.ConsoleTheme.warning("No incidents.");
+                    for (Incident incident : incidents) System.out.println(incident);
                     break;
                 case 3:
                     assignIncidentFlow(scanner);
@@ -41,7 +43,7 @@ public class IncidentController {
                     resolveIncidentFlow(scanner);
                     break;
                 case 5:
-                    incidentService.purgeResolvedAndNotify();
+                    view.ConsoleTheme.success("Purged " + incidentService.purgeResolvedIncidents() + " resolved incidents.");
                     break;
                 case 0:
                     back = true;
@@ -71,7 +73,8 @@ public class IncidentController {
             case 4: severity = Incident.IncidentSeverity.CRITICAL; break;
         }
 
-        incidentService.reportIncident(id, title, description, severity);
+        if (incidentService.reportIncident(id, title, description, severity)) view.ConsoleTheme.success("Incident reported with status OPEN.");
+        else view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
     }
 
     private void assignIncidentFlow(Scanner scanner) {
@@ -79,7 +82,8 @@ public class IncidentController {
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
         try {
-            incidentService.assignIncident(incidentId, assigneeCode);
+            if (incidentService.assignIncident(incidentId, assigneeCode)) view.ConsoleTheme.success("Incident assigned.");
+            else view.ConsoleTheme.warning("Assignee must be an existing person.");
         } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
             view.ConsoleTheme.warning("Assignment Error: " + e.getMessage());
         }
@@ -88,6 +92,7 @@ public class IncidentController {
     private void resolveIncidentFlow(Scanner scanner) {
         System.out.println("\n--- RESOLVE INCIDENT ---");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
-        incidentService.resolveIncidentAndNotify(incidentId);
+        if (incidentService.resolveIncident(incidentId)) view.ConsoleTheme.success("Incident resolved.");
+        else view.ConsoleTheme.warning("Invalid incident ID.");
     }
 }

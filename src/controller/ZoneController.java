@@ -74,7 +74,7 @@ public class ZoneController {
         try {
             if (type == 1) {
                 Zone zone = new Zone(zoneId, zoneName);
-                zoneService.addZone(zone);
+                if (zoneService.addZone(zone)) view.ConsoleTheme.success("Zone added.");
             } else {
                 System.out.println("Select Safety Level: 1. LOW | 2. MEDIUM | 3. HIGH | 4. CRITICAL");
                 int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
@@ -88,7 +88,7 @@ public class ZoneController {
                 }
 
                 RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
-                zoneService.addZone(restrictedZone);
+                if (zoneService.addZone(restrictedZone)) view.ConsoleTheme.success("Restricted zone added.");
             }
         } catch (DuplicateZoneIdException e) {
             view.ConsoleTheme.error("Zone Error: " + e.getMessage());

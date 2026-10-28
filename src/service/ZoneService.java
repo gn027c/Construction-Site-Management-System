@@ -31,11 +31,11 @@ public class ZoneService {
 
     public boolean addZone(Zone z) throws DuplicateZoneIdException {
         if (z == null || z.getZoneId() == null || z.getZoneId().trim().isEmpty()) {
-            System.out.println("Error: Invalid zone data!");
+
             return false;
         }
         if (zoneRepository.save(z)) {
-            System.out.println("Successfully added zone: " + z.getZoneName());
+
             return true;
         }
         return false;

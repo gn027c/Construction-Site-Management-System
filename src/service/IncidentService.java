@@ -23,7 +23,7 @@ public class IncidentService {
     }
 
     public boolean reportIncident(Incident incident) {
-        if (incident == null || incident.getStatus() != Incident.IncidentStatus.OPEN) {
+        if (incident == null || incident.getStatus() != Incident.IncidentStatus.OPEN || !incident.getAssignedTo().isEmpty()) {
             return false;
         }
         return incidentRepository.save(incident);
@@ -31,20 +31,14 @@ public class IncidentService {
 
     public boolean reportIncident(String incidentId, String title, String description, Incident.IncidentSeverity severity) {
         if (incidentId == null || incidentId.trim().isEmpty() || title == null || title.trim().isEmpty() || description == null || description.trim().isEmpty()) {
-            System.out.println("Error: Incident ID and title cannot be empty!");
+
             return false;
         }
         Incident incident = new Incident(incidentId.trim(), title.trim(),
                 description == null ? "" : description.trim(),
                 severity == null ? Incident.IncidentSeverity.LOW : severity,
                 Incident.IncidentStatus.OPEN, "");
-        if (reportIncident(incident)) {
-            System.out.println("Incident reported with status OPEN.");
-            return true;
-        } else {
-            System.out.println("Error: Incident ID '" + incidentId + "' already exists!");
-            return false;
-        }
+        return reportIncident(incident);
     }
 
     public PersonnelService getPersonnelService() {
@@ -58,7 +52,7 @@ public class IncidentService {
     public boolean assignIncident(String incidentId, String assigneeCode)
             throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
         if (incidentId == null || incidentId.trim().isEmpty() || assigneeCode == null || assigneeCode.trim().isEmpty()) {
-            System.out.println("Error: Incident ID and Assignee Code cannot be empty!");
+
             return false;
         }
 
@@ -74,18 +68,15 @@ public class IncidentService {
 
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
         if (personnelService == null) return false;
-        {
-            try {
-                personnelService.findPersonByCode(assigneeCode.trim());
-            } catch (exception.PersonNotFoundException e) {
-                System.out.println("Error: Person with code '" + assigneeCode + "' not found in personnel registry!");
-                return false;
-            }
+        try {
+            personnelService.findPersonByCode(assigneeCode.trim());
+        } catch (exception.PersonNotFoundException e) {
+            return false;
         }
 
         inc.setAssignedTo(assigneeCode.trim());
         inc.setStatus(Incident.IncidentStatus.ASSIGNED);
-        System.out.println("Incident '" + incidentId + "' assigned to '" + assigneeCode + "'. Status is now ASSIGNED.");
+
         return true;
     }
 
@@ -109,41 +100,12 @@ public class IncidentService {
         return true;
     }
 
-    public boolean resolveIncidentAndNotify(String incidentId) {
-        try {
-            if (resolveIncident(incidentId)) {
-                System.out.println("Incident resolved.");
-                return true;
-            }
-        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
-            System.out.println("Incident State Error: " + e.getMessage());
-        }
-        return false;
-    }
-
     public int purgeResolvedIncidents() {
         return incidentRepository.deleteResolved();
     }
 
-    public int purgeResolvedAndNotify() {
-        int count = purgeResolvedIncidents();
-        System.out.println("Purged " + count + " resolved incident(s).");
-        return count;
-    }
-
     public List<Incident> getAllIncidents() {
         return incidentRepository.findAll();
-    }
-
-    public void displayAllIncidents() {
-        List<Incident> list = incidentRepository.findAll();
-        if (list.isEmpty()) {
-            System.out.println("No incidents recorded.");
-            return;
-        }
-        for (Incident inc : list) {
-            System.out.println(inc);
-        }
     }
 
     public boolean loadFromCsv() {

@@ -32,7 +32,9 @@ public class AttendanceController {
                     recordAttendanceFlow(scanner);
                     break;
                 case 2:
-                    attendanceService.displayAllAttendanceRecords();
+                    java.util.List<AttendanceRecord> records = attendanceService.getAllAttendanceRecords();
+                    if (records.isEmpty()) view.ConsoleTheme.warning("No attendance records.");
+                    for (AttendanceRecord record : records) System.out.println(record);
                     break;
                 case 0:
                     back = true;

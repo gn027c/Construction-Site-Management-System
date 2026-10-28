@@ -106,17 +106,6 @@ public class AttendanceService {
         return attendanceRepository.findAll();
     }
 
-    public void displayAllAttendanceRecords() {
-        List<AttendanceRecord> list = attendanceRepository.findAll();
-        if (list.isEmpty()) {
-            System.out.println("No attendance records yet.");
-            return;
-        }
-        for (AttendanceRecord r : list) {
-            System.out.println(r);
-        }
-    }
-
     public boolean loadFromCsv() {
         return loadFromCsv("data/attendance.csv");
     }
