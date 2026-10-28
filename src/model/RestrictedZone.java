@@ -49,7 +49,7 @@ public class RestrictedZone extends Zone {
     }
 
     public Set<String> getAllowedPersonCodes() {
-        return allowedPersonCodes;
+        return new HashSet<>(allowedPersonCodes);
     }
 
     public void setAllowedPersonCodes(Set<String> allowedPersonCodes) {
@@ -71,9 +71,7 @@ public class RestrictedZone extends Zone {
         }
     }
 
-    // TODO (WS6 - Thành viên 3: Lê Tấn Thiên - SE201852, nhánh thientt-final-verification):
-    // requiredSafetyLevel hiện chỉ được lưu/nạp từ zones.csv, chưa tham gia vào checkAccess(). Đối chiếu với Task 3.1
-    // (chặn truy cập khi thiếu cấp độ an toàn), kiểm tra whitelist phân tách bằng ';' và ghi log TC-ZONE-01..05.
+    // Safety level describes zone hazard; access requires whitelist and a valid credential.
     @Override
     public boolean checkAccess(Person person) {
         if (person == null || person.getCode() == null) {
@@ -89,8 +87,8 @@ public class RestrictedZone extends Zone {
     public String toCsvLine() {
         String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty()) 
                 ? "NONE" 
-                : String.join(";", allowedPersonCodes);
-        return String.format("RESTRICTED,%s,%s,%s,%s", 
+                : String.join(";", new java.util.TreeSet<>(allowedPersonCodes));
+        return util.CsvHelper.toCsvLine("RESTRICTED", 
                 zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
     }
 

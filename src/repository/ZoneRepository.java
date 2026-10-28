@@ -56,92 +56,35 @@ public class ZoneRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            return false;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-            boolean isFirstLine = true;
-            zoneList.clear();
-
-            while ((line = reader.readLine()) != null) {
-                if (isFirstLine) {
-                    if (line.startsWith("﻿")) {
-                        line = line.substring(1);
-                    }
-                    isFirstLine = false;
-                    if (line.toLowerCase().startsWith("type") || line.toLowerCase().contains("zoneid")) {
-                        continue;
-                    }
-                }
-
-                if (line.trim().isEmpty()) {
-                    continue;
-                }
-
-                String[] parts = line.split(",", -1);
-                if (parts.length < 3) {
-                    continue;
-                }
-
-                String type = parts[0].trim();
-                String zoneId = parts[1].trim();
-                String zoneName = parts[2].trim();
-
-                if (type.equalsIgnoreCase("REGULAR")) {
-                    Zone zone = new Zone(zoneId, zoneName);
-                    zoneList.add(zone);
-                } else if (type.equalsIgnoreCase("RESTRICTED")) {
-                    if (parts.length < 5) continue;
-
-                    String levelStr = parts[3].trim();
-                    RestrictedZone.SafetyLevel safetyLevel;
-                    try {
-                        safetyLevel = RestrictedZone.SafetyLevel.valueOf(levelStr.toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        safetyLevel = RestrictedZone.SafetyLevel.MEDIUM;
-                    }
-
-                    String codesCol = parts[4].trim();
-                    Set<String> allowedCodes = new HashSet<>();
-                    if (!codesCol.equalsIgnoreCase("NONE") && !codesCol.isEmpty()) {
-                        String[] codes = codesCol.split(";");
-                        for (String code : codes) {
-                            if (!code.trim().isEmpty()) {
-                                allowedCodes.add(code.trim());
-                            }
+        ZoneRepository staged = new ZoneRepository();
+        try {
+            List<String[]> rows = util.CsvHelper.readRows(filePath);
+            if (rows.isEmpty() || !rows.get(0)[0].equals("type")) return false;
+            for (int i = 1; i < rows.size(); i++) {
+                String[] p = rows.get(i);
+                if (util.CsvHelper.isBlankRow(p)) continue;
+                if (p.length != 5) return false;
+                if (p[0].equals("REGULAR")) staged.save(new Zone(p[1], p[2]));
+                else if (p[0].equals("RESTRICTED")) {
+                    Set<String> codes = new HashSet<>();
+                    if (!p[4].equals("NONE") && !p[4].isEmpty()) {
+                        for (String code : p[4].split(";", -1)) {
+                            if (code.trim().isEmpty()) return false;
+                            codes.add(code.trim());
                         }
                     }
-
-                    RestrictedZone rZone = new RestrictedZone(zoneId, zoneName, safetyLevel, allowedCodes);
-                    zoneList.add(rZone);
-                }
+                    staged.save(new RestrictedZone(p[1], p[2], RestrictedZone.SafetyLevel.valueOf(p[3]), codes));
+                } else return false;
             }
-            return true;
-        } catch (IOException e) {
-            System.out.println("Error reading zones CSV file: " + e.getMessage());
-            return false;
-        }
+        } catch (RuntimeException e) { return false; }
+        zoneList.clear(); zoneList.addAll(staged.zoneList);
+        return true;
     }
 
     public boolean saveToCsv(String filePath) {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8))) {
-
-            writer.write("﻿");
-
-            writer.write("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes");
-            writer.newLine();
-
-            for (Zone z : zoneList) {
-                writer.write(z.toCsvLine());
-                writer.newLine();
-            }
-            return true;
-        } catch (IOException e) {
-            System.out.println("Error writing zones CSV file: " + e.getMessage());
-            return false;
-        }
+        List<String> rows = new ArrayList<>();
+        rows.add("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes");
+        for (Zone zone : zoneList) rows.add(zone.toCsvLine());
+        return util.CsvHelper.writeAllLines(filePath, rows);
     }
 }

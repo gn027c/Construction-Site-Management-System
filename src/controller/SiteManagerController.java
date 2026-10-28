@@ -35,7 +35,7 @@ public class SiteManagerController {
 
         // 2. Khởi tạo các Controller nhánh tương ứng
         this.personnelController = new PersonnelController(personnelService);
-        this.zoneController = new ZoneController(zoneService);
+        this.zoneController = new ZoneController(zoneService, personnelService);
         this.attendanceController = new AttendanceController(attendanceService);
         this.incidentController = new IncidentController(incidentService);
     }

@@ -21,8 +21,10 @@ import java.util.Scanner;
  */
 public class ZoneController {
     private final ZoneService zoneService;
+    private final service.PersonnelService personnelService;
 
-    public ZoneController(ZoneService zoneService) {
+    public ZoneController(ZoneService zoneService, service.PersonnelService personnelService) {
+        this.personnelService = personnelService;
         this.zoneService = zoneService;
     }
 
@@ -30,7 +32,7 @@ public class ZoneController {
         boolean back = false;
         while (!back) {
             MenuView.showZoneMenu();
-            int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
+            int choice = InputHelper.getInt(scanner, "Enter option (0-4): ", 0, 4);
             switch (choice) {
                 case 1:
                     addZoneFlow(scanner);
@@ -38,11 +40,24 @@ public class ZoneController {
                 case 2:
                     displayZoneListFlow();
                     break;
+                case 3:
+                case 4:
+                    changeAccessFlow(scanner, choice == 3);
+                    break;
                 case 0:
                     back = true;
                     break;
             }
         }
+    }
+
+    private void changeAccessFlow(Scanner scanner, boolean grant) {
+        String zoneId = InputHelper.getString(scanner, "Zone ID: ");
+        String personCode = InputHelper.getString(scanner, "Person code: ");
+        personnelService.findPersonByCode(personCode);
+        boolean changed = grant ? zoneService.grantZoneAccess(zoneId, personCode)
+                                : zoneService.revokeZoneAccess(zoneId, personCode);
+        System.out.println(changed ? "Access list updated." : "Choose a restricted zone.");
     }
 
     private void addZoneFlow(Scanner scanner) {

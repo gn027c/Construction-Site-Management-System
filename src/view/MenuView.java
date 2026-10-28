@@ -42,6 +42,8 @@ public class MenuView {
         System.out.println("├──────────────────────────────────────────────────────────┤");
         System.out.println("│  1. Add New Zone                                         │");
         System.out.println("│  2. Display Zone List                                    │");
+        System.out.println("│  3. Grant Zone Access                                    │");
+        System.out.println("│  4. Revoke Zone Access                                   │");
         System.out.println("│  0. Back to Main Menu                                    │");
         System.out.println("└──────────────────────────────────────────────────────────┘");
     }

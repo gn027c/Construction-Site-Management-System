@@ -49,7 +49,7 @@ public class Zone {
     }
 
     public String toCsvLine() {
-        return String.format("REGULAR,%s,%s,NONE,NONE", zoneId, zoneName);
+        return util.CsvHelper.toCsvLine("REGULAR", zoneId, zoneName, "NONE", "NONE");
     }
 
     @Override
