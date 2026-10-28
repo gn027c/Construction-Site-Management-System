@@ -7,6 +7,7 @@ public final class ConsoleTheme {
         && (System.console() != null || "always".equalsIgnoreCase(System.getProperty("smartsite.color")));
     private ConsoleTheme() { }
     private static String color(String code, String text) { return ENABLED ? "\u001b[" + code + "m" + text + "\u001b[0m" : text; }
+    public static void prompt(String text) { System.out.print(color("36", text)); }
     public static void title(String text) { System.out.println(color("1;36", text)); }
     public static void success(String text) { System.out.println(color("32", "[OK] " + text)); }
     public static void warning(String text) { System.out.println(color("33", "[WARN] " + text)); }

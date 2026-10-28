@@ -95,17 +95,17 @@ public class PersonnelController {
             }
 
              if (personnelService.addPerson(newPerson)) {
-                System.out.println("Success: Person '" + name + "' (" + code + ") has been added.");
+                view.ConsoleTheme.success("Success: Person '" + name + "' (" + code + ") has been added.");
             } else {
                 System.out.println("Could not add the person. Please check the entered data.");
             }
  
         } catch (DuplicatePersonCodeException e) {
-            System.out.println("Error: Person code '" + code + "' already exists. " + e.getMessage());
+            view.ConsoleTheme.error("Error: Person code '" + code + "' already exists. " + e.getMessage());
         } catch (InvalidPhoneNumberException e) {
-            System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
+            view.ConsoleTheme.error("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         } catch (IllegalArgumentException e) {
-            System.out.println("Error: Invalid input data. " + e.getMessage());
+            view.ConsoleTheme.error("Error: Invalid input data. " + e.getMessage());
         }
     }
 
@@ -150,12 +150,12 @@ public class PersonnelController {
             }
             
            personnelService.updatePerson(code, newName, newPhone);
-            System.out.println("Success: Person '" + code + "' has been updated.");
+            view.ConsoleTheme.success("Success: Person '" + code + "' has been updated.");
  
         } catch (PersonNotFoundException e) {
-            System.out.println("Error: No person found with code '" + code + "'. " + e.getMessage());
+            view.ConsoleTheme.error("Error: No person found with code '" + code + "'. " + e.getMessage());
         } catch (InvalidPhoneNumberException e) {
-            System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
+            view.ConsoleTheme.error("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         }
     }
 }

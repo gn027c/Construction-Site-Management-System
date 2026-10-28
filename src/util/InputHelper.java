@@ -45,13 +45,13 @@ public class InputHelper {
    
     public static String getString(Scanner scanner, String prompt) {
         while (true) {
-            System.out.print(prompt);
+            view.ConsoleTheme.prompt(prompt);
             String input = scanner.nextLine();
             try {
                 validateString(input, "Input");
                 return input.trim();
             } catch (DataValidationException e) {
-                System.out.println("Error: " + e.getMessage());
+                view.ConsoleTheme.warning(e.getMessage());
             }
         }
     }
@@ -59,13 +59,13 @@ public class InputHelper {
     
     public static int getInt(Scanner scanner, String prompt, int min, int max) {
         while (true) {
-            System.out.print(prompt);
+            view.ConsoleTheme.prompt(prompt);
             String input = scanner.nextLine();
             try {
                 validateInt(input, "Integer Value", min, max);
                 return Integer.parseInt(input.trim());
             } catch (DataValidationException e) {
-                System.out.println("Error: " + e.getMessage());
+                view.ConsoleTheme.warning(e.getMessage());
             }
         }
     }
@@ -73,13 +73,13 @@ public class InputHelper {
     
     public static String getDate(Scanner scanner, String prompt) {
         while (true) {
-            System.out.print(prompt);
+            view.ConsoleTheme.prompt(prompt);
             String input = scanner.nextLine();
             try {
                 validateDate(input, "Date");
                 return input.trim();
             } catch (DataValidationException e) {
-                System.out.println("Error: " + e.getMessage());
+                view.ConsoleTheme.warning(e.getMessage());
             }
         }
     }

@@ -91,7 +91,7 @@ public class ZoneController {
                 zoneService.addZone(restrictedZone);
             }
         } catch (DuplicateZoneIdException e) {
-            System.out.println("Zone Error: " + e.getMessage());
+            view.ConsoleTheme.error("Zone Error: " + e.getMessage());
         }
     }
 

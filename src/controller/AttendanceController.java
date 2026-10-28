@@ -59,14 +59,14 @@ public class AttendanceController {
 
         try {
             if (attendanceService.recordAttendance(personCode, zoneId, type)) {
-                System.out.println("Attendance recorded: " + type + " at " + zoneId);
+                view.ConsoleTheme.success("Attendance recorded: " + type + " at " + zoneId);
             } else System.out.println("Invalid attendance parameters.");
         } catch (exception.AttendanceOrderException e) {
-            System.out.println("Attendance Order Violation: " + e.getMessage());
+            view.ConsoleTheme.warning("Attendance Order Violation: " + e.getMessage());
         } catch (exception.RestrictedZoneViolationException e) {
-            System.out.println("Restricted Zone Error: " + e.getMessage());
+            view.ConsoleTheme.warning("Restricted Zone Error: " + e.getMessage());
         } catch (exception.ZoneNotFoundException e) {
-            System.out.println("Zone Error: " + e.getMessage());
+            view.ConsoleTheme.error("Zone Error: " + e.getMessage());
         }
     }
 }

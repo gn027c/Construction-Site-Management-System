@@ -81,7 +81,7 @@ public class IncidentController {
         try {
             incidentService.assignIncident(incidentId, assigneeCode);
         } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
-            System.out.println("Assignment Error: " + e.getMessage());
+            view.ConsoleTheme.warning("Assignment Error: " + e.getMessage());
         }
     }
 
