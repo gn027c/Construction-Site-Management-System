@@ -57,3 +57,8 @@ Workshop/
 # Agents configuration & rules
 .agents/
 
+# Local committed state and generated CSV exports
+.smartsite-state/
+.smartsite.lock
+smartsite-export-*/
+
