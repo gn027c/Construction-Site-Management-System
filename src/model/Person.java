@@ -111,7 +111,7 @@ public abstract class Person {
  * Định dạng: TYPE,id,code,name,phoneNumber,role
  */
 protected String baseCsv(String type) {
-    return String.join(",",
+    return util.CsvHelper.toCsvLine(
             type,
             id,
             code,

@@ -56,56 +56,44 @@ public class PersonRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        List<String> lines = util.CsvHelper.readAllLines(filePath);
-        if (lines.isEmpty()) {
-            return false;
-        }
-        store.clear();
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i).trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            if (i == 0 && line.toLowerCase().startsWith("type")) {
-                continue;
-            }
-            String[] parts = line.split(",", -1);
-            if (parts.length < 6) {
-                continue;
-            }
-            String type = parts[0].trim().toUpperCase();
-            String id = parts[1].trim();
-            String code = parts[2].trim();
-            String name = parts[3].trim();
-            String phone = parts[4].trim();
-
-            // TODO (WS6 - Thành viên 2: Trần Ngọc Anh Tuấn - SE201513, nhánh tuantna-final-verification):
-            // Kiểm tra toàn vẹn dữ liệu persons.csv (Task 2.2): Worker đang được nạp lại với trade = "Construction"
-            // và team = "Team A" cố định, Visitor với entryDate = "01/01/2026" cố định, nên các giá trị thật bị mất
-            // sau một lần lưu/nạp. Ghi log thực tế cho TC-PERS-01..06.
-            try {
-                if (type.equals("WORKER") && parts.length >= 7) {
-                    String cert = parts[6].trim();
-                    store.put(code, new model.Worker(id, code, name, phone, "Construction", cert, "Team A"));
-                } else if (type.equals("CONTRACTOR") && parts.length >= 8) {
-                    String contractId = parts[6].trim();
-                    String companyName = parts[7].trim();
-                    store.put(code, new model.Contractor(id, code, name, phone, companyName, contractId));
-                } else if (type.equals("VISITOR") && parts.length >= 8) {
-                    String purpose = parts[6].trim();
-                    String hostPersonName = parts[7].trim();
-                    store.put(code, new model.Visitor(id, code, name, phone, purpose, hostPersonName, "01/01/2026"));
+        PersonRepository staged = new PersonRepository();
+        try {
+            List<String[]> rows = util.CsvHelper.readRows(filePath);
+            if (rows.isEmpty() || !rows.get(0)[0].equals("type")) return false;
+            for (int i = 1; i < rows.size(); i++) {
+                String[] p = rows.get(i);
+                if (util.CsvHelper.isBlankRow(p)) continue;
+                if (p.length < 7 || !p[4].matches("0\\d{9}")) return false;
+                Person person;
+                switch (p[0]) {
+                    case "WORKER":
+                        if (p.length != 7 && p.length != 9) return false;
+                        person = new model.Worker(p[1], p[2], p[3], p[4],
+                            p.length == 9 ? p[7] : "Unknown (legacy)", p[6],
+                            p.length == 9 ? p[8] : "Unknown (legacy)");
+                        break;
+                    case "CONTRACTOR":
+                        if (p.length != 8) return false;
+                        person = new model.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
+                        break;
+                    case "VISITOR":
+                        if (p.length != 8 && p.length != 9) return false;
+                        person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7],
+                            p.length == 9 ? p[8] : "Unknown (legacy)");
+                        break;
+                    default: return false;
                 }
-            } catch (Exception e) {
-                System.out.println("Error parsing person record: " + line + " - " + e.getMessage());
+                if (!person.getRole().name().equals(p[5])) return false;
+                staged.save(person);
             }
-        }
+        } catch (RuntimeException e) { return false; }
+        store.clear(); store.putAll(staged.store);
         return true;
     }
 
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2");
+        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3");
         for (Person p : store.values()) {
             lines.add(p.toCsvLine());
         }
