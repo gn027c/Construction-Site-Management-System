@@ -1,124 +1,97 @@
 package util;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.*;
+import java.util.*;
 
-/**
- * TIỆN ÍCH XỬ LÝ TỆP TIN CSV (PERSISTENCE HELPER)
- * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) - Nhóm trưởng
- * MÔ TẢ:
- * - Module tiện ích hỗ trợ đọc và ghi tệp tin phẳng CSV theo chuẩn RFC 4180.
- * - Xử lý tiền tố UTF-8 BOM (\uFEFF) để Microsoft Excel trên Windows hiển thị đúng tiếng Việt có dấu.
- * - Thoát ký tự đặc biệt (dấu phẩy, dấu nháy kép, dấu ngắt dòng) khi xuất dòng CSV.
- * - Clean Skeleton Stub cho Workshop 5.
- */
-public class CsvHelper {
-
-    /**
-     * Tiền tố Byte Order Mark (UTF-8 BOM) để Excel tự động nhận diện bảng mã UTF-8.
-     */
+/** UTF-8 CSV codec, including quoted multiline fields. Maintainer: Khang SE201461. */
+public final class CsvHelper {
     public static final String UTF8_BOM = "\uFEFF";
+    private CsvHelper() { }
 
-    /**
-     * Đọc toàn bộ các dòng văn bản từ tệp CSV, tự động loại bỏ ký tự UTF-8 BOM ở dòng đầu nếu có.
-     *
-     * @param filePath đường dẫn tệp tin CSV
-     * @return danh sách các dòng văn bản đọc được từ tệp
-     */
     public static List<String> readAllLines(String filePath) {
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
-            
-            String line;
-            boolean isFirstLine = true;
-            
-            while ((line = reader.readLine()) != null) {
-                // Xử lý ký tự UTF-8 BOM ở dòng đầu tiên nếu có
-                if (isFirstLine) {
-                    if (line.startsWith(UTF8_BOM)) {
-                        line = line.substring(1);
-                    }
-                    isFirstLine = false;
-                }
-                lines.add(line);
-            }
-        } catch (Exception e) {
-            // Khi gặp lỗi hoặc tệp chưa tồn tại, trả về danh sách rỗng an toàn
-            return new ArrayList<>();
-        }
-        return lines;
-    }
-
-    /**
-     * Ghi danh sách các dòng văn bản ra tệp CSV kèm tiền tố UTF-8 BOM để Excel hiển thị không lỗi font.
-     *
-     * @param filePath đường dẫn tệp tin CSV
-     * @param lines    danh sách các dòng văn bản cần ghi
-     * @return true nếu ghi thành công, false nếu phát sinh lỗi I/O
-     */
-    public static boolean writeAllLines(String filePath, List<String> lines) {
-        if (lines == null) {
-            return false;
-        }
         try {
-            java.io.File parent = new java.io.File(filePath).getParentFile();
-            if (parent != null && !parent.exists()) {
-                parent.mkdirs();
-            }
-        } catch (Exception ignored) {
-        }
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(filePath), StandardCharsets.UTF_8))) {
-            
-            // Ghi tiền tố UTF-8 BOM ở đầu tệp
-            writer.write(UTF8_BOM);
-            
-            for (int i = 0; i < lines.size(); i++) {
-                writer.write(lines.get(i));
-                if (i < lines.size() - 1) {
-                    writer.newLine();
-                }
-            }
-            writer.flush();
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+            List<String> lines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
+            if (!lines.isEmpty() && lines.get(0).startsWith(UTF8_BOM)) lines.set(0, lines.get(0).substring(1));
+            return lines;
+        } catch (IOException e) { throw new UncheckedIOException("Cannot read " + filePath, e); }
     }
 
-    // TODO (WS6 - Thành viên 1: Huỳnh Nguyễn Hoàng Khang - SE201461, nhánh khanghnh-final-integration):
-    // Bổ sung hàm đọc một dòng CSV có ô bọc dấu nháy kép theo RFC 4180 (ngược lại với escapeSpecialCharacters).
-    // Hiện các Repository tách cột bằng split(",", -1) nên ô chứa dấu phẩy bị cắt đôi (lỗi TC-IO-04).
-    /**
-     * Bao bọc và thoát ký tự đặc biệt cho một ô dữ liệu CSV nếu chứa dấu phẩy hoặc nháy kép.
-     *
-     * @param field giá trị chuỗi của ô dữ liệu
-     * @return chuỗi đã được chuẩn hóa an toàn theo chuẩn RFC 4180
-     */
+    public static List<String[]> readRows(String path) {
+        try { return parseRecords(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8)); }
+        catch (IOException e) { throw new UncheckedIOException("Cannot read " + path, e); }
+    }
+
+    public static String[] parseLine(String line) {
+        List<String[]> rows = parseRecords(line);
+        if (rows.size() != 1) throw new IllegalArgumentException("Expected one CSV record");
+        return rows.get(0);
+    }
+
+    private static List<String[]> parseRecords(String text) {
+        Objects.requireNonNull(text, "CSV text");
+        List<String[]> rows = new ArrayList<>();
+        List<String> fields = new ArrayList<>();
+        StringBuilder field = new StringBuilder();
+        boolean quoted = false, closed = false, started = false;
+        for (int i = text.startsWith(UTF8_BOM) ? 1 : 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (quoted) {
+                if (ch == '"') {
+                    if (i + 1 < text.length() && text.charAt(i + 1) == '"') { field.append('"'); i++; }
+                    else { quoted = false; closed = true; }
+                } else field.append(ch);
+                continue;
+            }
+            if (ch == ',' || ch == '\r' || ch == '\n') {
+                fields.add(field.toString()); field.setLength(0); closed = false;
+                if (ch == ',') started = true;
+                else {
+                    rows.add(fields.toArray(new String[0])); fields.clear(); started = false;
+                    if (ch == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') i++;
+                }
+            } else if (ch == '"' && field.length() == 0 && !closed) { quoted = true; started = true; }
+            else {
+                if (ch == '"' || closed) throw new IllegalArgumentException("Malformed CSV at character " + (i + 1));
+                field.append(ch); started = true;
+            }
+        }
+        if (quoted) throw new IllegalArgumentException("Unclosed CSV quote");
+        if (started || !fields.isEmpty()) { fields.add(field.toString()); rows.add(fields.toArray(new String[0])); }
+        return rows;
+    }
+
+    public static boolean isBlankRow(String[] row) { return row.length == 1 && row[0].trim().isEmpty(); }
+    public static String toCsvLine(String... fields) {
+        List<String> escaped = new ArrayList<>();
+        for (String field : fields) escaped.add(escapeSpecialCharacters(field));
+        return String.join(",", escaped);
+    }
     public static String escapeSpecialCharacters(String field) {
-        if (field == null) {
-            return "";
-        }
-        String escapedField = field;
-        
-        // Theo chuẩn RFC 4180: Nếu chuỗi chứa dấu nháy kép, thay thế bằng cặp dấu nháy kép ""
-        if (escapedField.contains("\"")) {
-            escapedField = escapedField.replace("\"", "\"\"");
-        }
-        
-        // Nếu chứa dấu phẩy, nháy kép, hoặc xuống dòng thì bao bọc cả ô bằng dấu nháy kép
-        if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
-            escapedField = "\"" + escapedField + "\"";
-        }
-        
-        return escapedField;
+        if (field == null) return "";
+        if (field.contains(",") || field.contains("\"") || field.contains("\r") || field.contains("\n"))
+            return "\"" + field.replace("\"", "\"\"") + "\"";
+        return field;
+    }
+
+    /** Write a sibling temporary file, then atomically replace. No unsafe fallback. */
+    public static boolean writeAllLines(String filePath, List<String> lines) {
+        if (lines == null || lines.contains(null)) return false;
+        Path temporary = null;
+        try {
+            Path target = Paths.get(filePath).toAbsolutePath();
+            Files.createDirectories(target.getParent());
+            temporary = Files.createTempFile(target.getParent(), ".smartsite-", ".tmp");
+            byte[] bytes = (UTF8_BOM + String.join("\r\n", lines)).getBytes(StandardCharsets.UTF_8);
+            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(temporary, StandardOpenOption.WRITE)) {
+                java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) channel.write(buffer);
+                channel.force(true);
+            }
+            Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            return true;
+        } catch (IOException | RuntimeException e) { return false; }
+        finally { if (temporary != null) try { Files.deleteIfExists(temporary); } catch (IOException ignored) { } }
     }
 }

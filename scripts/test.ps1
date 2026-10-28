@@ -12,7 +12,7 @@ try {
         $TestClass = @(Get-ChildItem -LiteralPath tests -Filter '*Test.java' | ForEach-Object BaseName)
     }
     foreach ($class in $TestClass) {
-        & java -Dfile.encoding=UTF-8 -cp $buildPath $class
+        & java '-Dfile.encoding=UTF-8' -cp $buildPath $class
         if ($LASTEXITCODE -ne 0) { throw "Test failed: $class" }
     }
 } finally {
