@@ -1,115 +1,73 @@
-import view.MenuView;
-import util.InputHelper;
 import controller.SiteManagerController;
-import exception.DataValidationException;
-import exception.SiteManagementException;
-import java.util.Scanner;
+import state.AppState;
+import state.StateStore;
+import util.InputHelper;
+import view.ConsoleTheme;
+import view.MenuView;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
 
-/**
- * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) - Nhóm trưởng
- * MÔ TẢ:
- * - Application Bootstrap & Console View Entry Point.
- * - Giao tiếp duy nhất với SiteManagerController (Facade Pattern).
- * - Quản lý vòng lặp Menu chính, bắt sự kiện lựa chọn và xử lý Exception toàn cục.
- */
+/** Console bootstrap and state session. Maintainer: Khang SE201461. */
 public class Main {
-
     public static void main(String[] args) {
-        
-        SiteManagerController siteController = new SiteManagerController();
-        Scanner scanner = new Scanner(System.in);
-        boolean exit = false;
-
-        System.out.println("=================================================");
-        System.out.println("    WELCOME TO SMARTSITE MANAGEMENT SYSTEM        ");
-        System.out.println("=================================================");
-
-        // Task 1.2: Tự động nạp dữ liệu khi bắt đầu chương trình
-        try {
-            siteController.loadAllData();
-            System.out.println("✅ [SYSTEM] All CSV data loaded successfully!");
-        } catch (Exception e) {
-            System.err.println("⚠️ [SYSTEM WARNING] Failed to auto-load initial data: " + e.getMessage());
-        }
-
-        while (!exit) {
-            try {
-                
-                MenuView.showMainMenu();
-
-                // Nâng giới hạn lựa chọn từ (0-4) lên (0-5)
-                int choice = InputHelper.getInt(scanner, "Enter your choice (0-5): ", 0, 5);
-
-                switch (choice) {
-                    case 1:
-                        siteController.handlePersonMenu(scanner);
-                        break;
-                    case 2:
-                        siteController.handleZoneMenu(scanner);
-                        break;
-                    case 3:
-                        siteController.handleAttendanceMenu(scanner);
-                        break;
-                    case 4:
-                        siteController.handleIncidentMenu(scanner);
-                        break;
-                    case 5:
-                        // Task 1.3: Quản lý sao lưu / nạp lại dữ liệu thủ công
-                        handleDataManagementMenu(siteController, scanner);
-                        break;
-                    case 0:
-                        // Task 1.2: Tự động lưu dữ liệu trước khi thoát[cite: 1]
-                        siteController.saveAllData();
-                        exit = true;
-                        System.out.println("\n✅ Data saved successfully!");
-                        System.out.println("Thank you for using SmartSite System! Goodbye.");
-                        break;
-                    default:
-                        System.out.println("Invalid selection!");
+        Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));
+        try (StateStore store = new StateStore(directory); Scanner scanner = new Scanner(System.in)) {
+            AppState state = store.load(); // Fail before any write if startup files are invalid.
+            ConsoleTheme.success("Loaded state: " + store.getGeneration());
+            SiteManagerController controller = controller(state, store);
+            boolean exit = false;
+            while (!exit) {
+                try {
+                    MenuView.showMainMenu();
+                    int choice = InputHelper.getInt(scanner, "Choice (0-5): ", 0, 5);
+                    switch (choice) {
+                        case 1: controller.handlePersonMenu(scanner); break;
+                        case 2: controller.handleZoneMenu(scanner); break;
+                        case 3: controller.handleAttendanceMenu(scanner); break;
+                        case 4: controller.handleIncidentMenu(scanner); break;
+                        case 5:
+                            MenuView.showDataMenu();
+                            int action = InputHelper.getInt(scanner, "Choice (0-3): ", 0, 3);
+                            if (action == 1) {
+                                String answer = InputHelper.getString(scanner, "Discard unsaved changes and reload committed state? (yes/no): ");
+                                if (answer.equalsIgnoreCase("yes")) {
+                                    AppState loaded = store.load(); // Swap only after all modules validate.
+                                    state = loaded;
+                                    controller = controller(state, store);
+                                    ConsoleTheme.success("Committed state reloaded.");
+                                }
+                            } else if (action == 2) {
+                                store.save(state); ConsoleTheme.success("State saved.");
+                            } else if (action == 3) {
+                                String path = InputHelper.getString(scanner, "Export parent directory: ");
+                                ConsoleTheme.success("Export completed: " + store.exportCsv(state, Paths.get(path)));
+                            }
+                            break;
+                        case 0:
+                            store.save(state);
+                            ConsoleTheme.success("State saved. Goodbye.");
+                            exit = true;
+                            break;
+                    }
+                } catch (NoSuchElementException e) {
+                    store.save(state);
+                    ConsoleTheme.success("Input closed. State saved.");
+                    exit = true;
+                } catch (Exception e) {
+                    ConsoleTheme.error(e.getMessage());
                 }
-            } catch (DataValidationException e) {
-                System.err.println("⚠️ [DATA VALIDATION ERROR] " + e.getMessage());
-            } catch (SiteManagementException e) {
-                System.err.println("❌ [SITE MANAGEMENT ERROR] " + e.getMessage());
-            } catch (Exception e) {
-                System.err.println("💥 [UNEXPECTED ERROR] " + e.getMessage());
             }
-
-            System.out.println();
+        } catch (Exception e) {
+            ConsoleTheme.error("Session stopped: " + e.getMessage());
+            System.exit(1);
         }
-
-        scanner.close();
     }
 
-    /**
-     * Sub-routine xử lý Menu quản lý sao lưu / nạp lại dữ liệu thủ công (Task 1.3)[cite: 1]
-     */
-    private static void handleDataManagementMenu(SiteManagerController siteController, Scanner scanner) {
-        boolean back = false;
-        while (!back) {
-            try {
-                MenuView.showDataMenu();
-                int choice = InputHelper.getInt(scanner, "Enter your choice (0-2): ", 0, 2);
-
-                switch (choice) {
-                    case 1:
-                        siteController.loadAllData();
-                        System.out.println("✅ Data reloaded successfully from CSV files.");
-                        break;
-                    case 2:
-                        siteController.saveAllData();
-                        System.out.println("✅ Data saved manually to CSV files successfully.");
-                        break;
-                    case 0:
-                        back = true;
-                        break;
-                    default:
-                        System.out.println("Invalid selection!");
-                }
-            } catch (Exception e) {
-                System.err.println("⚠️ [DATA MANAGEMENT ERROR] " + e.getMessage());
-            }
-            System.out.println();
-        }
+    private static SiteManagerController controller(final AppState state, final StateStore store) {
+        return new SiteManagerController(state, () -> {
+            try { store.save(state); }
+            catch (IOException e) { throw new exception.SiteManagementException("Checkpoint failed. Changes remain in memory; retry Save before exit.", e); }
+        });
     }
 }

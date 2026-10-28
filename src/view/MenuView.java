@@ -1,86 +1,12 @@
 package view;
 
-/**
- * TASK: Member 1 (Huynh Nguyen Hoang Khang - SE201461)
- * DESCRIPTION:
- * - Responsible for rendering Menu interfaces on the Console.
- * - Displays welcome banner and feature options for SmartSite.
- * - Formatted with structured Unicode box-drawing borders.
- */
-public class MenuView {
-
-    // Main Menu Layout
-    public static void showMainMenu() {
-        System.out.println("\n╔══════════════════════════════════════════════════════════╗");
-        System.out.println("║         SMARTSITE CONSTRUCTION MANAGEMENT SYSTEM         ║");
-        System.out.println("╠══════════════════════════════════════════════════════════╣");
-        System.out.println("║  [1] Person Management                                   ║");
-        System.out.println("║  [2] Zone Management                                     ║");
-        System.out.println("║  [3] Attendance / Access Control                         ║");
-        System.out.println("║  [4] Incident Management                                 ║");
-        System.out.println("║  [5] Data Management / Persistence                       ║");
-        System.out.println("║  [0] Exit Program                                        ║");
-        System.out.println("╚══════════════════════════════════════════════════════════╝");
-    }
-
-    // Sub-menu: Person Management
-    public static void showPersonMenu() {
-        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                   PERSON MANAGEMENT                      │");
-        System.out.println("├──────────────────────────────────────────────────────────┤");
-        System.out.println("│  1. Add New Person                                       │");
-        System.out.println("│  2. Display Person List                                  │");
-        System.out.println("│  3. Search / Update Person                               │");
-        System.out.println("│  0. Back to Main Menu                                    │");
-        System.out.println("└──────────────────────────────────────────────────────────┘");
-    }
-
-    // Sub-menu: Zone Management
-    public static void showZoneMenu() {
-        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                    ZONE MANAGEMENT                       │");
-        System.out.println("├──────────────────────────────────────────────────────────┤");
-        System.out.println("│  1. Add New Zone                                         │");
-        System.out.println("│  2. Display Zone List                                    │");
-        System.out.println("│  3. Grant Zone Access                                    │");
-        System.out.println("│  4. Revoke Zone Access                                   │");
-        System.out.println("│  0. Back to Main Menu                                    │");
-        System.out.println("└──────────────────────────────────────────────────────────┘");
-    }
-
-    // Sub-menu: Attendance
-    public static void showAttendanceMenu() {
-        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│               ATTENDANCE & ACCESS CONTROL                │");
-        System.out.println("├──────────────────────────────────────────────────────────┤");
-        System.out.println("│  1. Record Check-In/Out                                  │");
-        System.out.println("│  2. View Attendance History                              │");
-        System.out.println("│  0. Back to Main Menu                                    │");
-        System.out.println("└──────────────────────────────────────────────────────────┘");
-    }
-
-    // Sub-menu: Incident
-    public static void showIncidentMenu() {
-        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│                   INCIDENT MANAGEMENT                    │");
-        System.out.println("├──────────────────────────────────────────────────────────┤");
-        System.out.println("│  1. Report New Incident                                  │");
-        System.out.println("│  2. Display Incident List                                │");
-        System.out.println("│  3. Assign Incident Handler                              │");
-        System.out.println("│  4. Resolve Incident                                     │");
-        System.out.println("│  5. Purge Resolved Incidents                             │");
-        System.out.println("│  0. Back to Main Menu                                    │");
-        System.out.println("└──────────────────────────────────────────────────────────┘");
-    }
-
-    // Sub-menu: Data Management / Persistence (Task 1.3)
-    public static void showDataMenu() {
-        System.out.println("\n┌──────────────────────────────────────────────────────────┐");
-        System.out.println("│               DATA MANAGEMENT / PERSISTENCE              │");
-        System.out.println("├──────────────────────────────────────────────────────────┤");
-        System.out.println("│  1. Reload Data From CSV Files                           │");
-        System.out.println("│  2. Save Data Manually To CSV Files                      │");
-        System.out.println("│  0. Back to Main Menu                                    │");
-        System.out.println("└──────────────────────────────────────────────────────────┘");
-    }
+/** Console navigation. Maintainer: Khang SE201461. */
+public final class MenuView {
+    private MenuView() { }
+    public static void showMainMenu() { ConsoleTheme.menu("HOME", "Personnel", "Zones and permissions", "Attendance", "Safety incidents", "State and export"); }
+    public static void showPersonMenu() { ConsoleTheme.menu("PERSONNEL", "Add person", "View personnel", "Search and update"); }
+    public static void showZoneMenu() { ConsoleTheme.menu("ZONES", "Add zone", "View zones", "Grant access", "Revoke access"); }
+    public static void showAttendanceMenu() { ConsoleTheme.menu("ATTENDANCE", "Check in or out", "View history"); }
+    public static void showIncidentMenu() { ConsoleTheme.menu("INCIDENTS", "Report incident", "View incidents", "Assign handler", "Resolve incident", "Purge resolved incidents"); }
+    public static void showDataMenu() { ConsoleTheme.menu("STATE AND EXPORT", "Reload committed state", "Save checkpoint", "Export CSV files"); }
 }

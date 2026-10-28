@@ -28,7 +28,9 @@ public class ZoneController {
         this.zoneService = zoneService;
     }
 
-    public void handleMenu(Scanner scanner) {
+    public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
+
+    public void handleMenu(Scanner scanner, Runnable checkpoint) {
         boolean back = false;
         while (!back) {
             MenuView.showZoneMenu();
@@ -48,6 +50,7 @@ public class ZoneController {
                     back = true;
                     break;
             }
+            if (!back) checkpoint.run();
         }
     }
 

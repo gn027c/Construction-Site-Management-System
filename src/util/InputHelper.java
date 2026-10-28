@@ -35,12 +35,10 @@ public class InputHelper {
     
     public static void validateDate(String input, String fieldName) throws DataValidationException {
         validateString(input, fieldName);
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        sdf.setLenient(false);
         try {
-            sdf.parse(input.trim());
-        } catch (ParseException e) {
-            throw new DataValidationException(fieldName, "Invalid date format or non-existent date! Must be dd/MM/yyyy.");
+            java.time.LocalDate.parse(input.trim(), java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(java.time.format.ResolverStyle.STRICT));
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new DataValidationException(fieldName, "Expected a valid dd/MM/yyyy date.");
         }
     }
 

@@ -20,7 +20,9 @@ public class AttendanceController {
         this.attendanceService = attendanceService;
     }
 
-    public void handleMenu(Scanner scanner) {
+    public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
+
+    public void handleMenu(Scanner scanner, Runnable checkpoint) {
         boolean back = false;
         while (!back) {
             MenuView.showAttendanceMenu();
@@ -36,6 +38,7 @@ public class AttendanceController {
                     back = true;
                     break;
             }
+            if (!back) checkpoint.run();
         }
     }
 

@@ -8,7 +8,8 @@ import java.util.Scanner;
 
 /**
  * BỘ ĐIỀU PHỐI TRUNG TÂM (FACADE CONTROLLER)
- * PHỤ TRÁCH: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
+ * PHỤ TRÁCH: Khang SE201461 - tích hợp; Tuấn SE201513 - nhân sự;
+ * Thiên SE201852 - khu vực; Lợi SE211059 - điểm danh và sự cố.
  * MÔ TẢ:
  * - Đóng gói toàn bộ các Service và Sub-Controller của hệ thống.
  * - Cung cấp điểm giao tiếp duy nhất (Single Point of Contact) cho Main.java.
@@ -26,12 +27,17 @@ public class SiteManagerController {
     private final AttendanceController attendanceController;
     private final IncidentController incidentController;
 
-    public SiteManagerController() {
+    private final Runnable checkpoint;
+    public SiteManagerController() { this(new state.AppState(), () -> { }); }
+    public SiteManagerController(state.AppState state) { this(state, () -> { }); }
+
+    public SiteManagerController(state.AppState state, Runnable checkpoint) {
+        this.checkpoint = checkpoint;
         // 1. Khởi tạo tầng Service nội bộ
-        this.personnelService = new PersonnelService();
-        this.zoneService = new ZoneService();
-        this.attendanceService = new AttendanceService(personnelService, zoneService);
-        this.incidentService = new IncidentService(personnelService);
+        this.personnelService = state.personnel;
+        this.zoneService = state.zones;
+        this.attendanceService = state.attendance;
+        this.incidentService = state.incidents;
 
         // 2. Khởi tạo các Controller nhánh tương ứng
         this.personnelController = new PersonnelController(personnelService);
@@ -40,39 +46,20 @@ public class SiteManagerController {
         this.incidentController = new IncidentController(incidentService);
     }
 
-    /**
-     * Task 1.2: Nạp tự động dữ liệu từ tệp CSV của cả 4 module/repository khi ứng dụng khởi chạy
-     */
-    public void loadAllData() {
-        personnelService.loadFromCsv();
-        zoneService.loadFromCsv();
-        attendanceService.loadFromCsv();
-        incidentService.loadFromCsv();
-    }
-
-    /**
-     * Task 1.2: Lưu tự động toàn bộ dữ liệu ra tệp CSV của cả 4 module/repository trước khi thoát hoặc lưu thủ công
-     */
-    public void saveAllData() {
-        personnelService.saveToCsv();
-        zoneService.saveToCsv();
-        attendanceService.saveToCsv();
-        incidentService.saveToCsv();
-    }
-
     public void handlePersonMenu(Scanner scanner) {
-        personnelController.handleMenu(scanner);
+        personnelController.handleMenu(scanner, checkpoint);
     }
 
     public void handleZoneMenu(Scanner scanner) {
-        zoneController.handleMenu(scanner);
+        zoneController.handleMenu(scanner, checkpoint);
     }
 
     public void handleAttendanceMenu(Scanner scanner) {
-        attendanceController.handleMenu(scanner);
+        attendanceController.handleMenu(scanner, checkpoint);
     }
 
     public void handleIncidentMenu(Scanner scanner) {
-        incidentController.handleMenu(scanner);
+        incidentController.handleMenu(scanner, checkpoint);
     }
 }
+

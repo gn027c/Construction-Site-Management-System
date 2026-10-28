@@ -28,7 +28,9 @@ public class PersonnelController {
     }
     
  // Person menu: 1-Add, 2-Display list, 3-Search & update phone, 0-Back
-    public void handleMenu(Scanner scanner) {
+    public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
+
+    public void handleMenu(Scanner scanner, Runnable checkpoint) {
         boolean back = false;
         while (!back) {
             MenuView.showPersonMenu();
@@ -47,6 +49,7 @@ public class PersonnelController {
                     back = true;
                     break;
             }
+            if (!back) checkpoint.run();
         }
     }
  // ---------- Case 1: Add Worker / Contractor / Visitor ----------

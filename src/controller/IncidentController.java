@@ -20,7 +20,9 @@ public class IncidentController {
         this.incidentService = incidentService;
     }
 
-    public void handleMenu(Scanner scanner) {
+    public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
+
+    public void handleMenu(Scanner scanner, Runnable checkpoint) {
         boolean back = false;
         while (!back) {
             MenuView.showIncidentMenu();
@@ -45,6 +47,7 @@ public class IncidentController {
                     back = true;
                     break;
             }
+            if (!back) checkpoint.run();
         }
     }
 
