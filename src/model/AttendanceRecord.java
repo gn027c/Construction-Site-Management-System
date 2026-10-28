@@ -70,7 +70,7 @@ public class AttendanceRecord implements Serializable {
     }
 
     public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s",
+        return util.CsvHelper.toCsvLine(
                 recordId, personCode, zoneId, timestamp, checkType != null ? checkType.name() : "");
     }
 

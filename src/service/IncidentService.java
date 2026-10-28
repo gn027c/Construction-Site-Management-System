@@ -30,7 +30,7 @@ public class IncidentService {
     }
 
     public boolean reportIncident(String incidentId, String title, String description, Incident.IncidentSeverity severity) {
-        if (incidentId == null || incidentId.trim().isEmpty() || title == null || title.trim().isEmpty()) {
+        if (incidentId == null || incidentId.trim().isEmpty() || title == null || title.trim().isEmpty() || description == null || description.trim().isEmpty()) {
             System.out.println("Error: Incident ID and title cannot be empty!");
             return false;
         }
@@ -73,7 +73,8 @@ public class IncidentService {
         }
 
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
-        if (personnelService != null) {
+        if (personnelService == null) return false;
+        {
             try {
                 personnelService.findPersonByCode(assigneeCode.trim());
             } catch (exception.PersonNotFoundException e) {

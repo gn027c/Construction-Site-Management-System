@@ -16,6 +16,9 @@ public class AttendanceRepository {
         if (record == null) {
             return false;
         }
+        for (AttendanceRecord existing : attendanceList) {
+            if (existing.getRecordId().equals(record.getRecordId())) return false;
+        }
         return attendanceList.add(record);
     }
 
@@ -26,7 +29,7 @@ public class AttendanceRepository {
         String cleanCode = personCode.trim();
         for (int i = attendanceList.size() - 1; i >= 0; i--) {
             AttendanceRecord rec = attendanceList.get(i);
-            if (rec.getPersonCode().equalsIgnoreCase(cleanCode)) {
+            if (rec.getPersonCode().equals(cleanCode)) {
                 return rec;
             }
         }
@@ -54,34 +57,20 @@ public class AttendanceRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        List<String> lines = util.CsvHelper.readAllLines(filePath);
-        if (lines.isEmpty()) {
-            return false;
-        }
-        attendanceList.clear();
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i).trim();
-            if (line.isEmpty()) {
-                continue;
+        AttendanceRepository staged = new AttendanceRepository();
+        try {
+            List<String[]> rows = util.CsvHelper.readRows(filePath);
+            if (rows.isEmpty() || !rows.get(0)[0].equals("recordId")) return false;
+            for (int i = 1; i < rows.size(); i++) {
+                String[] p = rows.get(i);
+                if (util.CsvHelper.isBlankRow(p)) continue;
+                if (p.length != 5 || p[0].trim().isEmpty() || p[1].trim().isEmpty() || p[2].trim().isEmpty()) return false;
+                String stamp = normalizeTimestamp(p[3]);
+                java.time.LocalDateTime.parse(stamp, java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss").withResolverStyle(java.time.format.ResolverStyle.STRICT));
+                if (!staged.save(new AttendanceRecord(p[0], p[1], p[2], stamp, AttendanceRecord.CheckType.valueOf(p[4])))) return false;
             }
-            if (i == 0 && line.toLowerCase().startsWith("recordid")) {
-                continue;
-            }
-            String[] parts = line.split(",", -1);
-            if (parts.length >= 5) {
-                String recordId = parts[0].trim();
-                String personCode = parts[1].trim();
-                String zoneId = parts[2].trim();
-                String timestamp = normalizeTimestamp(parts[3].trim());
-                AttendanceRecord.CheckType checkType;
-                try {
-                    checkType = AttendanceRecord.CheckType.valueOf(parts[4].trim().toUpperCase());
-                } catch (Exception e) {
-                    checkType = AttendanceRecord.CheckType.CHECK_IN;
-                }
-                attendanceList.add(new AttendanceRecord(recordId, personCode, zoneId, timestamp, checkType));
-            }
-        }
+        } catch (RuntimeException e) { return false; }
+        attendanceList.clear(); attendanceList.addAll(staged.attendanceList);
         return true;
     }
 

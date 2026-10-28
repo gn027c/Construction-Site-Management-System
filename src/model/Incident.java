@@ -118,13 +118,7 @@ public class Incident {
     }
 
     public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s",
-                incidentId,
-                util.CsvHelper.escapeSpecialCharacters(title),
-                util.CsvHelper.escapeSpecialCharacters(description),
-                severity != null ? severity.name() : "",
-                status != null ? status.name() : "",
-                assignedTo != null ? assignedTo : "");
+        return util.CsvHelper.toCsvLine(incidentId, title, description, severity.name(), status.name(), assignedTo);
     }
 
     @Override

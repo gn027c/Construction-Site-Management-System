@@ -55,7 +55,9 @@ public class AttendanceController {
                 : AttendanceRecord.CheckType.CHECK_OUT;
 
         try {
-            attendanceService.recordAttendance(personCode, zoneId, type);
+            if (attendanceService.recordAttendance(personCode, zoneId, type)) {
+                System.out.println("Attendance recorded: " + type + " at " + zoneId);
+            } else System.out.println("Invalid attendance parameters.");
         } catch (exception.AttendanceOrderException e) {
             System.out.println("Attendance Order Violation: " + e.getMessage());
         } catch (exception.RestrictedZoneViolationException e) {

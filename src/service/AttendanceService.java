@@ -15,7 +15,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final PersonnelService personnelService;
     private final ZoneService zoneService;
-    private int recordCounter = 1;
+    private long recordCounter = 1;
 
     public AttendanceService(PersonnelService personnelService, ZoneService zoneService) {
         this(new AttendanceRepository(), personnelService, zoneService);
@@ -36,11 +36,11 @@ public class AttendanceService {
      * Bản ghi có mã không theo dạng REC#### (ví dụ ATT-001 trong dữ liệu mẫu) được bỏ qua.
      */
     private void syncRecordCounter() {
-        int maxNumber = 0;
+        long maxNumber = 0;
         for (AttendanceRecord record : attendanceRepository.findAll()) {
             String id = record.getRecordId();
-            if (id != null && id.matches("REC\\d{1,9}")) {
-                maxNumber = Math.max(maxNumber, Integer.parseInt(id.substring(3)));
+            if (id != null && id.matches("REC\\d{1,18}")) {
+                maxNumber = Math.max(maxNumber, Long.parseLong(id.substring(3)));
             }
         }
         this.recordCounter = maxNumber + 1;
@@ -55,6 +55,10 @@ public class AttendanceService {
 
         String cleanPersonCode = personCode.trim();
         String cleanZoneId = zoneId.trim();
+        model.Person person = personnelService.findPersonByCode(cleanPersonCode);
+        zoneService.findZoneById(cleanZoneId);
+        if (type == AttendanceRecord.CheckType.CHECK_IN) zoneService.verifyAccess(cleanZoneId, person);
+
 
         AttendanceRecord lastRecord = attendanceRepository.findLastByPersonCode(cleanPersonCode);
 
@@ -95,38 +99,7 @@ public class AttendanceService {
 
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
-        if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty() || type == null) {
-            System.out.println("Error: Invalid attendance parameters!");
-            return false;
-        }
-
-        // 1. Kiểm tra tồn tại nhân sự
-        model.Person person;
-        try {
-            person = personnelService.findPersonByCode(personCode.trim());
-        } catch (exception.PersonNotFoundException e) {
-            System.out.println("Error: " + e.getMessage());
-            return false;
-        }
-
-        // 2. Nếu CHECK_IN, kiểm tra quyền truy cập vào khu vực qua verifyAccess (đa hình)
-        if (type == AttendanceRecord.CheckType.CHECK_IN) {
-            if (!zoneService.verifyAccess(zoneId.trim(), person)) {
-                System.out.println("Access Denied: Person '" + person.getName() + "' is not authorized for zone '" + zoneId + "'.");
-                return false;
-            }
-        }
-
-        // 3. Cập nhật trạng thái máy FSM (ném AttendanceOrderException khi vi phạm thứ tự vào/ra)
-        boolean success = processAttendance(personCode, zoneId, type);
-        if (!success) {
-            return false;
-        }
-
-        // 4. In thông tin chi tiết nhân sự khi thành công (đa hình displayDetails)
-        System.out.println("Attendance recorded successfully: " + type + " at zone " + zoneId);
-        person.displayDetails();
-        return true;
+        return processAttendance(personCode, zoneId, type);
     }
 
     public List<AttendanceRecord> getAllAttendanceRecords() {

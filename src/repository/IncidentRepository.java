@@ -45,43 +45,20 @@ public class IncidentRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        List<String> lines = util.CsvHelper.readAllLines(filePath);
-        if (lines.isEmpty()) {
-            return false;
-        }
-        incidentList.clear();
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i).trim();
-            if (line.isEmpty()) {
-                continue;
+        IncidentRepository staged = new IncidentRepository();
+        try {
+            List<String[]> rows = util.CsvHelper.readRows(filePath);
+            if (rows.isEmpty() || !rows.get(0)[0].equals("incidentId")) return false;
+            for (int i = 1; i < rows.size(); i++) {
+                String[] p = rows.get(i);
+                if (util.CsvHelper.isBlankRow(p)) continue;
+                if (p.length != 6) return false;
+                Incident.IncidentStatus status = Incident.IncidentStatus.valueOf(p[4]);
+                if ((status == Incident.IncidentStatus.OPEN) != p[5].trim().isEmpty()) return false;
+                if (!staged.save(new Incident(p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status, p[5]))) return false;
             }
-            if (i == 0 && line.toLowerCase().startsWith("incidentid")) {
-                continue;
-            }
-            // TODO (WS6 - Thành viên 4: Nguyễn Tấn Lợi - SE211059, nhánh loint-final-verification):
-            // Thay split(",", -1) bằng hàm đọc dòng CSV của CsvHelper để mô tả sự cố chứa dấu phẩy, dấu nháy kép
-            // được nạp lại nguyên vẹn (TC-IO-04 đang FAIL), sau đó chạy lại TC-ATT-01..06 và TC-INC-01..04.
-            String[] parts = line.split(",", -1);
-            if (parts.length >= 6) {
-                String incidentId = parts[0].trim();
-                String title = parts[1].trim();
-                String description = parts[2].trim();
-                Incident.IncidentSeverity severity;
-                try {
-                    severity = Incident.IncidentSeverity.valueOf(parts[3].trim().toUpperCase());
-                } catch (Exception e) {
-                    severity = Incident.IncidentSeverity.MEDIUM;
-                }
-                Incident.IncidentStatus status;
-                try {
-                    status = Incident.IncidentStatus.valueOf(parts[4].trim().toUpperCase());
-                } catch (Exception e) {
-                    status = Incident.IncidentStatus.OPEN;
-                }
-                String assignedTo = parts[5].trim();
-                incidentList.add(new Incident(incidentId, title, description, severity, status, assignedTo));
-            }
-        }
+        } catch (RuntimeException e) { return false; }
+        incidentList.clear(); incidentList.addAll(staged.incidentList);
         return true;
     }
 
