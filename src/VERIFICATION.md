@@ -5,7 +5,7 @@ and console/terminal interaction. The CSV preview feature is excluded.
 
 ## Automated verification
 
-Run `./scripts/test.ps1` from the project root. The completed run passed
+Run `./scripts/test.ps1` from the project root. The initial completed run passed
 **213 checks in 22 suites, with zero failures**. The original workshop matrix
 accounts for 25 of these checks. A subsequent focused run passed all 10 workflow
 integration checks and all 4 account audit checks after audit-target normalization.
@@ -36,8 +36,19 @@ integration checks and all 4 account audit checks after audit-target normalizati
 | ZoneTest | 7 |
 | Total | 213 |
 
+After moving personnel rendering out of the models, a focused run passed
+**33 checks with zero failures**: `PersonnelViewTest` (7), `PersonnelTest` (9),
+`CsvPersistenceTest` (10) and `ConsoleTest` (7). This covers all four personnel
+types, missing optional fields, subtype search, identifier aliases, active and
+inactive filters, contact edits, persistence, export and console termination.
+The full suite was not rerun for this view change.
+
+The Windows UTF-8 launcher also passed a separate smoke check from the `src`
+working directory: compilation, `admin` login, home menu, CSV save and clean exit.
+The smoke check used a temporary data directory.
+
 Javadoc validation passed. Expanded layout, line lengths and English
-description-only source comments were checked for all 63 Java source files.
+description-only source comments were checked for the original 63 Java source files.
 
 ## Terminal walkthroughs
 

@@ -7,10 +7,10 @@ import model.Contractor;
 import model.Person;
 import model.Visitor;
 import model.Worker;
-import service.PersonnelService;
 import service.AuthenticationService;
 import model.Permission;
 import view.MenuView;
+import view.PersonnelView;
 import util.InputHelper;
 import java.util.List;
 import java.util.Scanner;
@@ -18,9 +18,7 @@ import java.util.Scanner;
 /**
  * Handles console input and result messages for the personnel menu.
  *
- * <p>Operations are delegated to {@link service.PersonnelService}. The optional
- * save callback runs after a modifying menu choice, including choices that are
- * cancelled or report a handled error.
+ * <p>Operations are delegated to the site facade and personnel rendering to the view.
  */
 public class PersonnelController {
     private final SiteManagerController site;
@@ -41,12 +39,16 @@ public class PersonnelController {
                     addPersonFlow(scanner);
                     break;
                 case 2:
-                    java.util.List<model.Person> people = site.people();
-                    view.ListView.show(scanner, "PERSONNEL", people,
-                            p -> p.toString() + " | Active: " + p.isActive(),
-                            p -> p.toString() + " " + (p.isActive() ? "active" : "inactive"),
-                            java.util.Comparator.comparing(model.Person::getCode, util.IdentifierHelper.NATURAL_ORDER),
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
+                    List<Person> people = site.people();
+                    view.ListView.show(
+                            scanner,
+                            "PERSONNEL",
+                            people,
+                            PersonnelView::formatSummary,
+                            PersonnelView::formatSummary,
+                            java.util.Comparator.comparing(Person::getCode, util.IdentifierHelper.NATURAL_ORDER),
+                            event -> authentication.audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                    );
                     break;
                 case 3:
                     searchAndUpdatePersonFlow(scanner);
@@ -139,8 +141,7 @@ public class PersonnelController {
         String code = InputHelper.getString(scanner, "Enter Person Code to search: ");
         try {
             Person p = site.person(code);
-            System.out.println("\n[Current Information]");
-            p.displayDetails();
+            PersonnelView.showDetails(p);
             System.out.println("\nEnter new details (press Enter to keep the current value):");
             System.out.print("New Name [" + p.getName() + "]: ");
             String newName = scanner.nextLine().trim();

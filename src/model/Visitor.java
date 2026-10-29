@@ -56,20 +56,6 @@ public class Visitor extends Person {
     }
 
     @Override
-    public void displayDetails() {
-        System.out.println("===== THÔNG TIN KHÁCH THAM QUAN (VISITOR) =====");
-        System.out.println("ID: " + getId());
-        System.out.println("Mã khách: " + getCode());
-        System.out.println("Họ tên: " + getName());
-        System.out.println("Số điện thoại: " + getPhoneNumber());
-        System.out.println("Vai trò: " + getRole());
-        System.out.println("Mục đích thăm: " + purpose);
-        System.out.println("Người đón tiếp / Bảo lãnh: " + hostPersonName);
-        System.out.println("Ngày đến thăm: " + (entryDate.isEmpty() ? "Chưa có thông tin" : entryDate));
-        System.out.println("===============================================");
-    }
-
-    @Override
     public boolean hasValidSafetyCredential() {
         return false;
     }

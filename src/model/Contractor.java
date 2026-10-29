@@ -34,19 +34,6 @@ public class Contractor extends Person {
         this.contractId = requiredText(contractId, "contractId");
     }
 
-    @Override
-    public void displayDetails() {
-        System.out.println("===== THÔNG TIN NHÀ THẦU (CONTRACTOR) =====");
-        System.out.println("ID: " + getId());
-        System.out.println("Mã nhà thầu: " + getCode());
-        System.out.println("Họ tên đại diện: " + getName());
-        System.out.println("Số điện thoại: " + getPhoneNumber());
-        System.out.println("Vai trò: " + getRole());
-        System.out.println("Tên công ty: " + companyName);
-        System.out.println("Mã hợp đồng: " + contractId);
-        System.out.println("===========================================");
-    }
-
     /**
      * Accepts contract identifiers beginning with the case-sensitive prefix {@code CTR-}.
      */

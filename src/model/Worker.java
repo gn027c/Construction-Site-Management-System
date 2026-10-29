@@ -52,20 +52,6 @@ public class Worker extends Person {
         this.assignedTeam = requiredText(assignedTeam, "assignedTeam");
     }
 
-    @Override
-    public void displayDetails() {
-        System.out.println("===== THÔNG TIN CÔNG NHÂN (WORKER) =====");
-        System.out.println("ID: " + getId());
-        System.out.println("Mã nhân viên: " + getCode());
-        System.out.println("Họ tên: " + getName());
-        System.out.println("Số điện thoại: " + getPhoneNumber());
-        System.out.println("Vai trò: " + getRole());
-        System.out.println("Ngành nghề / Tay nghề: " + trade);
-        System.out.println("Mã chứng chỉ an toàn: " + safetyCertId);
-        System.out.println("Tổ đội thi công: " + assignedTeam);
-        System.out.println("========================================");
-    }
-
     /**
      * Accepts certificate identifiers ending with the case-sensitive suffix {@code _SAFE}.
      */

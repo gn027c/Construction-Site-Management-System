@@ -91,11 +91,6 @@ public abstract class Person {
         return "," + Boolean.toString(active);
     }
 
-    public void displayDetails() {
-        System.out.println(this);
-        System.out.println("   Valid safety credential: " + hasValidSafetyCredential());
-    }
-
     @Override
     public String toString() {
         return String.format("ID: %s | Code: %s | Name: %s | Phone: %s | Role: %s", id, code, name, phoneNumber, role);
