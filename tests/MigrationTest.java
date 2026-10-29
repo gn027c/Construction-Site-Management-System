@@ -36,7 +36,7 @@ public class MigrationTest {
         write(source, "attendance.csv",
                 "recordId,personCode,zoneId,timestamp,checkType",
                 "ATT-001,w01,z01,2026-10-12 07:30:00,CHECK_IN",
-                "ATT-002,W01,Z02,2026-10-12 08:00:00,CHECK_IN"
+                "ATT-002,W01,Z01,2026-10-12 08:00:00,CHECK_OUT"
         );
         write(source, "incidents.csv",
                 "incidentId,title,description,severity,status,assignedTo",
@@ -103,19 +103,19 @@ public class MigrationTest {
             require(!incidents.findById("INC1").isArchived());
             equal("W1", CsvHelper.readRows(target.resolve("zones.csv").toString()).get(2)[4]);
         });
-        test("Migration preserves invalid swipe cycles and free-text host names", () -> {
+        test("Migration rejects invalid swipe cycles before creating output and preserves source text", () -> {
             Path source = legacySource(false);
+            write(source, "attendance.csv", "recordId,personCode,zoneId,timestamp,checkType",
+                    "ATT-001,w01,z01,2026-10-12 07:30:00,CHECK_IN",
+                    "ATT-002,W01,Z02,2026-10-12 08:00:00,CHECK_IN");
+            Map<String, byte[]> before = snapshot(source);
             Path target = destination();
-            CsvMigration.migrate(source, target);
-            List<String[]> attendance = CsvHelper.readRows(target.resolve("attendance.csv").toString());
-            equal(3, attendance.size());
-            equal("CHECK_IN", attendance.get(1)[4]);
-            equal("CHECK_IN", attendance.get(2)[4]);
-            equal("Z1", attendance.get(1)[2]);
-            equal("Z2", attendance.get(2)[2]);
-            equal("W01", CsvHelper.readRows(target.resolve("persons.csv").toString()).get(2)[7]);
+            throwsType(IOException.class, () -> CsvMigration.migrate(source, target));
+            require(!Files.exists(target));
+            unchanged(source, before);
+            equal("W01", CsvHelper.readRows(source.resolve("persons.csv").toString()).get(2)[7]);
             equal("Line one, \"quoted\"\nLine two",
-                    CsvHelper.readRows(target.resolve("incidents.csv").toString()).get(1)[2]);
+                    CsvHelper.readRows(source.resolve("incidents.csv").toString()).get(1)[2]);
         });
         test("Existing password hashes and custom staff permissions survive migration", () -> {
             Path source = legacySource(true);

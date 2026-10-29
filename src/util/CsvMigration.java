@@ -29,7 +29,7 @@ import model.Zone;
 /**
  * Converts old business CSV schemas and optional accounts into a new directory.
  * Validation precedes output creation, and source files are never overwritten.
- * Historical swipe sequences are preserved for the application's integrity review.
+ * Attendance transitions must be valid before any destination files are created.
  */
 public final class CsvMigration {
     private static final String PERSON_HEADER = "type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active";
@@ -48,7 +48,7 @@ public final class CsvMigration {
         }
         Path output = migrate(Paths.get(args[0]), Paths.get(args[1]));
         System.out.println("CSV migration completed: " + output);
-        System.out.println("Source files were preserved. Review historical attendance before activating the output.");
+        System.out.println("Source files were preserved. Attendance transitions were validated before writing.");
     }
 
     public static Path migrate(Path sourceDirectory, Path destinationDirectory) throws IOException {
@@ -236,6 +236,7 @@ public final class CsvMigration {
         List<String[]> input = read(file, ATTENDANCE_HEADER, ATTENDANCE_HEADER);
         List<String> output = outputRows(ATTENDANCE_HEADER);
         Set<String> ids = new HashSet<>();
+        Map<String, AttendanceRecord> previous = new LinkedHashMap<>();
         for (int i = 1; i < input.size(); i++) {
             String[] fields = input.get(i);
             if (CsvHelper.isBlankRow(fields)) {
@@ -248,6 +249,8 @@ public final class CsvMigration {
                 unique(ids, record.getRecordId(), "attendance ID");
                 reference(people, record.getPersonCode(), "attendance person");
                 reference(zones, record.getZoneId(), "attendance zone");
+                record.assertCanFollow(previous.get(record.getPersonCode()));
+                previous.put(record.getPersonCode(), record);
                 output.add(record.toCsvLine());
             } catch (RuntimeException e) {
                 throw rowError(file, i + 1, e);
