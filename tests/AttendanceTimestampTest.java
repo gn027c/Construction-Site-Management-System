@@ -12,7 +12,7 @@ import util.DateTimeHelper;
 
 public class AttendanceTimestampTest {
     private static AttendanceRecord record(String id, String timestamp) {
-        return new AttendanceRecord(id, "W", "Z", timestamp, AttendanceRecord.CheckType.CHECK_IN);
+        return new AttendanceRecord(id, "W1", "Z1", timestamp, AttendanceRecord.CheckType.CHECK_IN);
     }
 
     public static void main(String[] args) throws Exception {
@@ -41,7 +41,7 @@ public class AttendanceTimestampTest {
             try {
                 require(CsvHelper.writeAllLines(csv.toString(), Arrays.asList(
                     "recordId,personCode,zoneId,timestamp,checkType",
-                    "REC0002,W,Z,29/10/2026 07:06,CHECK_OUT")));
+                    "REC0002,W1,Z1,29/10/2026 07:06,CHECK_OUT")));
                 require(!repo.loadFromCsv(csv.toString()));
                 equal(1, repo.findAll().size());
                 equal("REC1", repo.findAll().get(0).getRecordId());
@@ -67,10 +67,10 @@ public class AttendanceTimestampTest {
         test("Attendance service generates the same format accepted by CSV loader", () -> {
             PersonnelService people = new PersonnelService();
             ZoneService zones = new ZoneService();
-            people.addPerson(new Worker("P", "W", "Worker", "0901234567", "Welder", "X_SAFE", "A"));
-            zones.addZone(new Zone("Z", "Regular"));
+            people.addPerson(new Worker("P1", "W1", "Worker", "0901234567", "Welder", "X_SAFE", "A"));
+            zones.addZone(new Zone("Z1", "Regular"));
             AttendanceService service = new AttendanceService(people, zones);
-            require(service.recordAttendance("W", "Z", AttendanceRecord.CheckType.CHECK_IN));
+            require(service.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
             String timestamp = service.getAllAttendanceRecords().get(0).getTimestamp();
             equal(timestamp, DateTimeHelper.formatTimestamp(DateTimeHelper.parseTimestamp(timestamp)));
             Path csv = Files.createTempFile("smartsite-time-service-", ".csv");

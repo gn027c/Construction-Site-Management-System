@@ -31,7 +31,7 @@ public class ModelValidationTest {
                 equal("Invalid value for field [phoneNumber]: Must contain 10 digits and start with 0.", e.getMessage());
             }
             equal("0901234567", w.getPhoneNumber());
-            throwsType(InvalidPhoneNumberException.class, () -> new Visitor("P", "V", "Visitor", "123", "Survey", "Host", ""));
+            throwsType(InvalidPhoneNumberException.class, () -> new Visitor("P1", "V1", "Visitor", "123", "Survey", "Host", ""));
         });
         test("Contact update validates all fields before changing either", () -> {
             Worker w = worker();
@@ -42,10 +42,10 @@ public class ModelValidationTest {
         });
         test("Person codes cannot conflict with whitelist encoding", () -> {
             for (String code : Arrays.asList("NONE", "none", "W;1"))
-                throwsType(DataValidationException.class, () -> new Worker("P", code, "Worker", "0901234567", "Trade", "X_SAFE", "A"));
+                throwsType(DataValidationException.class, () -> new Worker("P1", code, "Worker", "0901234567", "Trade", "X_SAFE", "A"));
         });
         test("Whitelist validates and normalizes every code before replacing it", () -> {
-            RestrictedZone z = new RestrictedZone(" Z ", " Zone ", RestrictedZone.SafetyLevel.HIGH, new HashSet<>(Arrays.asList(" W1 ")));
+            RestrictedZone z = new RestrictedZone(" Z1 ", " Zone ", RestrictedZone.SafetyLevel.HIGH, new HashSet<>(Arrays.asList(" W1 ")));
             require(z.checkAccess(worker()));
             throwsType(DataValidationException.class, () -> z.setAllowedPersonCodes(new HashSet<>(Arrays.asList("W2", " "))));
             equal(new HashSet<>(Arrays.asList("W1")), z.getAllowedPersonCodes());
@@ -59,9 +59,9 @@ public class ModelValidationTest {
             require(repo.deleteByCode("W1")); equal(0, repo.findAll().size());
         });
         test("Required enums and subclass fields use the common validation error", () -> {
-            throwsType(DataValidationException.class, () -> new RestrictedZone("Z", "Zone", null, new HashSet<>()));
-            throwsType(DataValidationException.class, () -> new Contractor("P", "C", "Contractor", "0901234567", null, "CTR-1"));
-            throwsType(DataValidationException.class, () -> new Visitor("P", "V", "Visitor", "0901234567", " ", "Host", ""));
+            throwsType(DataValidationException.class, () -> new RestrictedZone("Z1", "Zone", null, new HashSet<>()));
+            throwsType(DataValidationException.class, () -> new Contractor("P1", "C1", "Contractor", "0901234567", null, "CTR-1"));
+            throwsType(DataValidationException.class, () -> new Visitor("P1", "V1", "Visitor", "0901234567", " ", "Host", ""));
         });
         finish();
     }

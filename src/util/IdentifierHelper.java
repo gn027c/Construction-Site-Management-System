@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * Numeric suffixes are positive and unpadded; input may contain one separator hyphen.
  */
 public final class IdentifierHelper {
-    private static final Pattern CODE = Pattern.compile("([A-Za-z]+)-?([0-9]+)?");
+    private static final Pattern CODE = Pattern.compile("([A-Za-z]+)-?([0-9]+)");
     public static final Comparator<String> NATURAL_ORDER = IdentifierHelper::compare;
 
     private IdentifierHelper() {
@@ -26,13 +26,10 @@ public final class IdentifierHelper {
         String clean = value == null ? "" : value.trim();
         Matcher matcher = CODE.matcher(clean);
         if (!matcher.matches() || clean.endsWith("-") || clean.equalsIgnoreCase("NONE")) {
-            throw new DataValidationException(field, "Use a letter prefix and an optional positive numeric suffix.");
+            throw new DataValidationException(field, "Use a letter prefix followed by a positive numeric suffix.");
         }
         String prefix = matcher.group(1).toUpperCase(Locale.ROOT);
         String suffix = matcher.group(2);
-        if (suffix == null) {
-            return prefix;
-        }
         BigInteger number = new BigInteger(suffix);
         if (number.signum() <= 0) {
             throw new DataValidationException(field, "The numeric suffix must be greater than zero.");
@@ -57,8 +54,8 @@ public final class IdentifierHelper {
         if (prefix != 0) {
             return prefix;
         }
-        BigInteger leftNumber = left.group(2) == null ? BigInteger.ZERO : new BigInteger(left.group(2));
-        BigInteger rightNumber = right.group(2) == null ? BigInteger.ZERO : new BigInteger(right.group(2));
+        BigInteger leftNumber = new BigInteger(left.group(2));
+        BigInteger rightNumber = new BigInteger(right.group(2));
         return leftNumber.compareTo(rightNumber);
     }
 }

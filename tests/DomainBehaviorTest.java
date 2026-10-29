@@ -7,14 +7,14 @@ import java.nio.file.*;
 import java.util.*;
 
 public class DomainBehaviorTest {
-    private static Incident report() { return Incident.report(" I ", " Title ", " Description ", Incident.IncidentSeverity.HIGH); }
+    private static Incident report() { return Incident.report(" I1 ", " Title ", " Description ", Incident.IncidentSeverity.HIGH); }
     private static AttendanceRecord swipe(String id, String person, String zone, AttendanceRecord.CheckType type) {
         return new AttendanceRecord(id, person, zone, "2026-10-29 07:05:00", type);
     }
 
     public static void main(String[] args) throws Exception {
         test("Incident report factory creates a normalized OPEN incident", () -> {
-            Incident i = report(); equal("I", i.getIncidentId()); equal("Title", i.getTitle());
+            Incident i = report(); equal("I1", i.getIncidentId()); equal("Title", i.getTitle());
             require(i.isOpen()); equal("", i.getAssignedTo());
         });
         test("Incident owns assignment and resolution without a service", () -> {
@@ -39,20 +39,20 @@ public class DomainBehaviorTest {
             require(i.isOpen()); equal("", i.getAssignedTo());
         });
         test("Incident construction rejects inconsistent persisted fields", () -> {
-            throwsType(DataValidationException.class, () -> new Incident("I", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.OPEN, "W1"));
-            throwsType(DataValidationException.class, () -> new Incident("I", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.ASSIGNED, ""));
-            throwsType(DataValidationException.class, () -> new Incident("I", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.RESOLVED, null));
-            throwsType(DataValidationException.class, () -> Incident.report("I", "T", "D", null));
+            throwsType(DataValidationException.class, () -> new Incident("I1", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.OPEN, "W1"));
+            throwsType(DataValidationException.class, () -> new Incident("I1", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.ASSIGNED, ""));
+            throwsType(DataValidationException.class, () -> new Incident("I1", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.RESOLVED, null));
+            throwsType(DataValidationException.class, () -> Incident.report("I1", "T", "D", null));
         });
         test("Incident CSV restoration obeys entity invariants", () -> {
             IncidentRepository repo = new IncidentRepository(); repo.save(report());
             Path csv = Files.createTempFile("smartsite-domain-incident-", ".csv");
             try {
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "BROKEN,Title,Description,LOW,ASSIGNED,,,,false"));
-                require(!repo.loadFromCsv(csv.toString())); require(repo.findById("I").isOpen());
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "RESTORED,Title,Description,LOW,RESOLVED,W1,,,false"));
-                require(repo.loadFromCsv(csv.toString())); require(repo.findById("RESTORED").isResolved());
-                throwsType(InvalidIncidentStateException.class, () -> repo.findById("RESTORED").resolve());
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "BROKEN1,Title,Description,LOW,ASSIGNED,,,,false"));
+                require(!repo.loadFromCsv(csv.toString())); require(repo.findById("I1").isOpen());
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "RESTORED1,Title,Description,LOW,RESOLVED,W1,,,false"));
+                require(repo.loadFromCsv(csv.toString())); require(repo.findById("RESTORED1").isResolved());
+                throwsType(InvalidIncidentStateException.class, () -> repo.findById("RESTORED1").resolve());
             } finally { Files.deleteIfExists(csv); }
         });
         test("Attendance entity rejects checkout without checkin", () -> {
@@ -75,8 +75,8 @@ public class DomainBehaviorTest {
         });
         test("Attendance required fields use the common validation errors", () -> {
             throwsType(DataValidationException.class, () -> swipe(" ", "W1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
-            throwsType(DataValidationException.class, () -> swipe("R", "W1", "Z1", null));
-            throwsType(DataValidationException.class, () -> new AttendanceRecord("R", "W1", "Z1", "wrong time", AttendanceRecord.CheckType.CHECK_IN));
+            throwsType(DataValidationException.class, () -> swipe("R1", "W1", "Z1", null));
+            throwsType(DataValidationException.class, () -> new AttendanceRecord("R1", "W1", "Z1", "wrong time", AttendanceRecord.CheckType.CHECK_IN));
         });
         test("Rejected repository save does not consume a record counter value", () -> {
             AttendanceRepository repo = new AttendanceRepository() {
@@ -87,7 +87,7 @@ public class DomainBehaviorTest {
                 }
             };
             PersonnelService people = new PersonnelService(); ZoneService zones = new ZoneService();
-            people.addPerson(new Worker("P", "W1", "Worker", "0901234567", "Welder", "X_SAFE", "A"));
+            people.addPerson(new Worker("P1", "W1", "Worker", "0901234567", "Welder", "X_SAFE", "A"));
             zones.addZone(new Zone("Z1", "Regular"));
             AttendanceService service = new AttendanceService(repo, people, zones);
             require(!service.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN));

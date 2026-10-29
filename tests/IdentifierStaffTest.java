@@ -33,7 +33,8 @@ public class IdentifierStaffTest {
             equal("P999999999999999999999999", IdentifierHelper.normalize("p999999999999999999999999"));
         });
         test("Zero, negative, fractional and malformed identifiers are rejected", () -> {
-            for (String value : Arrays.asList("S0", "S000", "S--1", "S-", "1S", "S1.0", "S 1", "NONE", "")) {
+            for (String value : Arrays.asList("S", "s", "P", "S0", "S000", "S--1", "S-", "1S", "S1.0",
+                    "S 1", "NONE", "")) {
                 throwsType(DataValidationException.class, () -> IdentifierHelper.normalize(value));
             }
             equal(null, IdentifierHelper.normalizeForLookup("S0"));
