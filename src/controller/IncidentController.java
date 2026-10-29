@@ -15,48 +15,31 @@ import java.util.Scanner;
  * delegated to {@link service.IncidentService}.
  */
 public class IncidentController {
-    private final IncidentService incidentService;
+    private final SiteManagerController site;
     private final AuthenticationService authentication;
 
-    public IncidentController(IncidentService incidentService, AuthenticationService authentication) {
-        this.incidentService = incidentService;
-        this.authentication = authentication;
+    public IncidentController(SiteManagerController site) {
+        this.site = site;
+        authentication = site.getAuthentication();
     }
 
     public void handleMenu(Scanner scanner) {
-        handleMenu(scanner, () -> {
-        });
-    }
-
-    /**
-     * Runs the submenu and calls the supplied action after modifying menu choices.
-     *
-     * <p>The callback runs after the flow returns, including cancellation or handled
-     * errors. Exceptions escaping the flow prevent the callback from running.
-     */
-    public void handleMenu(Scanner scanner, Runnable saveChanges) {
-        authentication.requireAny(
-                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
-                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS
-        );
-        boolean back = false;
-        while (!back) {
+        while (true) {
             MenuView.showIncidentMenu(authentication);
-            int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
+            int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
             switch (choice) {
                 case 1:
                     authentication.require(Permission.REPORT_INCIDENTS);
                     reportIncidentFlow(scanner);
                     break;
                 case 2:
-                    authentication.require(Permission.VIEW_INCIDENTS);
-                    java.util.List<Incident> incidents = incidentService.getAllIncidents();
-                    if (incidents.isEmpty()) {
-                        view.ConsoleTheme.warning("No incidents.");
-                    }
-                    for (Incident incident : incidents) {
-                        System.out.println(incident);
-                    }
+                case 6:
+                    view.ListView.show(scanner, "INCIDENTS", site.incidents(choice == 6),
+                            Incident::toString, Incident::toString,
+                            java.util.Comparator.comparing(
+                                    Incident::getIncidentId, util.IdentifierHelper.NATURAL_ORDER
+                            ),
+                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
                     break;
                 case 3:
                     authentication.require(Permission.ASSIGN_INCIDENTS);
@@ -67,17 +50,10 @@ public class IncidentController {
                     resolveIncidentFlow(scanner);
                     break;
                 case 5:
-                    authentication.require(Permission.PURGE_INCIDENTS);
-                    view.ConsoleTheme.success(
-                            "Purged " + incidentService.purgeResolvedIncidents() + " resolved incidents."
-                    );
+                    view.ConsoleTheme.success("Archived " + site.archiveIncidents() + " resolved incidents.");
                     break;
                 case 0:
-                    back = true;
-                    break;
-            }
-            if (choice == 1 || choice == 3 || choice == 4 || choice == 5) {
-                saveChanges.run();
+                    return;
             }
         }
     }
@@ -105,7 +81,7 @@ public class IncidentController {
                 severity = Incident.IncidentSeverity.CRITICAL;
                 break;
         }
-        if (incidentService.reportIncident(id, title, description, severity)) {
+        if (site.reportIncident(id, title, description, severity)) {
             view.ConsoleTheme.success("Incident reported with status OPEN.");
         } else {
             view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
@@ -117,7 +93,7 @@ public class IncidentController {
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
         try {
-            if (incidentService.assignIncident(incidentId, assigneeCode)) {
+            if (site.assignIncident(incidentId, assigneeCode)) {
                 view.ConsoleTheme.success("Incident assigned.");
             } else {
                 view.ConsoleTheme.warning("Assignee must be an existing person.");
@@ -130,7 +106,7 @@ public class IncidentController {
     private void resolveIncidentFlow(Scanner scanner) {
         System.out.println("\n--- RESOLVE INCIDENT ---");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
-        if (incidentService.resolveIncident(incidentId)) {
+        if (site.resolveIncident(incidentId)) {
             view.ConsoleTheme.success("Incident resolved.");
         } else {
             view.ConsoleTheme.warning("Invalid incident ID.");

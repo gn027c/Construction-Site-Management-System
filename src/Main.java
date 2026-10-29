@@ -1,5 +1,6 @@
 import controller.SiteManagerController;
 import controller.AccountController;
+import controller.WorkspaceController;
 import model.Permission;
 import service.AuthenticationService;
 import util.DataDirectoryLock;
@@ -22,10 +23,18 @@ public class Main {
         try (DataDirectoryLock lock = new DataDirectoryLock(directory);
             Scanner scanner = new Scanner(System.in)) {
             SiteManagerController controller = new SiteManagerController(directory);
-            controller.loadAllData();
+            try {
+                controller.loadAllData();
+            } catch (java.io.IOException e) {
+                ConsoleTheme.error(e.getMessage());
+                ConsoleTheme.warning("Sign in as admin to review data. Business actions are blocked.");
+            }
             AuthenticationService authentication = controller.getAuthentication();
             AccountController accounts = new AccountController(authentication);
-            ConsoleTheme.success("CSV data loaded.");
+            WorkspaceController workspace = new WorkspaceController(controller);
+            if (controller.isDataReady()) {
+                ConsoleTheme.success("CSV data loaded.");
+            }
             boolean exit = false;
             while (!exit) {
                 try {
@@ -33,7 +42,7 @@ public class Main {
                         break;
                     }
                     MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getInt(scanner, "Choice (0-8): ", 0, 8);
+                    int choice = InputHelper.getInt(scanner, "Choice (0-12): ", 0, 12);
                     switch (choice) {
                         case 1:
                             controller.handlePersonMenu(scanner);
@@ -78,18 +87,36 @@ public class Main {
                             accounts.changeOwnPassword(scanner);
                             break;
                         case 8:
-                            controller.saveAllData();
+                            if (controller.isDataReady()) {
+                                controller.saveAllData();
+                            }
                             authentication.logout();
                             ConsoleTheme.success("Signed out.");
                             break;
+                        case 9:
+                            workspace.logs(scanner);
+                            break;
+                        case 10:
+                            workspace.notifications(scanner);
+                            break;
+                        case 11:
+                            workspace.review(scanner);
+                            break;
+                        case 12:
+                            workspace.reports(scanner);
+                            break;
                         case 0:
-                            controller.saveAllData();
-                            ConsoleTheme.success("CSV data saved. Goodbye.");
+                            if (controller.isDataReady()) {
+                                controller.saveAllData();
+                                ConsoleTheme.success("CSV data saved. Goodbye.");
+                            } else {
+                                ConsoleTheme.warning("Business CSV was not changed. Goodbye.");
+                            }
                             exit = true;
                             break;
                     }
                 } catch (NoSuchElementException e) {
-                    if (authentication.isLoggedIn()) {
+                    if (authentication.isLoggedIn() && controller.isDataReady()) {
                         controller.saveAllData();
                         ConsoleTheme.success("Input closed. CSV data saved.");
                     } else {
@@ -97,7 +124,14 @@ public class Main {
                     }
                     exit = true;
                 } catch (Exception e) {
+                    authentication.audit("CONSOLE_OPERATION", "MENU", "", "FAILED", e.getMessage());
                     ConsoleTheme.error(e.getMessage());
+                }
+                if (!authentication.getActivityLog().getLastWriteError().isEmpty()) {
+                    ConsoleTheme.warning("Activity log was not saved; the business result is unchanged.");
+                }
+                if (!authentication.getNotifications().getLastWriteError().isEmpty()) {
+                    ConsoleTheme.warning("Notification storage failed; the business result is unchanged.");
                 }
             }
         } catch (Exception e) {

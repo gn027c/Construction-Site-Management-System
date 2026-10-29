@@ -57,24 +57,28 @@ public final class AccountController {
             authentication.require(Permission.MANAGE_ACCOUNTS);
             ConsoleTheme.menu(
                     "ACCOUNT ADMINISTRATION", "List accounts", "Create account", "Assign role",
-                    "Edit permissions", "Enable or disable account", "Reset password"
+                    "Edit permissions", "Enable or disable account", "Reset password", "Link personnel record"
             );
-            int choice = InputHelper.getInt(scanner, "Choice (0-6): ", 0, 6);
+            int choice = InputHelper.getInt(scanner, "Choice (0-7): ", 0, 7);
             if (choice == 0) {
                 return;
             }
             try {
                 if (choice == 1) {
-                    for (Account account : authentication.listAccounts()) {
-                        System.out.println(account);
-                    }
+                    view.ListView.show(scanner, "ACCOUNTS", authentication.listAccounts(),
+                            Account::toString, Account::toString, java.util.Comparator.comparing(Account::getUsername),
+                            event -> authentication.audit(event, "LIST", "", "SUCCESS", "Navigated list."));
                     continue;
                 }
                 String username = InputHelper.getString(scanner, "Account username: ");
                 switch (choice) {
                     case 2:
                         Account.Role role = selectRole(scanner);
-                        authentication.createAccount(username, confirmedPassword(scanner), role);
+                        String code = "";
+                        if (role != Account.Role.ADMIN) {
+                            code = InputHelper.getString(scanner, "Linked person code: ");
+                        }
+                        authentication.createAccount(username, confirmedPassword(scanner), role, code);
                         break;
                     case 3:
                         authentication.changeRole(username, selectRole(scanner));
@@ -89,6 +93,10 @@ public final class AccountController {
                     case 6:
                         authentication.resetPassword(username, confirmedPassword(scanner));
                         break;
+                    case 7:
+                        String linkedCode = InputHelper.getString(scanner, "Linked person code: ");
+                        authentication.linkPerson(username, linkedCode);
+                        break;
                     default:
                         throw new IllegalStateException("Unsupported account operation.");
                 }
@@ -97,6 +105,7 @@ public final class AccountController {
                     return;
                 }
             } catch (SiteManagementException | IOException e) {
+                authentication.audit("ACCOUNT_OPERATION", "ACCOUNT", "", "FAILED", e.getMessage());
                 ConsoleTheme.error(e.getMessage());
             }
         }

@@ -65,6 +65,14 @@ public class AttendanceRepository {
     }
 
     /**
+     * Removes a staged append when its CSV replacement could not be persisted.
+     */
+    public void restore(List<AttendanceRecord> previous) {
+        attendanceList.clear();
+        attendanceList.addAll(previous);
+    }
+
+    /**
      * Loads CSV into a temporary repository before replacing active data.
      * A read or validation failure returns false and retains the current collection.
      */

@@ -8,9 +8,9 @@ import repository.PersonRepository;
 import util.CsvHelper;
 
 public class VisitorDateTest {
-    private static final String HEADER = "type,id,code,name,phoneNumber,role,extra1,extra2,extra3";
+    private static final String HEADER = "type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active";
     private static Visitor visitor(String date) {
-        return new Visitor("P", "V", "Visitor", "0901234567", "Survey", "W", date);
+        return new Visitor("P1", "V1", "Visitor", "0901234567", "Survey", "W1", date);
     }
 
     public static void main(String[] args) throws Exception {
@@ -36,7 +36,7 @@ public class VisitorDateTest {
                 equal("", CsvHelper.readRows(csv.toString()).get(1)[8]);
                 PersonRepository loaded = new PersonRepository();
                 require(loaded.loadFromCsv(csv.toString()));
-                equal("", ((Visitor) loaded.findByCode("V")).getEntryDate());
+                equal("", ((Visitor) loaded.findByCode("V1")).getEntryDate());
             } finally { Files.deleteIfExists(csv); }
         });
         test("Invalid visitor dates in CSV cannot replace existing personnel", () -> {
@@ -45,9 +45,9 @@ public class VisitorDateTest {
             Path csv = Files.createTempFile("smartsite-invalid-visit-", ".csv");
             try {
                 require(CsvHelper.writeAllLines(csv.toString(), Arrays.asList(HEADER,
-                    "VISITOR,P,V,Visitor,0901234567,VISITOR,Survey,W,31/02/2026")));
+                    "VISITOR,P1,V1,Visitor,0901234567,VISITOR,Survey,W1,31/02/2026,true")));
                 require(!repo.loadFromCsv(csv.toString()));
-                equal("29/10/2026", ((Visitor) repo.findByCode("V")).getEntryDate());
+                equal("29/10/2026", ((Visitor) repo.findByCode("V1")).getEntryDate());
             } finally { Files.deleteIfExists(csv); }
         });
         test("Old personnel schemas no longer supply fabricated visitor dates", () -> {
@@ -55,18 +55,18 @@ public class VisitorDateTest {
             Path csv = Files.createTempFile("smartsite-old-person-schema-", ".csv");
             try {
                 require(CsvHelper.writeAllLines(csv.toString(), Arrays.asList(HEADER,
-                    "VISITOR,P,V,Visitor,0901234567,VISITOR,Survey,W")));
+                    "VISITOR,P1,V1,Visitor,0901234567,VISITOR,Survey,W")));
                 require(!repo.loadFromCsv(csv.toString()));
                 require(CsvHelper.writeAllLines(csv.toString(), Arrays.asList(
                     "type,id,code,name,phoneNumber,role,extra1,extra2",
-                    "VISITOR,P,V,Visitor,0901234567,VISITOR,Survey,W,29/10/2026")));
+                    "VISITOR,P1,V1,Visitor,0901234567,VISITOR,Survey,W1,29/10/2026")));
                 require(!repo.loadFromCsv(csv.toString()));
             } finally { Files.deleteIfExists(csv); }
         });
-        test("All personnel fixture rows use nine columns and preserve unknown dates", () -> {
+        test("All personnel fixture rows use ten columns and preserve unknown dates", () -> {
             List<String[]> rows = CsvHelper.readRows("data/persons.csv");
             equal(11, rows.size());
-            for (String[] row : rows) equal(9, row.length);
+            for (String[] row : rows) equal(10, row.length);
             PersonRepository repo = new PersonRepository();
             require(repo.loadFromCsv("data/persons.csv"));
             equal("", ((Visitor) repo.findByCode("V01")).getEntryDate());
@@ -76,6 +76,7 @@ public class VisitorDateTest {
             Path root = Files.createTempDirectory("smartsite-visit-console-");
             for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv"))
                 Files.copy(Paths.get("data", file), root.resolve(file));
+            Files.write(root.resolve("attendance.csv"), Arrays.asList("recordId,personCode,zoneId,timestamp,checkType"));
             SiteManagerController controller = new SiteManagerController(root);
             controller.getAuthentication().login("admin", "admin");
             controller.loadAllData();

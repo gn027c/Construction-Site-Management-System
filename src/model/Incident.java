@@ -86,7 +86,9 @@ public class Incident {
         this.reportedAt = optionalTimestamp(reportedAt, "reportedAt");
         this.resolvedAt = optionalTimestamp(resolvedAt, "resolvedAt");
         if (status != IncidentStatus.RESOLVED && (!this.resolvedAt.isEmpty() || archived)) {
-            throw new DataValidationException("incident", "Only resolved incidents can have a resolution date or archive.");
+            throw new DataValidationException(
+                    "incident", "Only resolved incidents can have a resolution date or archive."
+            );
         }
         if (!this.reportedAt.isEmpty() && !this.resolvedAt.isEmpty()
                 && DateTimeHelper.parseTimestamp(this.resolvedAt).isBefore(

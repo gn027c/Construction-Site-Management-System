@@ -21,33 +21,15 @@ import java.util.Scanner;
  * verify personnel registration before changing a restricted zone's whitelist.
  */
 public class ZoneController {
-    private final ZoneService zoneService;
-    private final AuthenticationService authentication;
-    private final service.PersonnelService personnelService;
+    private final SiteManagerController site;
 
-    public ZoneController(
-            ZoneService zoneService, service.PersonnelService personnelService, AuthenticationService authentication
-    ) {
-        this.personnelService = personnelService;
-        this.zoneService = zoneService;
-        this.authentication = authentication;
+    public ZoneController(SiteManagerController site) {
+        this.site = site;
     }
 
     public void handleMenu(Scanner scanner) {
-        handleMenu(scanner, () -> {
-        });
-    }
-
-    /**
-     * Runs the submenu and calls the supplied action after modifying menu choices.
-     *
-     * <p>The callback runs after the flow returns, including cancellation or handled
-     * errors. Exceptions escaping the flow prevent the callback from running.
-     */
-    public void handleMenu(Scanner scanner, Runnable saveChanges) {
-        authentication.require(Permission.MANAGE_ZONES);
-        boolean back = false;
-        while (!back) {
+        site.getAuthentication().require(Permission.MANAGE_ZONES);
+        while (true) {
             MenuView.showZoneMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-4): ", 0, 4);
             switch (choice) {
@@ -55,18 +37,14 @@ public class ZoneController {
                     addZoneFlow(scanner);
                     break;
                 case 2:
-                    displayZoneListFlow();
+                    displayZoneListFlow(scanner);
                     break;
                 case 3:
                 case 4:
                     changeAccessFlow(scanner, choice == 3);
                     break;
                 case 0:
-                    back = true;
-                    break;
-            }
-            if (choice == 1 || choice == 3 || choice == 4) {
-                saveChanges.run();
+                    return;
             }
         }
     }
@@ -74,10 +52,7 @@ public class ZoneController {
     private void changeAccessFlow(Scanner scanner, boolean grant) {
         String zoneId = InputHelper.getString(scanner, "Zone ID: ");
         String personCode = InputHelper.getString(scanner, "Person code: ");
-        personnelService.findPersonByCode(personCode);
-        boolean changed = grant
-                ? zoneService.grantZoneAccess(zoneId, personCode)
-                : zoneService.revokeZoneAccess(zoneId, personCode);
+        boolean changed = site.changeAccess(zoneId, personCode, grant);
         System.out.println(changed ? "Access list updated." : "Choose a restricted zone.");
     }
 
@@ -97,7 +72,7 @@ public class ZoneController {
         try {
             if (type == 1) {
                 Zone zone = new Zone(zoneId, zoneName);
-                if (zoneService.addZone(zone)) {
+                if (site.addZone(zone)) {
                     view.ConsoleTheme.success("Zone added.");
                 }
             } else {
@@ -119,7 +94,7 @@ public class ZoneController {
                         break;
                 }
                 RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
-                if (zoneService.addZone(restrictedZone)) {
+                if (site.addZone(restrictedZone)) {
                     view.ConsoleTheme.success("Restricted zone added.");
                 }
             }
@@ -128,15 +103,9 @@ public class ZoneController {
         }
     }
 
-    private void displayZoneListFlow() {
-        System.out.println("\n--- ZONE LIST ---");
-        List<Zone> zones = zoneService.getAllZones();
-        if (zones.isEmpty()) {
-            System.out.println("No zones available.");
-        } else {
-            for (Zone z : zones) {
-                System.out.println(z.toString());
-            }
-        }
+    private void displayZoneListFlow(Scanner scanner) {
+        view.ListView.show(scanner, "ZONES", site.zones(), Zone::toString, Zone::toString,
+                java.util.Comparator.comparing(Zone::getZoneId, util.IdentifierHelper.NATURAL_ORDER),
+                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
     }
 }

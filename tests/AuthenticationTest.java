@@ -35,6 +35,7 @@ public class AuthenticationTest {
         for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv")) {
             Files.copy(Paths.get("data", file), root.resolve(file));
         }
+        Files.write(root.resolve("attendance.csv"), Arrays.asList("recordId,personCode,zoneId,timestamp,checkType"));
     }
 
     public static void main(String[] args) throws Exception {
@@ -251,11 +252,11 @@ public class AuthenticationTest {
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             authentication.login("officer", "secret");
             controller.handleIncidentMenu(new Scanner(
-                    "1\nINC-AUTH\nSafety hazard\nLoose handrail\n3\n3\nINC-AUTH\nW01\n4\nINC-AUTH\n0\n"
+                    "1\nINC201\nSafety hazard\nLoose handrail\n3\n3\nINC201\nW01\n4\nINC201\n0\n"
             ));
             IncidentRepository incidents = new IncidentRepository();
             require(incidents.loadFromCsv(root.resolve("incidents.csv").toString()));
-            equal(Incident.IncidentStatus.RESOLVED, incidents.findById("INC-AUTH").getStatus());
+            equal(Incident.IncidentStatus.RESOLVED, incidents.findById("INC201").getStatus());
             throwsType(AccessDeniedException.class, () -> controller.handlePersonMenu(new Scanner("0\n")));
             throwsType(AccessDeniedException.class, () -> controller.handleIncidentMenu(new Scanner("5\n")));
         });
@@ -269,7 +270,7 @@ public class AuthenticationTest {
             authentication.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
             authentication.login("manager", "secret");
             byte[] before = Files.readAllBytes(root.resolve("incidents.csv"));
-            controller.handleIncidentMenu(new Scanner("2\n0\n"));
+            controller.handleIncidentMenu(new Scanner("2\n0\n0\n"));
             throwsType(AccessDeniedException.class, () -> controller.handleIncidentMenu(new Scanner("1\n")));
             throwsType(AccessDeniedException.class, () -> controller.handleAttendanceMenu(new Scanner("1\n")));
             require(Arrays.equals(before, Files.readAllBytes(root.resolve("incidents.csv"))));
@@ -296,13 +297,13 @@ public class AuthenticationTest {
             authentication.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
             authentication.login("manager", "secret");
             controller.handlePersonMenu(new Scanner("3\nW01\nUpdated Worker\n\n0\n"));
-            controller.handleZoneMenu(new Scanner("1\n1\nAUTH-ZONE\nStaff zone\n0\n"));
+            controller.handleZoneMenu(new Scanner("1\n1\nZ100\nStaff zone\n0\n"));
             service.PersonnelService personnel = new service.PersonnelService();
             service.ZoneService zones = new service.ZoneService();
             require(personnel.loadFromCsv(root.resolve("persons.csv").toString()));
             require(zones.loadFromCsv(root.resolve("zones.csv").toString()));
             equal("Updated Worker", personnel.findPersonByCode("W01").getName());
-            equal("Staff zone", zones.findZoneById("AUTH-ZONE").getZoneName());
+            equal("Staff zone", zones.findZoneById("Z100").getZoneName());
             require(Files.isDirectory(controller.exportCsv(root.resolve("exports"))));
         });
         test("Revoking all staff permissions takes effect on login and persists", () -> {

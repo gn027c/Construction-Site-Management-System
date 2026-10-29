@@ -13,12 +13,20 @@ public class AuthenticationConsoleTest {
         return Files.createTempDirectory("smartsite-login-ui-");
     }
 
+    private static void fixture(Path root) throws IOException {
+        for (String file : Arrays.asList("persons.csv", "zones.csv", "incidents.csv")) {
+            Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
+        }
+        Files.write(root.resolve("attendance.csv"), Arrays.asList("recordId,personCode,zoneId,timestamp,checkType"));
+    }
+
     public static void main(String[] args) throws Exception {
         test("Admin can create a safety account, sign out and sign in with the new account", () -> {
             Path root = root();
+            fixture(root);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n6\n2\nofficer\n3\nsecret\nsecret\n0\n8\nofficer\nsecret\n1\n6\n0\n",
+                    "admin\nadmin\n6\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n8\nofficer\nsecret\n1\n6\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
@@ -76,7 +84,7 @@ public class AuthenticationConsoleTest {
             require(Arrays.equals(before, Files.readAllBytes(file)));
         });
         test("Account lists show account details without password hashes", () -> {
-            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n6\n1\n0\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n6\n1\n0\n0\n0\n", 0, false);
             require(output.contains("admin | ADMIN | Enabled"));
             require(!output.contains("PBKDF2"));
         });
@@ -103,8 +111,9 @@ public class AuthenticationConsoleTest {
         });
         test("Mismatched password confirmation does not create an account", () -> {
             Path root = root();
+            fixture(root);
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n6\n2\nofficer\n3\nsecret\nwrong\n0\n0\n", 0, false
+                    root, "admin\nadmin\n6\n2\nofficer\n3\nW1\nsecret\nwrong\n0\n0\n", 0, false
             );
             require(output.contains("Confirmation does not match."));
             AuthenticationService restarted = new AuthenticationService(root);

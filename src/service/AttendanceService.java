@@ -101,6 +101,26 @@ public class AttendanceService {
         return processAttendance(personCode, zoneId, type);
     }
 
+    /**
+     * Commits one swipe to CSV and rolls back the append if file replacement fails.
+     */
+    public synchronized boolean recordAttendanceAndSave(
+            String personCode, String zoneId, AttendanceRecord.CheckType type, String file
+    ) {
+        List<AttendanceRecord> before = attendanceRepository.findAll();
+        if (!processAttendance(personCode, zoneId, type)) {
+            return false;
+        }
+        if (!attendanceRepository.saveToCsv(file)) {
+            attendanceRepository.restore(before);
+            syncRecordCounter();
+            throw new exception.SiteManagementException(
+                    "Attendance was not saved; no swipe was recorded. Retry after fixing storage."
+            );
+        }
+        return true;
+    }
+
     public List<AttendanceRecord> getAllAttendanceRecords() {
         return attendanceRepository.findAll();
     }
