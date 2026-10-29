@@ -1,21 +1,19 @@
 import controller.SiteManagerController;
-import state.AppState;
-import state.StateStore;
+import util.DataDirectoryLock;
 import util.InputHelper;
 import view.ConsoleTheme;
 import view.MenuView;
-import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
-/** Console bootstrap and state session. Maintainer: Khang SE201461. */
+/** Console bootstrap. CSV data is managed through the Facade and services. */
 public class Main {
     public static void main(String[] args) {
         Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));
-        try (StateStore store = new StateStore(directory); Scanner scanner = new Scanner(System.in)) {
-            AppState state = store.load(); // Fail before any write if startup files are invalid.
-            ConsoleTheme.success("Loaded state: " + store.getGeneration());
-            SiteManagerController controller = controller(state, store);
+        try (DataDirectoryLock lock = new DataDirectoryLock(directory); Scanner scanner = new Scanner(System.in)) {
+            SiteManagerController controller = new SiteManagerController(directory);
+            controller.loadAllData();
+            ConsoleTheme.success("CSV data loaded.");
             boolean exit = false;
             while (!exit) {
                 try {
@@ -30,29 +28,27 @@ public class Main {
                             MenuView.showDataMenu();
                             int action = InputHelper.getInt(scanner, "Choice (0-3): ", 0, 3);
                             if (action == 1) {
-                                String answer = InputHelper.getString(scanner, "Discard unsaved changes and reload committed state? (yes/no): ");
+                                String answer = InputHelper.getString(scanner, "Discard unsaved changes and reload CSV files? (yes/no): ");
                                 if (answer.equalsIgnoreCase("yes")) {
-                                    AppState loaded = store.load(); // Swap only after all modules validate.
-                                    state = loaded;
-                                    controller = controller(state, store);
-                                    ConsoleTheme.success("Committed state reloaded.");
+                                    controller.loadAllData();
+                                    ConsoleTheme.success("CSV data reloaded.");
                                 }
                             } else if (action == 2) {
-                                store.save(state); ConsoleTheme.success("State saved.");
+                                controller.saveAllData(); ConsoleTheme.success("CSV data saved.");
                             } else if (action == 3) {
                                 String path = InputHelper.getString(scanner, "Export parent directory: ");
-                                ConsoleTheme.success("Export completed: " + store.exportCsv(state, Paths.get(path)));
+                                ConsoleTheme.success("Export completed: " + controller.exportCsv(Paths.get(path)));
                             }
                             break;
                         case 0:
-                            store.save(state);
-                            ConsoleTheme.success("State saved. Goodbye.");
+                            controller.saveAllData();
+                            ConsoleTheme.success("CSV data saved. Goodbye.");
                             exit = true;
                             break;
                     }
                 } catch (NoSuchElementException e) {
-                    store.save(state);
-                    ConsoleTheme.success("Input closed. State saved.");
+                    controller.saveAllData();
+                    ConsoleTheme.success("Input closed. CSV data saved.");
                     exit = true;
                 } catch (Exception e) {
                     ConsoleTheme.error(e.getMessage());
@@ -62,12 +58,5 @@ public class Main {
             ConsoleTheme.error("Session stopped: " + e.getMessage());
             System.exit(1);
         }
-    }
-
-    private static SiteManagerController controller(final AppState state, final StateStore store) {
-        return new SiteManagerController(state, () -> {
-            try { store.save(state); }
-            catch (IOException e) { throw new exception.SiteManagementException("Checkpoint failed. Changes remain in memory; retry Save before exit.", e); }
-        });
     }
 }

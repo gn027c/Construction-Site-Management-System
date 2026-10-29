@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $projectRoot
 try {
-    $buildPath = Join-Path $projectRoot 'bin/ws6-tests'
+    $buildPath = Join-Path $projectRoot 'bin/csv-tests'
     New-Item -ItemType Directory -Path $buildPath -Force | Out-Null
     $sources = @(Get-ChildItem -LiteralPath src,tests -Recurse -Filter '*.java' | ForEach-Object FullName)
     & javac -encoding UTF-8 -d $buildPath $sources

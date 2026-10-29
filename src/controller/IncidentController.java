@@ -22,7 +22,7 @@ public class IncidentController {
 
     public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
 
-    public void handleMenu(Scanner scanner, Runnable checkpoint) {
+    public void handleMenu(Scanner scanner, Runnable saveChanges) {
         boolean back = false;
         while (!back) {
             MenuView.showIncidentMenu();
@@ -49,7 +49,7 @@ public class IncidentController {
                     back = true;
                     break;
             }
-            if (!back) checkpoint.run();
+            if (choice == 1 || choice == 3 || choice == 4 || choice == 5) saveChanges.run();
         }
     }
 
