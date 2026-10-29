@@ -1,7 +1,7 @@
 # Thuật toán và thư viện trong SmartSite
 
 Quyết định cho WS6: giữ thuật toán nghiệp vụ trong Service, tách phần lưu
-trạng thái vào package `state`, dùng Java SE 8 cho CSV và I/O. Không thêm một
+file vào Repository/CsvHelper, dùng Java SE 8 cho CSV và I/O. Không thêm một
 package `algorithm` chỉ để chuyển nguyên phương thức sang file khác.
 
 ## Chọn cách tổ chức theo trách nhiệm
@@ -12,7 +12,7 @@ package `algorithm` chỉ để chuyển nguyên phương thức sang file khác
 | OPEN → ASSIGNED → RESOLVED | IncidentService | Một vòng đời dùng tại một module, chưa cần thư viện FSM |
 | Kiểm tra quyền | Zone.checkAccess và RestrictedZone.checkAccess | Đa hình phù hợp mục tiêu OOP và mô hình đã có |
 | Parse và ghi CSV | CsvHelper | Dùng lại bởi bốn repository; phải có một bộ codec dùng chung |
-| Snapshot và khóa phiên | StateStore | Tách I/O và commit state khỏi thuật toán nghiệp vụ và view |
+| Lưu/nạp và khóa phiên | Facade điều phối Service/Repository; DataDirectoryLock giữ khóa | Không cần lớp gom dữ liệu hoặc lịch sử phiên bản; khóa chỉ ngăn hai phiên console ghi cùng thư mục |
 | Nhập liệu, màu, thông báo | InputHelper, ConsoleTheme, controller/view | Service không còn in ra console |
 
 Tách thêm `AttendancePolicy`/`IncidentPolicy` khi một quy tắc có nhiều biến
@@ -38,33 +38,35 @@ thay cho Map, List, Set và thư viện chuẩn.
 Apache công bố Commons CSV hỗ trợ đọc/ghi các biến thể CSV và Java 8 trở
 lên: [tài liệu chính thức](https://commons.apache.org/proper/commons-csv/).
 Lựa chọn dùng thư viện ở giai đoạn sau là đánh giá thiết kế cho project này,
-không phải kết luận rằng thư viện tự giải quyết snapshot hay đồng bộ state.
+không phải kết luận rằng thư viện tự giải quyết giao dịch nhiều file hay đồng bộ dữ liệu.
 
-## Cơ sở cho thiết kế khóa và commit
+## Cơ sở cho thiết kế khóa và ghi file
 
 `tryLock()` có thể trả `null` hoặc ném lỗi khi khóa chồng lấn; ứng dụng xử lý
 hai trường hợp bằng lỗi mở phiên rõ ràng, không dùng vòng lặp chờ khóa.
-Các thao tác state có một khóa phiên và một luồng sở hữu dữ liệu trong
+Ứng dụng có một khóa phiên và một luồng sở hữu dữ liệu trong
 console, không tạo chu trình chờ giữa nhiều khóa module. Xem
 [FileChannel Java 8](https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html).
 
 Atomic move phụ thuộc filesystem và có thể không được hỗ trợ. SmartSite
-trả lỗi lưu và giữ CURRENT cũ khi không thể thực hiện; không tuyên bố mọi
+trả lỗi lưu khi không thể thay file bằng atomic move; không tuyên bố mọi
 filesystem/network share có độ bền như database. Xem
 [Files Java 8](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Files.html).
 
 ## Thứ tự nhiệm vụ tiếp theo
 
-1. **Đồng bộ hồ sơ nộp bài:** sửa các lỗi ưu tiên cao trong ARTIFACT_REVIEW,
-   cập nhật UML có AppState/StateStore, schema nhân sự và kết quả 25/25 cùng
-   51 ca bổ sung; render lại DOCX/PDF sau chỉnh sửa.
+1. **Đồng bộ hồ sơ nộp bài:** bỏ mẫu BookManager/AddBook khỏi Final Report,
+   sửa hướng dẫn split CSV trong Audit Log; cập nhật UML theo luồng
+   Controller → Service → Repository → CSV, schema nhân sự và kết quả
+   25/25 cùng 51 ca bổ sung. Render lại DOCX/PDF sau chỉnh sửa.
 2. **Đối soát dữ liệu thật:** bổ sung thông tin `Unknown (legacy)`, kiểm tra
    các lượt vào/ra cũ sai chu kỳ. Không đoán dữ liệu đã bị mất.
 3. **Lịch sử cá nhân và báo cáo theo ngày/tuần:** lọc theo mã, khoảng thời
    gian và khu vực; xuất thống kê tổng số lượt và sự cố theo trạng thái.
 4. **Quản lý nhân sự an toàn:** deactivation thay vì xóa hồ sơ đang có tham
    chiếu; tách loại nhân sự khỏi quyền tài khoản trước khi thêm đăng nhập.
-5. **Backup và phục hồi:** menu xem/chọn snapshot cũ, chính sách giữ N bản,
-   import CSV có preview lỗi từng dòng và xác nhận trước khi thay state.
+5. **Import CSV:** preview lỗi từng dòng và xác nhận trước khi thay dữ liệu.
+   Chỉ bổ sung backup/versioning khi có yêu cầu mới, không khôi phục cơ chế
+   snapshot vừa được yêu cầu gỡ.
 6. **Nếu mở rộng triển khai:** SQLite cho một máy hoặc DB server cho nhiều
    máy; lúc đó chuyển orchestration sang API/GUI thay vì chia sẻ CSV qua mạng.

@@ -1,135 +1,113 @@
-# Workshop 6: phạm vi triển khai và nghiệm thu
+# Workshop 6 triển khai và nghiệm thu
 
-WS6 yêu cầu hoàn chỉnh chương trình và chạy thực tế toàn bộ ma trận kiểm thử;
-hạn nộp 08/11/2026. Tài liệu gốc và báo cáo Word được quản lý riêng trong các
-thư mục nội bộ. File này ghi nhận phạm vi code, cách kiểm chứng và giới hạn.
+Bản hiện tại dùng luồng **Controller → Service → Repository → CSV**.
+Theo yêu cầu đơn giản hóa, đã bỏ package `src/state`, AppState, StateStore,
+snapshot, manifest và CURRENT khỏi luồng chạy. Bốn CSV là nguồn dữ liệu
+được đọc và ghi trực tiếp.
 
-## Công việc và nhánh
+## Các phần đã hoàn thành
 
-| Nhánh | Phạm vi | Tiêu chí hoàn thành |
-| --- | --- | --- |
-| `khanghnh-final-integration` | WS6 1.1–1.5: CSV dùng chung, lưu/nạp, console | Đọc đúng ô có dấu phẩy, nháy, xuống dòng; báo lỗi I/O; kết thúc khi hết input |
-| `tuantna-final-verification` | WS6 2.1–2.4: nhân sự | Lưu/nạp đủ Worker, Contractor, Visitor; giữ tương thích CSV cũ; kiểm tra dữ liệu |
-| `thientt-final-verification` | WS6 3.1–3.4: khu vực | Cấp/thu hồi quyền từ menu; giữ whitelist khi lưu/nạp; chặn thiếu chứng chỉ |
-| `loint-final-verification` | WS6 4.1–4.4: điểm danh, sự cố | CSV sự cố không mất dữ liệu; chặn sai chu kỳ; giữ trạng thái khi nạp lỗi |
-| `codex/ws6-integration` | Tích hợp, kiểm thử và hướng dẫn | Biên dịch Java 8; kiểm thử tự động có kết quả và mã thoát rõ ràng |
+- CSV hỗ trợ dấu phẩy, dấu nháy kép, ô nhiều dòng, UTF-8 BOM và ghi qua file tạm.
+- Worker lưu đủ chứng chỉ, nghề, tổ đội; Visitor lưu đủ ngày đến.
+  Dữ liệu cũ thiếu thông tin được ghi rõ `Unknown (legacy)`.
+- Service kiểm tra chu kỳ CHECK_IN → CHECK_OUT và khu vực khi ra.
+- Sự cố theo OPEN → ASSIGNED → RESOLVED; người được phân công phải tồn tại.
+- Menu cấp/thu hồi quyền khu vực; whitelist kết hợp chứng chỉ hợp lệ.
+- Console có màu và chế độ tắt màu, xử lý EOF và lỗi đọc/ghi rõ ràng.
+- Xuất bốn CSV ra thư mục riêng, giảm nguy cơ ô bị diễn giải thành công thức.
 
-Các nhánh chức năng được xếp nối tiếp theo phụ thuộc CSV → nhân sự → khu vực
-→ điểm danh/sự cố → state/view. Mỗi sửa lỗi/tính năng là một commit có scope
-cụ thể; nhánh tích hợp giữ nguyên các commit đó. Nhánh Khang được fast-forward
-qua các module đã hoàn tất trước khi thêm state. Không đổi tác giả Git thành
-tên thành viên; tên nhánh thể hiện phạm vi phân công.
-Nền triển khai là `7798417`, bao gồm hai sửa lỗi có sẵn về mã REC và timestamp.
+## Đọc và ghi dữ liệu
 
-## Quy tắc nghiệp vụ được giữ rõ ràng
+`SiteManagerController` tạo bốn Service và các controller nhánh. Main gọi
+`loadAllData()` khi khởi động. Facade nạp bốn CSV vào các Service mới, kiểm
+tra tham chiếu rồi mới dùng các Service đó. Nếu một file lỗi, dữ liệu đang
+làm việc vẫn được giữ.
 
-- Điểm danh: CHECK_IN → CHECK_OUT; không vào hai khu vực cùng lúc, không ra
-  trước khi vào hoặc ra sai khu vực.
-- Sự cố: OPEN → ASSIGNED → RESOLVED. Chỉ phân công cho nhân sự tồn tại.
-  Các ghi chú cũ nói REPORTED/IN_PROGRESS/CLOSED không phản ánh code hiện tại.
-- Khu hạn chế: phải có tên trong whitelist **và** chứng chỉ hợp lệ.
-  Worker dùng mã kết thúc `_SAFE`; Contractor dùng hợp đồng bắt đầu `CTR-`;
-  Visitor không có chứng chỉ. Đây là quy ước mô phỏng của đồ án.
-- Theo lựa chọn được cho phép tại WS6 3.4, `requiredSafetyLevel` là metadata
-  mô tả mức nguy hiểm. Chưa so sánh LOW/MEDIUM/HIGH/CRITICAL với từng người
-  vì Person chưa có thuộc tính cấp độ chứng chỉ. Ghi rõ giới hạn thay vì tự
-  suy diễn một chứng chỉ Boolean thành cấp độ.
-- Enum Role hiện mô tả loại nhân sự; đăng nhập/RBAC menu, AI và báo cáo
-  thống kê tuần/tháng không được nghiệm thu như chức năng đã triển khai.
+Sau thao tác thêm/sửa/cấp quyền/điểm danh/xử lý sự cố, controller gọi lưu.
+Xem danh sách không tự ghi file. Menu dữ liệu cho phép lưu thủ công, nạp
+lại sau xác nhận, hoặc xuất CSV. Khi thoát bình thường hoặc hết input,
+chương trình lưu dữ liệu rồi đóng.
 
-## Các lỗi đã sửa
+Mã điểm danh tiếp theo được tính lại từ số REC lớn nhất trong attendance.csv
+sau khi nạp thành công. Không có file riêng lưu recordCounter.
 
-1. CSV `split(",")` phá ô có dấu phẩy/nháy; reader theo dòng vật lý phá ô nhiều dòng.
-2. Worker thiếu trade/team và Visitor thiếu entryDate trong dữ liệu lưu.
-3. Loader bỏ qua dòng hỏng hoặc tự đổi enum lỗi thành giá trị hợp lệ, có thể
-   mất dữ liệu/trạng thái mà vẫn báo thành công.
-4. Facade bỏ qua kết quả đọc/ghi; Main báo thành công sai và lặp vô hạn khi EOF.
-5. API cấp/thu hồi quyền chưa có menu; whitelist mới tạo không thể quản lý qua console.
+`DataDirectoryLock` giữ khóa không chờ trên `.smartsite.lock` trong phiên
+console để từ chối phiên SmartSite thứ hai dùng cùng thư mục dữ liệu.
+Lớp này chỉ giữ khóa file, không lưu dữ liệu nghiệp vụ hay phiên bản dữ liệu.
 
-## Giới hạn lưu trữ
+## Giới hạn cần biết
 
-`StateStore` giữ một khóa file bằng `tryLock()` trong cả phiên chạy. Mỗi lần
-checkpoint ghi đủ bốn CSV vào một thư mục UUID mới, nạp thử và kiểm tra tham
-chiếu, ghi manifest SHA-256 rồi thay `CURRENT` bằng atomic move. Reader chỉ
-nạp bộ snapshot đã được công bố. Không hỗ trợ atomic move thì lưu thất bại
-rõ ràng; không dùng fallback có thể ghi dở file.
-
-Ứng dụng checkpoint sau mỗi thao tác trong submenu và khi thoát/EOF. Chỉ
-đổi toàn bộ AppState sau khi nạp thành công cả bốn module. CSV gốc trong
-`data/` là dữ liệu khởi tạo, không bị ghi đè sau khi chuyển sang snapshot.
-
-Snapshot chỉ cam kết khôi phục dữ liệu đã checkpoint. Không cam kết giữ
-thao tác nhập dở, chống mọi lỗi phần cứng/mất điện, hay ngăn ứng dụng khác
-phớt lờ khóa và sửa file. Checksum phát hiện hỏng dữ liệu, không phải chữ ký
-xác thực chống tấn công. Console có một luồng sở hữu AppState; không công bố
-Service/Repository như API an toàn cho nhiều thread.
-
-Snapshot được giữ lại, chưa có cơ chế tự dọn hoặc menu chọn bản phục hồi cũ.
-Lần lưu lỗi có thể để lại thư mục UUID chưa công bố; reader bỏ qua thư mục đó.
-Không xóa hay tự sửa dữ liệu lịch sử bất thường trong bộ mẫu: ATT-006 là
-check-in lặp của W01 và ATT-008 là check-out sau một check-out khác. Thuật
-toán cho thao tác mới dựa trên bản ghi cuối cùng theo thứ tự CSV, không sắp
-xếp lại lịch sử. Cần đối soát các bản ghi này với chủ dữ liệu trước khi sửa.
-
-## Kiểm thử
-
-Lần nghiệm thu ngày 29/10/2026: **76/76 ca qua** trên Java 8.
-
-| Bộ kiểm thử | Số ca qua |
-| --- | ---: |
-| HistoricalMatrixTest — 25 kịch bản gốc, kiểm tra đúng loại exception | 25 |
-| AttendanceIncidentTest — FSM, khởi động lại, CSV sự cố | 14 |
-| PersonnelTest — validation, CSV đầy đủ và tương thích dữ liệu cũ | 9 |
-| ZoneTest — quyền, whitelist, nạp lỗi | 7 |
-| CsvHelperTest — dấu phẩy, nháy, nhiều dòng, BOM và ghi lỗi | 4 |
-| StateStoreTest — snapshot, checksum, tham chiếu, khóa và export | 10 |
-| ConsoleTest — EOF, menu, màu, ngày hợp lệ và kill sau checkpoint | 7 |
-
-`HistoricalMatrixTest` giữ các tình huống của ma trận gốc. Các test hồi quy
-cùng mã TC ở các bộ còn lại là kiểm chứng bổ sung, không phải bản thay thế
-ngầm cho định nghĩa tình huống cũ. Test đọc fixture gốc nhưng mọi file ghi
-được đặt trong thư mục tạm riêng. Log lần chạy: `output/ws6-tests.txt`.
+- Thay thế từng CSV là atomic move; bốn CSV không phải một transaction chung.
+  Nếu một file ghi lỗi, chương trình nêu tên file lỗi và cho biết các file
+  khác có thể đã ghi. Sửa nguyên nhân rồi thử Save lại.
+- Không có lịch sử phiên bản, checksum hay khôi phục snapshot. Không cam kết
+  giữ thao tác nhập dở hoặc dữ liệu chưa lưu khi mất điện/kill tiến trình.
+- Khóa chỉ bảo vệ các phiên SmartSite tuân thủ khóa, không chặn ứng dụng khác
+  tự sửa CSV. Service/Repository không được thiết kế cho nhiều thread ghi đồng thời.
+- `requiredSafetyLevel` mô tả mức nguy hiểm; chưa so sánh cấp độ chứng chỉ
+  của từng người vì model chưa có thuộc tính này. Quy tắc hiện tại là
+  whitelist + chứng chỉ Boolean. Đăng nhập/RBAC menu chưa được triển khai.
+- Mã nhân sự `NONE` có thể trùng ký hiệu whitelist rỗng; mã chứa `;` gây
+  nhập nhằng khi lưu whitelist. Đây là hai ca còn cần sửa validation/codec.
+- CSV mẫu có check-in lặp ATT-006 và check-out không khớp chu kỳ ATT-008.
+  Không tự sửa lịch sử hoặc đoán dữ liệu nghề/tổ đội/ngày đến đã thiếu.
 
 ## Cách chạy
 
-Từ gốc project trong PowerShell, với JDK 8 trở lên:
+Từ gốc project trong PowerShell với JDK 8 trở lên:
 
 ```powershell
 $sources = @(Get-ChildItem src -Recurse -Filter '*.java' | ForEach-Object FullName)
 javac -encoding UTF-8 -d bin $sources
 java '-Dfile.encoding=UTF-8' -cp bin Main
 
-# Chạy toàn bộ bộ kiểm thử
+# Toàn bộ kiểm thử
 ./scripts/test.ps1
 ```
 
-- Đổi thư mục dữ liệu: `java '-Dsmartsite.dataDir=D:/SmartSiteData' -cp bin Main`.
-  Thư mục hoàn toàn mới bắt đầu trống; bộ CSV cũ cần có đủ bốn file.
-- Màu: `-Dsmartsite.color=always` để bật, `-Dsmartsite.color=never` để tắt.
-  `NO_COLOR` ưu tiên tắt. Khi redirect output, mặc định không có ANSI.
-- Menu **5 → 2**: lưu checkpoint. **5 → 1**: xác nhận rồi nạp state đã commit.
-- Menu **5 → 3**: chọn thư mục cha để xuất bốn CSV và README. Mỗi lần xuất
-  tạo thư mục mới, không ghi đè lần trước. Export dùng dữ liệu hiện có trong
-  RAM, có thể khác checkpoint nếu lần lưu trước lỗi.
-- CSV xuất có UTF-8 BOM; ô bắt đầu bằng `=`, `+`, `-`, `@` sau trim được thêm
-  apostrophe để giảm nguy cơ diễn giải công thức. Snapshot nội bộ giữ giá
-  trị gốc. Export phục vụ xem báo cáo, không phải backup dùng để import lại.
-- Khi lưu lỗi, màn hình báo lỗi; thay đổi vẫn ở RAM. Khắc phục quyền/dung
-  lượng/đường dẫn và thử Save lại. Không xóa CURRENT để xử lý lỗi.
+- Đổi thư mục CSV: `java '-Dsmartsite.dataDir=D:/SmartSiteData' -cp bin Main`.
+  Thư mục mới bắt đầu trống; bộ dữ liệu đã có phải đủ bốn CSV.
+- Bật/tắt màu bằng `-Dsmartsite.color=always` hoặc `-Dsmartsite.color=never`.
+  Biến NO_COLOR ưu tiên tắt; output redirect mặc định không có ANSI.
+- Menu **5 → 1**: xác nhận rồi nạp lại CSV; **5 → 2**: lưu CSV.
+- Menu **5 → 3**: chọn thư mục cha để xuất persons/zones/attendance/incidents
+  và README. Mỗi lần xuất tạo thư mục riêng, không ghi đè lần trước.
+- Export dùng dữ liệu đang có trong RAM. Ô bắt đầu bằng `=`, `+`, `-`, `@`
+  sau trim được thêm apostrophe để xem trong spreadsheet. CSV nghiệp vụ giữ
+  giá trị gốc; export phục vụ báo cáo, không phải bản backup để import lại.
 
-## Lịch sử triển khai
+## Kết quả kiểm thử sau khi gỡ state
 
-| Commit | Nhánh lúc tạo commit | Nội dung |
-| --- | --- | --- |
-| `e10cff7` | `codex/ws6-plan` | Chốt phạm vi và tiêu chí WS6 |
-| `22ae8cc` | `khanghnh-final-integration` | Bộ đọc CSV và ghi file nguyên tử |
-| `57177f6` | `tuantna-final-verification` | Lưu đủ hồ sơ nhân sự |
-| `9e0514f` | `thientt-final-verification` | Menu quyền và CSV khu vực |
-| `24cfe45` | `loint-final-verification` | FSM và CSV sự cố |
-| `4278ba0` | `khanghnh-final-integration` | Snapshot, khóa phiên và xuất CSV |
-| `d043a20` | `codex/ws6-console-theme` | Màu prompt và thông báo |
-| `52333c9` | `codex/ws6-integration` | Tách hiển thị khỏi Service |
-| `28fe9ca` | `codex/ws6-integration` | Nghiệm thu ma trận gốc và phục hồi sau kill |
+Ngày 29/10/2026, Java 8: **76/76 ca qua**.
 
-Tất cả thay đổi đã tích hợp tại `codex/ws6-integration`. Commit được tạo
-local, chưa push hoặc merge vào `main`.
+| Bộ kiểm thử | Số ca |
+| --- | ---: |
+| HistoricalMatrixTest — đúng 25 kịch bản WS6 gốc | 25 |
+| AttendanceIncidentTest | 14 |
+| PersonnelTest | 9 |
+| ZoneTest | 7 |
+| CsvHelperTest | 4 |
+| CsvPersistenceTest — nạp/lưu trực tiếp, nạp lỗi, export, khóa và xem không ghi | 10 |
+| ConsoleTest — EOF, menu, ngày hợp lệ, màu và kill sau khi đã lưu CSV | 7 |
+
+Test đọc fixture gốc nhưng mọi file ghi đều nằm trong thư mục tạm riêng.
+Log lần chạy mới: `output/remove-state-tests.txt`. Thư mục build test mới:
+`bin/csv-tests`. Các kết quả snapshot của phiên bản trước không được dùng
+làm bằng chứng cho phiên bản hiện tại.
+
+## Nhánh và commit
+
+Các sửa lỗi trước đây đã được chia theo module trên các nhánh Khang, Tuấn,
+Thiên, Lợi và tích hợp tại `codex/ws6-integration`.
+
+Thay đổi gỡ state nằm trên **codex/remove-state-layer**, commit **8408ec6**:
+`refactor(csv): remove state snapshots and restore direct repository persistence`.
+Commit giữ nguyên các sửa lỗi CSV, màu console, xuất file và kiểm soát nghiệp vụ.
+Chưa push hoặc merge vào main.
+
+## Phần còn lại của workflow
+
+Đã khảo sát thuật toán/thư viện và đối soát Report/Audit Log. Chưa chỉnh trực
+tiếp DOCX/XLSX. Final Report còn mẫu BookManager/AddBook; Audit Log còn hướng
+dẫn split CSV sai và kết quả cũ. Cần đồng bộ hồ sơ với phiên bản code mới,
+cập nhật minh chứng thật và render/kiểm tra lại trước khi nộp.
