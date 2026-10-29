@@ -32,7 +32,7 @@ public final class MenuView {
         options.put(8, "Sign out");
         add(options, 9, "Activity log", authentication, Permission.VIEW_ACTIVITY_LOG);
         options.put(10, "My notifications");
-        add(options, 11, "Data review", authentication, Permission.REVIEW_ATTENDANCE);
+        add(options, 11, "CSV validation (read only)", authentication, Permission.REVIEW_ATTENDANCE);
         add(options, 12, "Period reports", authentication, Permission.EXPORT_REPORTS);
         ConsoleTheme.menuOptions(
                 "HOME / " + authentication.currentAccount().getUsername() + " / "

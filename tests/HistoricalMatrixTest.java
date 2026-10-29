@@ -206,12 +206,21 @@ public class HistoricalMatrixTest {
            }, true);
 
         // ---------------- FILE I/O ----------------
-        tc("TC-IO-01", "File I/O", "Normal", "Auto-load all 4 CSV files on startup (fresh services)",
+        tc("TC-IO-01", "File I/O", "Normal", "Load all 4 CSV types with a valid attendance test ledger (fresh services)",
            "10 persons, 5 zones, 15 attendance records, 5 incidents loaded",
            () -> {
                PersonnelService p2 = new PersonnelService(); ZoneService z2 = new ZoneService();
                AttendanceService a2 = new AttendanceService(p2, z2); IncidentService i2 = new IncidentService(p2);
-               p2.loadFromCsv(); z2.loadFromCsv(); a2.loadFromCsv(); i2.loadFromCsv();
+               p2.loadFromCsv(); z2.loadFromCsv(); i2.loadFromCsv();
+               Path validAttendance = output.resolve("valid_attendance.csv");
+               List<String> validRows = new ArrayList<>();
+               validRows.add("recordId,personCode,zoneId,timestamp,checkType");
+               for (int i = 0; i < 15; i++) {
+                   validRows.add("ATT" + (i + 1) + ",W1,Z1,2026-10-12 07:"
+                           + String.format("%02d", i) + ":00," + (i % 2 == 0 ? "CHECK_IN" : "CHECK_OUT"));
+               }
+               check(util.CsvHelper.writeAllLines(validAttendance.toString(), validRows), "fixture write failed");
+               check(a2.loadFromCsv(validAttendance.toString()), "valid history rejected");
                int np = p2.getAllPersons().size(), nz = z2.getAllZones().size(),
                    na = a2.getAllAttendanceRecords().size(), ni = i2.getAllIncidents().size();
                check(np == 10 && nz == 5 && na == 15 && ni == 5, "counts " + np + "/" + nz + "/" + na + "/" + ni);

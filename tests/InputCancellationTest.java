@@ -96,16 +96,17 @@ public class InputCancellationTest {
                 require(files.noneMatch(Files::isDirectory));
             }
         });
-        test("Cancelling attendance correction evidence preserves the complete source history", () -> {
+        test("Leaving read-only CSV validation preserves the complete source history", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-review-");
             for (String file : new String[] { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" }) {
                 Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
             }
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
             String output = ConsoleTest.launch(
-                    root, "11\n2\nATT6\n\n\n0\nReason\n/cancel\n0\n", 0, false
+                    root, "11\n\n0\n", 0, false
             );
-            require(output.contains("Current entry cancelled"));
+            require(output.contains("CSV VALIDATION ERRORS / READ ONLY"));
+            require(!output.contains("Correct attendance with evidence"));
             require(java.util.Arrays.equals(original, Files.readAllBytes(root.resolve("attendance.csv"))));
         });
         finish();

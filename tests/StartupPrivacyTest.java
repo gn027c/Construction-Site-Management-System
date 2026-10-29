@@ -19,7 +19,7 @@ public class StartupPrivacyTest {
 
     private static void assertPrivate(String output) {
         for (String secret : Arrays.asList(
-                "Invalid attendance history", "Business data rejected", "CSV issues", "ATT6", "ATT8",
+                "Invalid attendance history", "Invalid attendance.csv", "Business data rejected", "CSV issues", "ATT6", "ATT8",
                 "previous=", "Activity log was not saved", "Notification storage failed"
         )) {
             require(!output.contains(secret));
@@ -56,9 +56,8 @@ public class StartupPrivacyTest {
             int signedIn = output.indexOf("Signed in as admin");
             require(signedIn >= 0);
             assertPrivate(output.substring(0, signedIn));
-            require(output.indexOf("Invalid attendance history") > signedIn);
+            require(output.indexOf("Invalid attendance.csv") > signedIn);
             require(output.contains("ATT6"));
-            require(output.contains("ATT8"));
             require(Arrays.equals(original, Files.readAllBytes(root.resolve("attendance.csv"))));
         });
         test("Personal account cannot reveal diagnostics through operations, inbox or hidden menus", () -> {
@@ -69,7 +68,7 @@ public class StartupPrivacyTest {
             );
             assertPrivate(output);
             require(output.contains("Service temporarily unavailable"));
-            require(!output.contains("[11] Data review"));
+            require(!output.contains("[11] CSV validation"));
         });
         test("Logout does not repeat administrator diagnostics to the next personal session", () -> {
             Path root = invalidHistory();

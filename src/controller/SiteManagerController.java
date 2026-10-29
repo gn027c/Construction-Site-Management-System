@@ -100,7 +100,7 @@ public class SiteManagerController {
                 throw new IOException("Invalid zones.csv");
             }
             if (!attendance.loadFromCsv(directory.resolve(FILES[2]).toString())) {
-                throw new IOException("Invalid attendance.csv");
+                throw new IOException("Invalid attendance.csv: " + attendance.getLastLoadError());
             }
             if (!incidents.loadFromCsv(directory.resolve(FILES[3]).toString())) {
                 throw new IOException("Invalid incidents.csv");
@@ -158,6 +158,10 @@ public class SiteManagerController {
             throw new IOException("Business data is not active; saving is blocked until administrator review.");
         }
         validateReferences(personnelService, zoneService, attendanceService, incidentService);
+        List<String> historyIssues = new AttendanceIntegrityService().scan(attendanceService.getAllAttendanceRecords());
+        if (!historyIssues.isEmpty()) {
+            throw new IOException("Attendance validation failed; no business CSV files were saved.");
+        }
         List<String> failed = new ArrayList<>();
         if (!personnelService.saveToCsv(directory.resolve(FILES[0]).toString())) {
             failed.add(FILES[0]);
@@ -484,79 +488,6 @@ public class SiteManagerController {
         authentication.audit("SCAN_ATTENDANCE", "CSV", "", integrityIssues.isEmpty() ? "SUCCESS" : "FAILED",
                 integrityIssues.isEmpty() ? "No issues." : String.join(" | ", integrityIssues));
         return new ArrayList<>(integrityIssues);
-    }
-
-    /**
-     * Reads persisted attendance in CSV order for administrator review even when business data is blocked.
-     * An empty personnel code selects all records; other values use canonical identifier matching.
-     */
-    public List<AttendanceRecord> attendanceForReview(String personCode) throws IOException {
-        authentication.require(Permission.REVIEW_ATTENDANCE);
-        repository.AttendanceRepository records = new repository.AttendanceRepository();
-        if (!records.loadFromCsv(directory.resolve("attendance.csv").toString())) {
-            throw new IOException("Cannot read attendance.csv. Check its header, columns, values and duplicate IDs.");
-        }
-        String code = personCode.trim().isEmpty() ? "" : util.IdentifierHelper.normalize(personCode);
-        List<AttendanceRecord> matching = new ArrayList<>();
-        for (AttendanceRecord record : records.findAll()) {
-            if (code.isEmpty() || code.equals(record.getPersonCode())) {
-                matching.add(record);
-            }
-        }
-        authentication.audit("REVIEW_TIMELINE", "PERSON", code, "SUCCESS", "Read stored attendance in CSV order.");
-        return matching;
-    }
-
-    public void correctAttendance(
-            String id, String zoneId, String timestamp, String type, String reason, String evidence
-    )
-            throws IOException {
-        authentication.require(Permission.REVIEW_ATTENDANCE);
-        if (reason.trim().isEmpty() || evidence.trim().isEmpty()) {
-            throw new exception.DataValidationException("review", "Reason and evidence are required.");
-        }
-        List<String[]> rows = util.CsvHelper.readRows(directory.resolve("attendance.csv").toString());
-        String target = util.IdentifierHelper.normalize(id);
-        boolean found = false;
-        int matches = 0;
-        String before = "";
-        ZoneService verifiedZones = new ZoneService();
-        if (!verifiedZones.loadFromCsv(directory.resolve("zones.csv").toString())) {
-            throw new IOException("Valid zones are required before correcting attendance.");
-        }
-        verifiedZones.findZoneById(zoneId);
-        for (int i = 1; i < rows.size(); i++) {
-            String[] row = rows.get(i);
-            if (row.length == 5 && util.IdentifierHelper.normalize(row[0]).equals(target)) {
-                matches++;
-                before = util.CsvHelper.toCsvLine(row);
-                AttendanceRecord replacement = new AttendanceRecord(
-                        target, row[1], zoneId, timestamp, AttendanceRecord.CheckType.valueOf(type)
-                );
-                rows.set(i, util.CsvHelper.parseLine(replacement.toCsvLine()));
-                found = true;
-            }
-        }
-        if (!found) {
-            throw new exception.DataValidationException("recordId", "Record does not exist.");
-        }
-        if (matches != 1) {
-            throw new exception.DataValidationException(
-                    "recordId", "Ambiguous duplicate ID; resolve the CSV collision first."
-            );
-        }
-        List<String> lines = new ArrayList<>();
-        for (String[] row : rows) {
-            lines.add(util.CsvHelper.toCsvLine(row));
-        }
-        if (!util.CsvHelper.writeAllLines(directory.resolve("attendance.csv").toString(), lines)) {
-            throw new IOException("Correction could not be saved.");
-        }
-        dataReady = false;
-        authentication.audit("CORRECT_ATTENDANCE", "ATTENDANCE", target, "SUCCESS",
-                "Original: " + before + "; corrected zone=" + zoneId + "; time=" + timestamp
-                        + "; action=" + type + "; reason: " + reason + "; evidence: " + evidence);
-        reviewAttendance();
     }
 
     public List<String[]> report(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,

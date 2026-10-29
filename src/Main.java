@@ -45,7 +45,7 @@ public class Main {
                         if (!controller.isDataReady()) {
                             if (isAdministrator(authentication)) {
                                 ConsoleTheme.error(startupFailure);
-                                ConsoleTheme.warning("Open menu 11 - Data review. Business actions are blocked.");
+                                ConsoleTheme.warning("Open menu 11 - CSV validation. Business actions are blocked.");
                             } else {
                                 ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
                             }

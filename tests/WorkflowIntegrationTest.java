@@ -118,8 +118,8 @@ public class WorkflowIntegrationTest {
             require(Arrays.equals(before, Files.readAllBytes(root.resolve("attendance.csv"))));
             require(!Files.exists(root.resolve("attendance_quarantine.csv")));
         });
-        test("A verified correction activates data only after the complete history passes", () -> {
-            Path root = Files.createTempDirectory("smartsite-correction-");
+        test("Reload rejects invalid transitions and accepts a corrected source only after full validation", () -> {
+            Path root = Files.createTempDirectory("smartsite-validated-reload-");
             SiteManagerController site = new SiteManagerController(root);
             site.loadAllData();
             site.getAuthentication().login("admin", "admin");
@@ -130,11 +130,18 @@ public class WorkflowIntegrationTest {
                     "ATT2,W1,Z2,2026-10-29 08:00:00,CHECK_OUT"
             ));
             require(!site.reviewAttendance().isEmpty());
-            site.correctAttendance("att-002", "z01", "2026-10-29 08:00:00", "CHECK_OUT",
-                    "Wrong zone entered", "Verified against gate register");
+            throwsType(java.io.IOException.class, site::reloadData);
+            require(site.attendance(false).isEmpty());
+            require(CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), Arrays.asList(
+                    "recordId,personCode,zoneId,timestamp,checkType",
+                    "ATT1,W1,Z1,2026-10-29 07:00:00,CHECK_IN",
+                    "ATT2,W1,Z1,2026-10-29 08:00:00,CHECK_OUT"
+            )));
+            site.reloadData();
             require(site.isDataReady());
             require(site.reviewAttendance().isEmpty());
             require(site.occupancy(false).isEmpty());
+            equal(2, site.attendance(false).size());
         });
         test("Log write failures do not reverse a successful business action", () -> {
             Path root = Files.createTempDirectory("smartsite-audit-failure-");
