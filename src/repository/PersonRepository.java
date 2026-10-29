@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 
 /**
  * TẦNG LƯU TRỮ (REPOSITORY LAYER)
@@ -59,27 +60,23 @@ public class PersonRepository {
         PersonRepository staged = new PersonRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !rows.get(0)[0].equals("type")) return false;
+            if (rows.isEmpty() || !Arrays.equals(rows.get(0), new String[]{
+                    "type", "id", "code", "name", "phoneNumber", "role", "extra1", "extra2", "extra3"})) return false;
             for (int i = 1; i < rows.size(); i++) {
                 String[] p = rows.get(i);
                 if (util.CsvHelper.isBlankRow(p)) continue;
-                if (p.length < 7 || !p[4].matches("0\\d{9}")) return false;
+                if (p.length != 9 || !p[4].matches("0\\d{9}")) return false;
                 Person person;
                 switch (p[0]) {
                     case "WORKER":
-                        if (p.length != 7 && p.length != 9) return false;
-                        person = new model.Worker(p[1], p[2], p[3], p[4],
-                            p.length == 9 ? p[7] : "Unknown (legacy)", p[6],
-                            p.length == 9 ? p[8] : "Unknown (legacy)");
+                        person = new model.Worker(p[1], p[2], p[3], p[4], p[7], p[6], p[8]);
                         break;
                     case "CONTRACTOR":
-                        if (p.length != 8) return false;
+                        if (!p[8].isEmpty()) return false;
                         person = new model.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
                         break;
                     case "VISITOR":
-                        if (p.length != 8 && p.length != 9) return false;
-                        person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7],
-                            p.length == 9 ? p[8] : "Unknown (legacy)");
+                        person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
                         break;
                     default: return false;
                 }

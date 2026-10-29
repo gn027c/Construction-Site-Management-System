@@ -23,12 +23,9 @@ public class Visitor extends Person {
         if (hostPersonName == null || hostPersonName.trim().isEmpty()) {
             throw new IllegalArgumentException("Người đón tiếp / bảo lãnh không được để trống.");
         }
-        if (entryDate == null || entryDate.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ngày đến thăm không được để trống.");
-        }
         this.purpose = purpose.trim();
         this.hostPersonName = hostPersonName.trim();
-        this.entryDate = entryDate.trim();
+        setEntryDate(entryDate);
     }
 
     public String getPurpose() {
@@ -58,10 +55,11 @@ public class Visitor extends Person {
     }
 
     public void setEntryDate(String entryDate) {
-        if (entryDate == null || entryDate.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ngày đến thăm không được để trống.");
+        if (entryDate == null) {
+            throw new IllegalArgumentException("Ngày đến thăm không được null; dùng ô trống nếu chưa biết ngày.");
         }
-        this.entryDate = entryDate.trim();
+        // Empty CSV cell explicitly represents an unknown date; do not invent one.
+        this.entryDate = entryDate.isEmpty() ? "" : util.DateTimeHelper.formatDate(util.DateTimeHelper.parseDate(entryDate));
     }
 
     @Override
@@ -74,7 +72,7 @@ public class Visitor extends Person {
         System.out.println("Vai trò: " + getRole());
         System.out.println("Mục đích thăm: " + purpose);
         System.out.println("Người đón tiếp / Bảo lãnh: " + hostPersonName);
-        System.out.println("Ngày đến thăm: " + entryDate);
+        System.out.println("Ngày đến thăm: " + (entryDate.isEmpty() ? "Chưa có thông tin" : entryDate));
         System.out.println("===============================================");
     }
 

@@ -87,7 +87,7 @@ public class PersonnelController {
                 case 3:
                     String purpose = InputHelper.getString(scanner, "Enter Visit Purpose: ");
                     String host = InputHelper.getString(scanner, "Enter Host / Sponsor Person Name: ");
-                    String entryDate = InputHelper.getDate(scanner, "Enter Entry Date (dd/MM/yyyy): ");
+                    String entryDate = InputHelper.getDate(scanner, "Enter Entry Date (" + util.DateTimeHelper.DATE_FORMAT + "): ");
                     newPerson = new Visitor(id, code, name, phone, purpose, host, entryDate);
                     break;
                 default:

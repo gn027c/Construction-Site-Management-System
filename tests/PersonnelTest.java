@@ -31,10 +31,10 @@ public class PersonnelTest {
     equal("Company, Inc",((Contractor)loaded.findPersonByCode("C")).getCompanyName());
    } finally { Files.deleteIfExists(f); }
   });
-  test("Legacy CSV migration is explicit", () -> {
-   PersonnelService legacy=new PersonnelService(); require(legacy.loadFromCsv("data/persons.csv"));
-   equal("Unknown (legacy)",((Worker)legacy.findPersonByCode("W01")).getTrade());
-   equal("Unknown (legacy)",((Visitor)legacy.findPersonByCode("V01")).getEntryDate());
+  test("Fixture explicitly marks missing personnel information", () -> {
+   PersonnelService fixture=new PersonnelService(); require(fixture.loadFromCsv("data/persons.csv"));
+   equal("Unknown",((Worker)fixture.findPersonByCode("W01")).getTrade());
+   equal("",((Visitor)fixture.findPersonByCode("V01")).getEntryDate());
   });
   test("Invalid reload preserves personnel", () -> {
    Path f=Files.createTempFile("people-bad", ".csv");
