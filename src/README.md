@@ -130,10 +130,10 @@ abandons the current entry and returns to Home. Numeric selections also accept
 Enter to cancel. Cancellation is recorded as CANCELLED rather than FAILED.
 
 Cancellation does not submit partially entered personnel, account, attendance,
-report or correction data. Earlier completed operations remain saved. Empty
+or report data. Earlier completed operations remain saved. Empty
 optional values retain their documented meanings, including keeping contact
-values or a correction's original fields. Zero still means deactivate, disable,
-no permissions or keep original wherever the prompt says so.
+values. Zero still means deactivate, disable or no permissions wherever the
+prompt says so.
 
 The command `/cancel` is reserved by console readers. Enter `//cancel` to use the
 literal text `/cancel`, including as a password; password whitespace is preserved.
@@ -155,7 +155,7 @@ personnel code before the password for non-admin roles.
 
 | Account role | Default access |
 | --- | --- |
-| ADMIN | Application and account administration, logs and data review |
+| ADMIN | Application and account administration, logs and read-only CSV validation |
 | SITE_MANAGER | Personal attendance, personnel/zones, occupancy, reports |
 | SAFETY_OFFICER | Personal attendance, occupancy, incident handling |
 | SITE_USER | Personal attendance and personal attendance history |
@@ -204,60 +204,65 @@ java '-Dfile.encoding=UTF-8' -cp bin/app util.CsvMigration D:/OldData D:/Convert
 ```
 
 The converter preserves source files, credentials and free-text fields, checks
-collisions/references before writing, and refuses an existing destination. It
-converts old personnel, incident and account schemas; runtime loaders use the new
+collisions, references and attendance transitions before writing, and refuses an
+existing destination. It converts old personnel, incident and account schemas;
+runtime loaders use the new
 schemas. Existing activity and notification files are not copied by migration.
 Each business CSV replacement is atomic; the collection is not a multi-file
 transaction. No file-based application snapshot or state store is used.
 
-## Attendance, occupancy and data review
+## Attendance, occupancy and CSV validation
 
 Attendance menu 3 retains staff entry/history at options 1/2, and adds personal
 entry/history at 3/4 and occupancy at 5/6. Staff entry on behalf of others needs
-its separate permission. Failed swipes are logged with `FAILED` but are not added
-to attendance.csv. A recorded check-in at one zone must be checked out there
-before entering another. Concurrent submissions are serialized. If attendance
-storage fails, the staged swipe and sequence are rolled back so retry is safe.
+its separate permission. Failed swipes are logged with FAILED but are not added
+to the attendance collection or attendance.csv.
+
+A first event must be CHECK_IN. After an entry, only CHECK_OUT at the same zone
+is valid. After an exit, only CHECK_IN is valid. Event time cannot precede that
+person's previous event. Canonical aliases resolve to the same person before
+these rules are checked. References, active status and zone credentials are
+checked by the service; the model owns the transition rule and the repository
+also enforces it for direct appends and CSV loads.
+
+Persisted attendance follows this sequence under one repository lock:
+
+1. Validate the candidate against the previous event and reject duplicate IDs.
+2. Serialize the candidate history to a sibling temporary file and flush it.
+3. Atomically replace attendance.csv; fail if atomic replacement is unsupported.
+4. Publish the immutable event in memory and advance the service's identifier.
+
+Validation or write failure leaves the prior in-memory history unchanged and
+does not consume an identifier. Readers cannot observe a candidate event before
+its file replacement completes. Concurrent writers sharing the repository use
+the same lock. The running console also holds the data directory lock; unrelated
+external tools must cooperate with it. This is one attendance-file transaction,
+not a transaction across all CSV files.
+
+Attendance fields cannot be edited after construction. CSV loading validates the
+whole staged history before replacing active records, stopping at the first
+invalid row. Migration also rejects an invalid transition before creating output.
+Saving the complete business set checks history before writing any business file.
 
 Occupancy is derived from the last successful swipe for each person, including
 inactive people who have not checked out. Global occupancy requires its own
 permission; personal occupancy includes only the linked person.
 
-The scanner validates row formats, references and complete swipe order. A failed
-reload preserves active data. Invalid startup data keeps business operations
-blocked while an administrator can sign in and use menu 11. The included sample
-history deliberately contains invalid historical swipes; verify the evidence
-before correcting them. Menu 11 lists row/record/person issues and accepts an
-explicitly confirmed correction with reason and evidence. Original attendance
-values and the verified correction are retained in the administrator log. The
-whole history must pass validation before corrected data becomes active. Detailed
-startup diagnostics appear only after administrator sign-in; anonymous sessions
-receive no CSV health information. Other accounts receive a generic service
-availability message. A mismatch indicates inconsistent data, not proven misconduct.
-
-Use the administrator review workflow:
-
-1. Open menu 11, then option 1 to find the record and personnel codes.
-2. Use option 3 and enter that personnel code to inspect their events in CSV order.
-3. Verify the actual events against a reliable register or the data owner.
-4. Use option 2 and enter the record ID. The original record is displayed first.
-   Leave zone/time blank, or choose action 0, to retain the current value.
-5. Enter the verified reason and evidence/reference, inspect the proposed values,
-   then answer `yes` to save. Answering anything else preserves the record.
-6. Scan again if other inconsistencies remain. Missing or duplicate events require
-   reconciliation with the data owner; editing a row cannot recover an unknown event.
-
-For example, a verified checkout entered with the wrong zone can be corrected
-to the preceding check-in's zone while retaining its time and action. This is
-appropriate only when the supporting register confirms the zone. The sample's
-ATT6/ATT8 issues alone do not establish which timestamps or events are missing.
-
-The scanner does not infer race conditions or manufacture missing checkout records.
+Admin menu 11 is read-only CSV validation. It displays rejected-row diagnostics
+and never edits attendance, asks for correction evidence or guesses missing
+checkouts. A failed reload retains active data. Invalid startup data leaves
+business operations blocked. Only a signed-in administrator sees diagnostics;
+other accounts receive a generic availability message. The included sample
+still contains historical inconsistencies and is not rewritten automatically.
+Correct a source file outside the application using verified information, then
+reload it or run validation again. To work with an empty registry independently
+of the sample, use `./scripts/run.ps1 -DataDirectory D:/SmartSiteData` with a new
+directory. A CSV inconsistency is not proof of misconduct.
 
 ## Activity history and notifications
 
 Activity history records logins, account operations, protected business actions,
-reads/search/navigation, exports, denied operations and verified corrections.
+reads/search/navigation, exports, and denied operations.
 Statuses are SUCCESS, FAILED and CANCELLED. Menu 9 is restricted to ADMIN at the
 service boundary. Passwords, salts and credential hashes are excluded. Reading
 logs does not cause recursive logging.

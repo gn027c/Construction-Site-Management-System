@@ -5,18 +5,20 @@ and console/terminal interaction. The CSV preview feature is excluded.
 
 ## Automated verification
 
-Run `./scripts/test.ps1` from the project root. The last complete run before
-form cancellation changes passed
-**238 checks in 26 suites, with zero failures**. The original workshop matrix
+Run `./scripts/test.ps1` from the project root. The latest complete run passed
+**260 checks in 28 suites, with zero failures**. The original workshop matrix
 accounts for 25 of these checks. This run includes personnel rendering, private
-startup diagnostics, screen transitions and guided attendance corrections.
+startup diagnostics, form cancellation, screen transitions, atomic attendance
+commits and read-only CSV validation. The normal file-I/O matrix case uses a
+generated valid 15-event test ledger; the invalid shipped history is tested for
+rejection separately and remains unchanged.
 
 | Suite | Passed |
 | --- | ---: |
 | AccountAuditTest | 4 |
+| AtomicAttendanceTest | 10 |
 | AttendanceConcurrencyTest | 3 |
 | AttendanceIncidentTest | 14 |
-| AttendanceReviewConsoleTest | 4 |
 | AttendanceTimestampTest | 8 |
 | AuditNotificationTest | 10 |
 | AuthenticationConsoleTest | 9 |
@@ -25,10 +27,12 @@ startup diagnostics, screen transitions and guided attendance corrections.
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
 | CsvPersistenceTest | 10 |
+| CsvValidationConsoleTest | 4 |
 | DateTimeHelperTest | 4 |
 | DomainBehaviorTest | 12 |
 | HistoricalMatrixTest | 25 |
 | IdentifierStaffTest | 9 |
+| InputCancellationTest | 12 |
 | MigrationTest | 7 |
 | ModelValidationTest | 8 |
 | PagingTest | 8 |
@@ -39,15 +43,18 @@ startup diagnostics, screen transitions and guided attendance corrections.
 | VisitorDateTest | 8 |
 | WorkflowIntegrationTest | 10 |
 | ZoneTest | 7 |
-| Total | 238 |
+| Total | 260 |
 
 Privacy checks compare anonymous output for healthy and rejected business data,
 verify administrator-only diagnostics, exercise personal accounts through hidden
 menus and inboxes, and check account switches and fatal credential errors.
 Screen checks cover aligned option columns, result acknowledgement, account
 boundaries, plain redirected output and EOF while waiting for Enter.
-Guided review checks cover timeline inspection, retaining unchanged fields,
-verified corrections, cancellation, missing record IDs and administrator access.
+Atomic attendance checks cover invalid first exits, repeated entries/exits,
+wrong-zone exits, backwards timestamps, direct repository callers, staged CSV
+load rejection, duplicate IDs, failed file replacement, sequence preservation,
+restart and competing repository writers. Read-only validation checks confirm
+that diagnostics remain administrator-only and cannot edit rejected files.
 
 The Windows UTF-8 launcher also passed a separate smoke check from the `src`
 working directory: compilation, `admin` login, home menu, CSV save and clean exit.
@@ -57,31 +64,26 @@ Enter acknowledgement and logout. Both checks used temporary data directories.
 Javadoc validation passed. Expanded layout, line lengths and English
 description-only source comments were checked for all 66 Java source files.
 
-## Form cancellation follow-up
-
-A focused run after adding cancellation passed **59 checks in 7 suites**:
-InputCancellationTest (12), PagingTest (8), AttendanceReviewConsoleTest (4),
-ReportArchiveTest (12), ConsoleTest (7), AuthenticationConsoleTest (9) and
-PersonnelViewTest (7). No failures occurred. The full suite was not rerun for
-this follow-up. Javadoc and readable-layout validation passed for all 67 source files.
-
-The checks cover cancelling string, integer, date and password input; blank menu
+Form checks cover cancelling string, integer, date and password input; blank menu
 navigation; preserving meaningful zero values and optional blanks; escaped command
-text; partial personnel/account/contact changes; report filters; review evidence;
+text; partial personnel/account/contact changes; report filters; read-only validation;
 and returning from password entry without spending a failed login attempt.
-Changes are committed on `codex/console-form-cancellation`.
 
 ## Terminal walkthroughs
 
-Three additional process-level walkthroughs passed:
+Process-level walkthroughs include:
 
 1. A linked SITE_USER signs in, records a personal check-in, views personal
    history and occupancy, and exits without seeing another person's records.
 2. An administrator opens activity history and the private inbox, then generates
    an inclusive daily report showing the two recorded check-ins.
 3. The shipped invalid historical data blocks business activation while allowing
-   administrator review. ATT6 and ATT8 are reported, and all original business
+   administrator validation. The first invalid event, ATT6, is reported, and all original business
    CSV bytes remain unchanged after exit.
+4. A fresh console records one valid entry, rejects a cross-zone entry and a
+   wrong-zone exit, then records a valid exit. The file contains only REC1 IN and
+   REC2 OUT at Z1. After restart, another exit is rejected and file bytes remain
+   unchanged. This walkthrough used a temporary directory.
 
 The sample's historical anomalies are retained deliberately. Start with a new
 data directory for an empty registry, or review historical evidence before
@@ -115,6 +117,9 @@ Code was committed on `codex/complete-console-plan` in separate domain,
 identifier, authentication/audit, console workflow and CSV migration commits.
 Subsequent console privacy, navigation and guided review changes were committed
 separately on `codex/console-navigation-data-review`.
+Form cancellation was committed on `codex/console-form-cancellation`; atomic
+attendance validation and removal of the CSV editor are committed separately
+on `codex/atomic-attendance-validation`.
 Runtime credentials, activity and notifications remain ignored by Git. Reports
 and academic workbooks retain their existing ignored document locations.
 Pre-existing unrelated workspace changes were preserved.
