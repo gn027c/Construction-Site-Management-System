@@ -7,10 +7,8 @@ package exception;
  * NHÁNH GIT: tuantna-person-exceptions
  * 
  * NOTE DÀNH CHO TUẤN:
- * - VỊ TRÍ CẦN LÀM:
- *   1. Sử dụng exception này trong Person.java (setter setPhoneNumber) hoặc trong PersonnelService.java (khi add/update).
- *   2. Kiểm tra nếu chuỗi số điện thoại không thỏa mãn chuẩn 10 số (bắt đầu bằng 0, chỉ chứa chữ số) thì ném:
- *      throw new InvalidPhoneNumberException(phone);
+ * - ModelValidation dùng lỗi này cho số điện thoại không có 10 chữ số bắt đầu bằng 0.
+ * - Giữ subtype riêng để controller xử lý, dùng chung cấu trúc thông báo field/reason.
  */
 public class InvalidPhoneNumberException extends DataValidationException {
 

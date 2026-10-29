@@ -8,7 +8,7 @@ import static model.ModelValidation.*;
  * MÔ TẢ:
  * - Lớp cha trừu tượng (abstract class) cơ sở đại diện cho mọi cá nhân trên công trường.
  * - Chịu trách nhiệm quản lý các thuộc tính chung (id, code, name, phoneNumber, role).
- * - Cung cấp các phương thức trừu tượng displayDetails() và toCsvLine() cho các lớp con kế thừa.
+ * - Bảo vệ định danh, xác thực thông tin liên hệ và cung cấp hành vi đa hình cho lớp con.
  */
 public abstract class Person {
     private final String id;

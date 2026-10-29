@@ -36,7 +36,7 @@ public class IncidentRepository {
 
     public int deleteResolved() {
         int before = incidentList.size();
-        incidentList.removeIf(inc -> inc.getStatus() == Incident.IncidentStatus.RESOLVED);
+        incidentList.removeIf(Incident::isResolved);
         return before - incidentList.size();
     }
 
@@ -54,7 +54,6 @@ public class IncidentRepository {
                 if (util.CsvHelper.isBlankRow(p)) continue;
                 if (p.length != 6) return false;
                 Incident.IncidentStatus status = Incident.IncidentStatus.valueOf(p[4]);
-                if ((status == Incident.IncidentStatus.OPEN) != p[5].trim().isEmpty()) return false;
                 if (!staged.save(new Incident(p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status, p[5]))) return false;
             }
         } catch (RuntimeException e) { return false; }

@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
  * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Xử lý vòng đời sự cố an toàn (OPEN -> ASSIGNED -> RESOLVED) và phân công nhân sự.
+ * MÔ TẢ: Tra cứu sự cố/nhân sự và gọi hành vi assignTo/resolve do Incident kiểm soát.
  */
 public class IncidentService {
     private final IncidentRepository incidentRepository;
@@ -30,15 +30,7 @@ public class IncidentService {
     }
 
     public boolean reportIncident(String incidentId, String title, String description, Incident.IncidentSeverity severity) {
-        if (incidentId == null || incidentId.trim().isEmpty() || title == null || title.trim().isEmpty() || description == null || description.trim().isEmpty()) {
-
-            return false;
-        }
-        Incident incident = new Incident(incidentId.trim(), title.trim(),
-                description == null ? "" : description.trim(),
-                severity == null ? Incident.IncidentSeverity.LOW : severity,
-                Incident.IncidentStatus.OPEN, "");
-        return reportIncident(incident);
+        return reportIncident(Incident.report(incidentId, title, description, severity));
     }
 
     public PersonnelService getPersonnelService() {
@@ -61,11 +53,6 @@ public class IncidentService {
             throw new exception.IncidentNotFoundException(incidentId.trim());
         }
 
-        if (inc.getStatus() != Incident.IncidentStatus.OPEN) {
-            throw new exception.InvalidIncidentStateException(incidentId.trim(),
-                    inc.getStatus().name(), "Only OPEN incidents can be assigned to personnel.");
-        }
-
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
         if (personnelService == null) return false;
         try {
@@ -74,8 +61,7 @@ public class IncidentService {
             return false;
         }
 
-        inc.setAssignedTo(assigneeCode.trim());
-        inc.setStatus(Incident.IncidentStatus.ASSIGNED);
+        inc.assignTo(assigneeCode);
 
         return true;
     }
@@ -91,12 +77,7 @@ public class IncidentService {
             throw new exception.IncidentNotFoundException(incidentId.trim());
         }
 
-        if (inc.getStatus() != Incident.IncidentStatus.ASSIGNED) {
-            throw new exception.InvalidIncidentStateException(incidentId.trim(),
-                    inc.getStatus().name(), "Only ASSIGNED incidents can be transitioned to RESOLVED.");
-        }
-
-        inc.setStatus(Incident.IncidentStatus.RESOLVED);
+        inc.resolve();
         return true;
     }
 

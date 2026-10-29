@@ -73,9 +73,7 @@ public class SiteManagerController {
                     for (String code : ((RestrictedZone)zone).getAllowedPersonCodes()) people.findPersonByCode(code);
             }
             for (Incident incident : incidents.getAllIncidents()) {
-                boolean open = incident.getStatus() == Incident.IncidentStatus.OPEN;
-                if (open != incident.getAssignedTo().isEmpty()) throw new IllegalStateException("Invalid incident assignment: " + incident.getIncidentId());
-                if (!open) people.findPersonByCode(incident.getAssignedTo());
+                if (!incident.getAssignedTo().isEmpty()) people.findPersonByCode(incident.getAssignedTo());
             }
         } catch (RuntimeException e) { throw new IOException("Invalid CSV references: " + e.getMessage(), e); }
     }

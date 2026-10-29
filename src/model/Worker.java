@@ -51,6 +51,6 @@ public class Worker extends Person {
     }
 
     @Override public String toString() {
-        return "Worker{" + super.toString() + "}";
+        return String.format("Worker{%s, safetyCertId='%s'}", super.toString(), safetyCertId);
     }
 }

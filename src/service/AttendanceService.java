@@ -9,7 +9,7 @@ import util.DateTimeHelper;
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
  * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Xử lý chu kỳ quẹt thẻ điểm danh, thuật toán FSM và phối hợp nghiệp vụ liên module.
+ * MÔ TẢ: Tra cứu nhân sự/khu vực, gọi luật chuyển trạng thái của AttendanceRecord và lưu bản ghi.
  */
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
@@ -62,31 +62,13 @@ public class AttendanceService {
 
         AttendanceRecord lastRecord = attendanceRepository.findLastByPersonCode(cleanPersonCode);
 
-        // FSM: Chặn CHECK_IN khi đang ở trong; Chặn CHECK_OUT khi chưa vào hoặc sai khu vực
-        if (type == AttendanceRecord.CheckType.CHECK_IN) {
-            if (lastRecord != null && lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
-                        "Already CHECKED_IN at zone '" + lastRecord.getZoneId() + "'. Cannot CHECK_IN twice sequentially.");
-            }
-        } else if (type == AttendanceRecord.CheckType.CHECK_OUT) {
-            if (lastRecord == null) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
-                        "Cannot CHECK_OUT without prior CHECK_IN record.");
-            }
-            if (lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_OUT) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
-                        "Already CHECKED_OUT. Cannot CHECK_OUT again without CHECK_IN.");
-            }
-            if (!lastRecord.getZoneId().equalsIgnoreCase(cleanZoneId)) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
-                        "Zone mismatch on CHECK_OUT! Currently inside zone '" + lastRecord.getZoneId() + "', but attempting to CHECK_OUT at zone '" + cleanZoneId + "'.");
-            }
-        }
-
-        String recordId = String.format("REC%04d", recordCounter++);
+        String recordId = String.format("REC%04d", recordCounter);
         String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         AttendanceRecord newRecord = new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
-        return attendanceRepository.save(newRecord);
+        newRecord.assertCanFollow(lastRecord);
+        boolean saved = attendanceRepository.save(newRecord);
+        if (saved) recordCounter++;
+        return saved;
     }
 
     public PersonnelService getPersonnelService() {

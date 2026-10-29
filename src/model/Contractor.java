@@ -45,6 +45,6 @@ public class Contractor extends Person {
     }
 
     @Override public String toString() {
-        return "Contractor{" + super.toString() + "}";
+        return String.format("Contractor{%s, companyName='%s', contractId='%s'}", super.toString(), companyName, contractId);
     }
 }
