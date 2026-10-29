@@ -5,7 +5,8 @@ and console/terminal interaction. The CSV preview feature is excluded.
 
 ## Automated verification
 
-Run `./scripts/test.ps1` from the project root. The latest complete run passed
+Run `./scripts/test.ps1` from the project root. The last complete run before
+form cancellation changes passed
 **238 checks in 26 suites, with zero failures**. The original workshop matrix
 accounts for 25 of these checks. This run includes personnel rendering, private
 startup diagnostics, screen transitions and guided attendance corrections.
@@ -55,6 +56,20 @@ Enter acknowledgement and logout. Both checks used temporary data directories.
 
 Javadoc validation passed. Expanded layout, line lengths and English
 description-only source comments were checked for all 66 Java source files.
+
+## Form cancellation follow-up
+
+A focused run after adding cancellation passed **59 checks in 7 suites**:
+InputCancellationTest (12), PagingTest (8), AttendanceReviewConsoleTest (4),
+ReportArchiveTest (12), ConsoleTest (7), AuthenticationConsoleTest (9) and
+PersonnelViewTest (7). No failures occurred. The full suite was not rerun for
+this follow-up. Javadoc and readable-layout validation passed for all 67 source files.
+
+The checks cover cancelling string, integer, date and password input; blank menu
+navigation; preserving meaningful zero values and optional blanks; escaped command
+text; partial personnel/account/contact changes; report filters; review evidence;
+and returning from password entry without spending a failed login attempt.
+Changes are committed on `codex/console-form-cancellation`.
 
 ## Terminal walkthroughs
 
