@@ -5,20 +5,22 @@ and console/terminal interaction. The CSV preview feature is excluded.
 
 ## Automated verification
 
-Run `./scripts/test.ps1` from the project root. The initial completed run passed
-**213 checks in 22 suites, with zero failures**. The original workshop matrix
-accounts for 25 of these checks. A subsequent focused run passed all 10 workflow
-integration checks and all 4 account audit checks after audit-target normalization.
+Run `./scripts/test.ps1` from the project root. The latest complete run passed
+**238 checks in 26 suites, with zero failures**. The original workshop matrix
+accounts for 25 of these checks. This run includes personnel rendering, private
+startup diagnostics, screen transitions and guided attendance corrections.
 
 | Suite | Passed |
 | --- | ---: |
 | AccountAuditTest | 4 |
 | AttendanceConcurrencyTest | 3 |
 | AttendanceIncidentTest | 14 |
+| AttendanceReviewConsoleTest | 4 |
 | AttendanceTimestampTest | 8 |
 | AuditNotificationTest | 10 |
 | AuthenticationConsoleTest | 9 |
 | AuthenticationTest | 25 |
+| ConsoleScreenTest | 7 |
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
 | CsvPersistenceTest | 10 |
@@ -30,25 +32,29 @@ integration checks and all 4 account audit checks after audit-target normalizati
 | ModelValidationTest | 8 |
 | PagingTest | 8 |
 | PersonnelTest | 9 |
+| PersonnelViewTest | 7 |
 | ReportArchiveTest | 12 |
+| StartupPrivacyTest | 7 |
 | VisitorDateTest | 8 |
 | WorkflowIntegrationTest | 10 |
 | ZoneTest | 7 |
-| Total | 213 |
+| Total | 238 |
 
-After moving personnel rendering out of the models, a focused run passed
-**33 checks with zero failures**: `PersonnelViewTest` (7), `PersonnelTest` (9),
-`CsvPersistenceTest` (10) and `ConsoleTest` (7). This covers all four personnel
-types, missing optional fields, subtype search, identifier aliases, active and
-inactive filters, contact edits, persistence, export and console termination.
-The full suite was not rerun for this view change.
+Privacy checks compare anonymous output for healthy and rejected business data,
+verify administrator-only diagnostics, exercise personal accounts through hidden
+menus and inboxes, and check account switches and fatal credential errors.
+Screen checks cover aligned option columns, result acknowledgement, account
+boundaries, plain redirected output and EOF while waiting for Enter.
+Guided review checks cover timeline inspection, retaining unchanged fields,
+verified corrections, cancellation, missing record IDs and administrator access.
 
 The Windows UTF-8 launcher also passed a separate smoke check from the `src`
 working directory: compilation, `admin` login, home menu, CSV save and clean exit.
-The smoke check used a temporary data directory.
+An additional forced-screen launcher check passed from `src`, including the
+Enter acknowledgement and logout. Both checks used temporary data directories.
 
 Javadoc validation passed. Expanded layout, line lengths and English
-description-only source comments were checked for the original 63 Java source files.
+description-only source comments were checked for all 66 Java source files.
 
 ## Terminal walkthroughs
 
@@ -66,7 +72,11 @@ The sample's historical anomalies are retained deliberately. Start with a new
 data directory for an empty registry, or review historical evidence before
 correcting the sample; the application does not invent missing checkout events.
 
-## Report and academic audit verification
+## Earlier report and academic audit checkpoint
+
+The following artifacts document the earlier 213-check implementation checkpoint.
+The console and review changes above are verified against the current source;
+the academic artifacts and submission archive have not been regenerated for them.
 
 Workshop 6 and Final Word reports and their PDFs were updated in their existing
 Project Report locations. Each PDF has 17 pages, including current models, CSV
@@ -88,6 +98,8 @@ application's runtime activity log.
 
 Code was committed on `codex/complete-console-plan` in separate domain,
 identifier, authentication/audit, console workflow and CSV migration commits.
+Subsequent console privacy, navigation and guided review changes were committed
+separately on `codex/console-navigation-data-review`.
 Runtime credentials, activity and notifications remain ignored by Git. Reports
 and academic workbooks retain their existing ignored document locations.
 Pre-existing unrelated workspace changes were preserved.
