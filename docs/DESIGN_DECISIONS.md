@@ -8,8 +8,8 @@ package `algorithm` chỉ để chuyển nguyên phương thức sang file khác
 
 | Thành phần | Vị trí hiện tại | Lý do |
 | --- | --- | --- |
-| Chu kỳ vào/ra | AttendanceService | Cần phối hợp nhân sự, khu vực và bản ghi cuối cùng; quy tắc ngắn, đặc thù SmartSite |
-| OPEN → ASSIGNED → RESOLVED | IncidentService | Một vòng đời dùng tại một module, chưa cần thư viện FSM |
+| Chu kỳ vào/ra | AttendanceRecord.assertCanFollow; AttendanceService điều phối | Model kiểm tra quy tắc, Service tìm nhân sự/khu vực và bản ghi trước rồi lưu |
+| OPEN → ASSIGNED → RESOLVED | Incident.assignTo/resolve | Model tự giữ vòng đời; Service tìm sự cố và kiểm tra nhân sự tồn tại |
 | Kiểm tra quyền | Zone.checkAccess và RestrictedZone.checkAccess | Đa hình phù hợp mục tiêu OOP và mô hình đã có |
 | Parse và ghi CSV | CsvHelper | Dùng lại bởi bốn repository; phải có một bộ codec dùng chung |
 | Lưu/nạp và khóa phiên | Facade điều phối Service/Repository; DataDirectoryLock giữ khóa | Không cần lớp gom dữ liệu hoặc lịch sử phiên bản; khóa chỉ ngăn hai phiên console ghi cùng thư mục |

@@ -15,6 +15,8 @@ snapshot, manifest và CURRENT khỏi luồng chạy. Bốn CSV là nguồn dữ
   chưa biết là ô trống. Loader không tự tạo ngày giả hoặc bù cột thiếu.
 - Ngày đến Visitor dùng `dd/MM/yyyy`, kiểm tra bằng DateTimeHelper cả ở
   console và model. Timestamp AttendanceRecord cũng được kiểm tra khi tạo/sửa.
+- Model dùng chung kiểm tra field, bảo vệ định danh và giữ hành vi
+  assignTo/resolve/checkAccess/assertCanFollow. Xem [MODEL_DESIGN.md](MODEL_DESIGN.md).
 - Service kiểm tra chu kỳ CHECK_IN → CHECK_OUT và khu vực khi ra.
 - Sự cố theo OPEN → ASSIGNED → RESOLVED; người được phân công phải tồn tại.
 - Menu cấp/thu hồi quyền khu vực; whitelist kết hợp chứng chỉ hợp lệ.
@@ -52,8 +54,7 @@ Lớp này chỉ giữ khóa file, không lưu dữ liệu nghiệp vụ hay phi
 - `requiredSafetyLevel` mô tả mức nguy hiểm; chưa so sánh cấp độ chứng chỉ
   của từng người vì model chưa có thuộc tính này. Quy tắc hiện tại là
   whitelist + chứng chỉ Boolean. Đăng nhập/RBAC menu chưa được triển khai.
-- Mã nhân sự `NONE` có thể trùng ký hiệu whitelist rỗng; mã chứa `;` gây
-  nhập nhằng khi lưu whitelist. Đây là hai ca còn cần sửa validation/codec.
+- Mã nhân sự `NONE` hoặc chứa `;` bị model từ chối vì xung đột biểu diễn whitelist.
 - CSV mẫu có check-in lặp ATT-006 và check-out không khớp chu kỳ ATT-008.
   Không tự sửa lịch sử hoặc đoán dữ liệu nghề/tổ đội/ngày đến đã thiếu.
 
@@ -83,7 +84,7 @@ java '-Dfile.encoding=UTF-8' -cp bin Main
 
 ## Kết quả kiểm thử sau khi gỡ state
 
-Ngày 29/10/2026, Java 8: **96/96 ca qua** sau khi rà soát toàn bộ ngày giờ.
+Ngày 29/10/2026, Java 8: **116/116 ca qua** sau khi chuẩn hóa model và hành vi domain.
 
 | Bộ kiểm thử | Số ca |
 | --- | ---: |
@@ -92,6 +93,8 @@ Ngày 29/10/2026, Java 8: **96/96 ca qua** sau khi rà soát toàn bộ ngày gi
 | AttendanceTimestampTest — định dạng duy nhất, ngày/giờ hợp lệ và từ chối CSV cũ | 8 |
 | DateTimeHelperTest — ngày nhuận, định dạng ngày, nhập lại và biên năm | 4 |
 | VisitorDateTest — ngày sai, ngày chưa biết, schema CSV và export | 8 |
+| ModelValidationTest — trim, null, điện thoại, mã và sửa dữ liệu nhất quán | 8 |
+| DomainBehaviorTest — vòng đời sự cố và điểm danh ngay tại model | 12 |
 | PersonnelTest | 9 |
 | ZoneTest | 7 |
 | CsvHelperTest | 4 |
@@ -99,7 +102,7 @@ Ngày 29/10/2026, Java 8: **96/96 ca qua** sau khi rà soát toàn bộ ngày gi
 | ConsoleTest — EOF, menu, ngày hợp lệ, màu và kill sau khi đã lưu CSV | 7 |
 
 Test đọc fixture gốc nhưng mọi file ghi đều nằm trong thư mục tạm riêng.
-Log lần chạy mới: `output/date-time-audit-tests.txt`. Thư mục build test:
+Log lần chạy mới: `output/model-domain-tests.txt`. Thư mục build test:
 `bin/csv-tests`. Các kết quả snapshot của phiên bản trước không được dùng
 làm bằng chứng cho phiên bản hiện tại.
 

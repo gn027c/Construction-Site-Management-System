@@ -4,6 +4,11 @@ Ngày kiểm tra 29/10/2026. Phạm vi gồm toàn bộ src, các fixture CSV v�
 Kết quả: format được khai báo một lần cho mỗi kiểu dữ liệu trong
 DateTimeHelper; không tự đổi định dạng cũ và không đoán ngày bị thiếu.
 
+Sau lượt chuẩn hóa model, ModelValidation gọi DateTimeHelper và đổi lỗi
+parse thành DataValidationException có tên field. Bộ kiểm thử tổng thể
+hiện là 116 ca; phần kiểm thử ngày giờ được giữ, các kiểm tra helper riêng
+vẫn sử dụng DateTimeParseException cho lỗi codec ngày giờ.
+
 ## Các vị trí sử dụng
 
 | Vị trí | Dữ liệu/thao tác | Hợp đồng hiện tại |
