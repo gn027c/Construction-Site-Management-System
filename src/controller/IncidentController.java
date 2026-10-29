@@ -2,6 +2,8 @@ package controller;
 
 import model.Incident;
 import service.IncidentService;
+import service.AuthenticationService;
+import model.Permission;
 import view.MenuView;
 import util.InputHelper;
 import java.util.Scanner;
@@ -14,9 +16,11 @@ import java.util.Scanner;
  */
 public class IncidentController {
     private final IncidentService incidentService;
+    private final AuthenticationService authentication;
 
-    public IncidentController(IncidentService incidentService) {
+    public IncidentController(IncidentService incidentService, AuthenticationService authentication) {
         this.incidentService = incidentService;
+        this.authentication = authentication;
     }
 
     public void handleMenu(Scanner scanner) {
@@ -31,15 +35,21 @@ public class IncidentController {
      * errors. Exceptions escaping the flow prevent the callback from running.
      */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
+        authentication.requireAny(
+                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
+                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS
+        );
         boolean back = false;
         while (!back) {
-            MenuView.showIncidentMenu();
+            MenuView.showIncidentMenu(authentication);
             int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
             switch (choice) {
                 case 1:
+                    authentication.require(Permission.REPORT_INCIDENTS);
                     reportIncidentFlow(scanner);
                     break;
                 case 2:
+                    authentication.require(Permission.VIEW_INCIDENTS);
                     java.util.List<Incident> incidents = incidentService.getAllIncidents();
                     if (incidents.isEmpty()) {
                         view.ConsoleTheme.warning("No incidents.");
@@ -49,12 +59,15 @@ public class IncidentController {
                     }
                     break;
                 case 3:
+                    authentication.require(Permission.ASSIGN_INCIDENTS);
                     assignIncidentFlow(scanner);
                     break;
                 case 4:
+                    authentication.require(Permission.RESOLVE_INCIDENTS);
                     resolveIncidentFlow(scanner);
                     break;
                 case 5:
+                    authentication.require(Permission.PURGE_INCIDENTS);
                     view.ConsoleTheme.success(
                             "Purged " + incidentService.purgeResolvedIncidents() + " resolved incidents."
                     );

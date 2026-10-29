@@ -8,6 +8,9 @@ import java.util.concurrent.TimeUnit;
 public class ConsoleTest {
  static String javaExecutable() { return Paths.get(System.getProperty("java.home"),"bin","java.exe").toString(); }
  static String launch(Path root, String input, int exit, boolean colors) throws Exception {
+  return launchRaw(root, "admin\nadmin\n" + input, exit, colors);
+ }
+ static String launchRaw(Path root, String input, int exit, boolean colors) throws Exception {
   Process p=new ProcessBuilder(javaExecutable(),"-Dsmartsite.dataDir="+root,"-Dsmartsite.color="+(colors?"always":"never"),"-Dfile.encoding=UTF-8","-cp",System.getProperty("java.class.path"),"Main").redirectErrorStream(true).start();
   p.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8)); p.getOutputStream().close();
   if (!p.waitFor(10,TimeUnit.SECONDS)) { p.destroyForcibly(); throw new AssertionError("Console timeout"); }
@@ -26,7 +29,7 @@ public class ConsoleTest {
    Path root=Files.createTempDirectory("smartsite-kill"); Path log=root.resolve("console.txt");
    Process p=new ProcessBuilder(javaExecutable(),"-Dsmartsite.dataDir="+root,"-Dsmartsite.color=never","-cp",System.getProperty("java.class.path"),"Main").redirectErrorStream(true).redirectOutput(log.toFile()).start();
    try {
-    String input="1\n1\n1\nP1\nW1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n";
+    String input="admin\nadmin\n1\n1\n1\nP1\nW1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n";
     p.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8)); p.getOutputStream().flush();
     long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10); boolean saved=false;
     while(System.nanoTime()<deadline && p.isAlive()) {

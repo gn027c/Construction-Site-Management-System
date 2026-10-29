@@ -15,6 +15,7 @@ import java.util.*;
  */
 public class SiteManagerController {
     private final Path directory;
+    private final AuthenticationService authentication;
     private PersonnelService personnelService;
     private ZoneService zoneService;
     private AttendanceService attendanceService;
@@ -26,12 +27,13 @@ public class SiteManagerController {
 
     private static final String[] FILES = { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" };
 
-    public SiteManagerController() {
+    public SiteManagerController() throws IOException {
         this(Paths.get("data"));
     }
 
-    public SiteManagerController(Path directory) {
+    public SiteManagerController(Path directory) throws IOException {
         this.directory = directory.toAbsolutePath().normalize();
+        authentication = new AuthenticationService(this.directory);
         PersonnelService people = new PersonnelService();
         ZoneService zones = new ZoneService();
         useServices(people, zones, new AttendanceService(people, zones), new IncidentService(people));
@@ -47,10 +49,10 @@ public class SiteManagerController {
         zoneService = zones;
         attendanceService = attendance;
         incidentService = incidents;
-        personnelController = new PersonnelController(people);
-        zoneController = new ZoneController(zones, people);
-        attendanceController = new AttendanceController(attendance);
-        incidentController = new IncidentController(incidents);
+        personnelController = new PersonnelController(people, authentication);
+        zoneController = new ZoneController(zones, people, authentication);
+        attendanceController = new AttendanceController(attendance, authentication);
+        incidentController = new IncidentController(incidents, authentication);
     }
 
     /**
@@ -163,6 +165,7 @@ public class SiteManagerController {
      * Collects current service data for a separate spreadsheet-oriented export.
      */
     public Path exportCsv(Path destination) throws IOException {
+        authentication.require(Permission.EXPORT_REPORTS);
         validateReferences(personnelService, zoneService, attendanceService, incidentService);
         Map<String, List<String>> tables = new LinkedHashMap<>();
         List<String> persons = new ArrayList<>(
@@ -195,18 +198,34 @@ public class SiteManagerController {
     }
 
     public void handlePersonMenu(Scanner scanner) {
+        authentication.require(Permission.MANAGE_PERSONNEL);
         personnelController.handleMenu(scanner, this::saveChanges);
     }
 
     public void handleZoneMenu(Scanner scanner) {
+        authentication.require(Permission.MANAGE_ZONES);
         zoneController.handleMenu(scanner, this::saveChanges);
     }
 
     public void handleAttendanceMenu(Scanner scanner) {
+        authentication.requireAny(Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE);
         attendanceController.handleMenu(scanner, this::saveChanges);
     }
 
     public void handleIncidentMenu(Scanner scanner) {
+        authentication.requireAny(
+                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
+                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS
+        );
         incidentController.handleMenu(scanner, this::saveChanges);
+    }
+
+    public AuthenticationService getAuthentication() {
+        return authentication;
+    }
+
+    public void reloadData() throws IOException {
+        authentication.require(Permission.RELOAD_DATA);
+        loadAllData();
     }
 }

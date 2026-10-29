@@ -60,4 +60,5 @@ Workshop/
 # CSV session lock and generated report exports
 .smartsite.lock
 smartsite-export-*/
+accounts.csv
 

@@ -9,7 +9,5 @@ package model;
 public enum Role {
     WORKER,
     CONTRACTOR,
-    VISITOR,
-    SAFETY_OFFICER,
-    SITE_MANAGER
+    VISITOR
 }

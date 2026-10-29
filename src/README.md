@@ -88,3 +88,52 @@ Be precise about existing limits: atomic replacement protects one CSV file,
 the four files are saved independently, attendance uses insertion order, and
 spreadsheet exports may prefix formula-like cells. Update these explanations
 when the corresponding implementation changes.
+
+## Sign-in and account administration
+
+Start the application normally and sign in with username `admin` and password
+`admin` on a new installation. The default account is created only when
+`accounts.csv` does not exist in the selected data directory. Startup preserves
+existing credentials and stops if that file is invalid; it never resets an
+existing password to the default.
+
+Choose **6 - Account administration** as an administrator to list or create
+accounts, assign roles, replace account permissions, enable or disable an
+account, or reset a password. Choose **7 - Change my password** to change the
+signed-in account's password, or **8 - Sign out** to switch users. Password
+creation and reset require confirmation in the console.
+
+Login roles are declared in `Account.Role` and are separate from the personnel
+labels in `Role`. Creating a worker, contractor or visitor does not create a
+login account. Staff accounts do not automatically receive physical access to
+restricted zones.
+
+| Login role | Default access |
+| --- | --- |
+| `ADMIN` | All application operations and account administration |
+| `SITE_MANAGER` | Personnel and zone management, attendance and incident viewing, report exports |
+| `SAFETY_OFFICER` | Incident reporting, viewing, assignment and resolution |
+
+Administrators can replace a staff account's permissions with a selected subset
+of application operations. Assigning a role restores that role's defaults.
+Account administration is reserved for `ADMIN`, and administrator accounts retain
+all permissions. At least one enabled administrator must remain. A signed-in
+account cannot disable itself.
+
+Menus retain stable option numbers while hiding unavailable operations. Entering
+a hidden number still triggers permission validation before the operation runs.
+Permission changes apply to subsequent operations, and successful account changes
+are saved immediately. A failed save retains the previous in-memory accounts.
+
+The four business CSV files remain independent of `accounts.csv`. Accounts are
+excluded from business exports, and the credential file is ignored by Git.
+Passwords use PBKDF2-HMAC-SHA256 with 600,000 iterations, a random 16-byte salt
+and a 32-byte derived key. This configuration follows the PBKDF2 parameters in
+the [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+The account list never displays stored password hashes. Native consoles hide
+password input; embedded terminals and redirected input use the line reader.
+
+Authentication and permissions govern the staff console. Business services and
+repositories remain reusable inside the application; the facade and controllers
+guard interactive operations. The data-directory lock still limits access to
+one cooperating console process at a time.

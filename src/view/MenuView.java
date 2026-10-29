@@ -1,5 +1,10 @@
 package view;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import model.Permission;
+import service.AuthenticationService;
+
 /**
  * Prints console navigation using the shared theme.
  *
@@ -10,15 +15,21 @@ public final class MenuView {
     private MenuView() {
     }
 
-    public static void showMainMenu() {
-        ConsoleTheme.menu(
-                "HOME",
-                "Personnel",
-                "Zones and permissions",
-                "Attendance",
-                "Safety incidents",
-                "CSV data and export"
+    public static void showMainMenu(AuthenticationService authentication) {
+        Map<Integer, String> options = new LinkedHashMap<>();
+        add(options, 1, "Personnel", authentication, Permission.MANAGE_PERSONNEL);
+        add(options, 2, "Zones and permissions", authentication, Permission.MANAGE_ZONES);
+        add(options, 3, "Attendance", authentication, Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE);
+        add(
+                options, 4, "Safety incidents", authentication,
+                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
+                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS
         );
+        add(options, 5, "CSV data and export", authentication, Permission.RELOAD_DATA, Permission.EXPORT_REPORTS);
+        add(options, 6, "Account administration", authentication, Permission.MANAGE_ACCOUNTS);
+        options.put(7, "Change my password");
+        options.put(8, "Sign out");
+        ConsoleTheme.menuOptions("HOME / " + authentication.currentAccount().getUsername(), options, "Save and exit");
     }
 
     public static void showPersonMenu() {
@@ -29,22 +40,40 @@ public final class MenuView {
         ConsoleTheme.menu("ZONES", "Add zone", "View zones", "Grant access", "Revoke access");
     }
 
-    public static void showAttendanceMenu() {
-        ConsoleTheme.menu("ATTENDANCE", "Check in or out", "View history");
+    public static void showAttendanceMenu(AuthenticationService authentication) {
+        Map<Integer, String> options = new LinkedHashMap<>();
+        add(options, 1, "Check in or out", authentication, Permission.RECORD_ATTENDANCE);
+        add(options, 2, "View history", authentication, Permission.VIEW_ATTENDANCE);
+        ConsoleTheme.menuOptions("ATTENDANCE", options, "Back");
     }
 
-    public static void showIncidentMenu() {
-        ConsoleTheme.menu(
-                "INCIDENTS",
-                "Report incident",
-                "View incidents",
-                "Assign handler",
-                "Resolve incident",
-                "Purge resolved incidents"
-        );
+    public static void showIncidentMenu(AuthenticationService authentication) {
+        Map<Integer, String> options = new LinkedHashMap<>();
+        add(options, 1, "Report incident", authentication, Permission.REPORT_INCIDENTS);
+        add(options, 2, "View incidents", authentication, Permission.VIEW_INCIDENTS);
+        add(options, 3, "Assign handler", authentication, Permission.ASSIGN_INCIDENTS);
+        add(options, 4, "Resolve incident", authentication, Permission.RESOLVE_INCIDENTS);
+        add(options, 5, "Purge resolved incidents", authentication, Permission.PURGE_INCIDENTS);
+        ConsoleTheme.menuOptions("INCIDENTS", options, "Back");
     }
 
-    public static void showDataMenu() {
-        ConsoleTheme.menu("CSV DATA AND EXPORT", "Reload CSV files", "Save CSV files", "Export CSV files");
+    public static void showDataMenu(AuthenticationService authentication) {
+        Map<Integer, String> options = new LinkedHashMap<>();
+        add(options, 1, "Reload CSV files", authentication, Permission.RELOAD_DATA);
+        add(options, 2, "Save CSV files", authentication, Permission.RELOAD_DATA);
+        add(options, 3, "Export CSV files", authentication, Permission.EXPORT_REPORTS);
+        ConsoleTheme.menuOptions("CSV DATA AND EXPORT", options, "Back");
+    }
+
+    private static void add(
+            Map<Integer, String> options, int number, String label,
+            AuthenticationService authentication, Permission... permissions
+    ) {
+        for (Permission permission : permissions) {
+            if (authentication.allows(permission)) {
+                options.put(number, label);
+                return;
+            }
+        }
     }
 }

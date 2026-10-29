@@ -8,6 +8,8 @@ import model.Person;
 import model.Visitor;
 import model.Worker;
 import service.PersonnelService;
+import service.AuthenticationService;
+import model.Permission;
 import view.MenuView;
 import util.InputHelper;
 import java.util.List;
@@ -22,9 +24,11 @@ import java.util.Scanner;
  */
 public class PersonnelController {
     private final PersonnelService personnelService;
+    private final AuthenticationService authentication;
 
-    public PersonnelController(PersonnelService personnelService) {
+    public PersonnelController(PersonnelService personnelService, AuthenticationService authentication) {
         this.personnelService = personnelService;
+        this.authentication = authentication;
     }
 
     public void handleMenu(Scanner scanner) {
@@ -39,6 +43,7 @@ public class PersonnelController {
      * errors. Exceptions escaping the flow prevent the callback from running.
      */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
+        authentication.require(Permission.MANAGE_PERSONNEL);
         boolean back = false;
         while (!back) {
             MenuView.showPersonMenu();

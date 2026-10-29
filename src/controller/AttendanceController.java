@@ -2,6 +2,8 @@ package controller;
 
 import model.AttendanceRecord;
 import service.AttendanceService;
+import service.AuthenticationService;
+import model.Permission;
 import view.MenuView;
 import util.InputHelper;
 import java.util.Scanner;
@@ -14,9 +16,11 @@ import java.util.Scanner;
  */
 public class AttendanceController {
     private final AttendanceService attendanceService;
+    private final AuthenticationService authentication;
 
-    public AttendanceController(AttendanceService attendanceService) {
+    public AttendanceController(AttendanceService attendanceService, AuthenticationService authentication) {
         this.attendanceService = attendanceService;
+        this.authentication = authentication;
     }
 
     public void handleMenu(Scanner scanner) {
@@ -31,15 +35,18 @@ public class AttendanceController {
      * errors. Exceptions escaping the flow prevent the callback from running.
      */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
+        authentication.requireAny(Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE);
         boolean back = false;
         while (!back) {
-            MenuView.showAttendanceMenu();
+            MenuView.showAttendanceMenu(authentication);
             int choice = InputHelper.getInt(scanner, "Enter option (0-2): ", 0, 2);
             switch (choice) {
                 case 1:
+                    authentication.require(Permission.RECORD_ATTENDANCE);
                     recordAttendanceFlow(scanner);
                     break;
                 case 2:
+                    authentication.require(Permission.VIEW_ATTENDANCE);
                     java.util.List<AttendanceRecord> records = attendanceService.getAllAttendanceRecords();
                     if (records.isEmpty()) {
                         view.ConsoleTheme.warning("No attendance records.");

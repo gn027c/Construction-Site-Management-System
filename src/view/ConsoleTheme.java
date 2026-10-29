@@ -44,13 +44,21 @@ public final class ConsoleTheme {
     }
 
     public static void menu(String title, String... entries) {
+        java.util.Map<Integer, String> options = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < entries.length; i++) {
+            options.put(i + 1, entries[i]);
+        }
+        menuOptions(title, options, title.equals("HOME") ? "Save and exit" : "Back");
+    }
+
+    public static void menuOptions(String title, java.util.Map<Integer, String> options, String exitLabel) {
         System.out.println();
         title("  SMARTSITE  /  " + title);
         System.out.println(color("90", "  ----------------------------------------------------"));
-        for (int i = 0; i < entries.length; i++) {
-            System.out.println("  " + color("36", "[" + (i + 1) + "]") + " " + entries[i]);
+        for (java.util.Map.Entry<Integer, String> entry : options.entrySet()) {
+            System.out.println("  " + color("36", "[" + entry.getKey() + "]") + " " + entry.getValue());
         }
-        System.out.println("  " + color("33", "[0]") + " " + (title.equals("HOME") ? "Save and exit" : "Back"));
+        System.out.println("  " + color("33", "[0]") + " " + exitLabel);
         System.out.println();
     }
 }

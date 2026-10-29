@@ -10,6 +10,27 @@ import java.util.Scanner;
  * End of input propagates to the application loop so it can attempt to save and exit.
  */
 public class InputHelper {
+
+    /**
+     * Reads a password without echo when a native console is available.
+     * Redirected input and embedded terminals use the shared line reader.
+     */
+    public static String getPassword(Scanner scanner, String prompt) {
+        java.io.Console console = System.console();
+        if (console != null) {
+            char[] password = console.readPassword("%s", prompt);
+            if (password == null) {
+                throw new java.util.NoSuchElementException("Input closed.");
+            }
+            try {
+                return new String(password);
+            } finally {
+                java.util.Arrays.fill(password, '\0');
+            }
+        }
+        view.ConsoleTheme.prompt(prompt);
+        return scanner.nextLine();
+    }
     public static void validateString(String input, String fieldName) throws DataValidationException {
         if (input == null || input.trim().isEmpty()) {
             throw new DataValidationException(fieldName, "Cannot be empty or whitespace.");

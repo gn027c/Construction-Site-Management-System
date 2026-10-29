@@ -6,6 +6,8 @@ import exception.ZoneNotFoundException;
 import model.RestrictedZone;
 import model.Zone;
 import service.ZoneService;
+import service.AuthenticationService;
+import model.Permission;
 import view.MenuView;
 import util.InputHelper;
 import java.util.HashSet;
@@ -20,11 +22,15 @@ import java.util.Scanner;
  */
 public class ZoneController {
     private final ZoneService zoneService;
+    private final AuthenticationService authentication;
     private final service.PersonnelService personnelService;
 
-    public ZoneController(ZoneService zoneService, service.PersonnelService personnelService) {
+    public ZoneController(
+            ZoneService zoneService, service.PersonnelService personnelService, AuthenticationService authentication
+    ) {
         this.personnelService = personnelService;
         this.zoneService = zoneService;
+        this.authentication = authentication;
     }
 
     public void handleMenu(Scanner scanner) {
@@ -39,6 +45,7 @@ public class ZoneController {
      * errors. Exceptions escaping the flow prevent the callback from running.
      */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
+        authentication.require(Permission.MANAGE_ZONES);
         boolean back = false;
         while (!back) {
             MenuView.showZoneMenu();

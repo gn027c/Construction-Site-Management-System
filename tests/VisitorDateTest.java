@@ -77,6 +77,7 @@ public class VisitorDateTest {
             for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv"))
                 Files.copy(Paths.get("data", file), root.resolve(file));
             SiteManagerController controller = new SiteManagerController(root);
+            controller.getAuthentication().login("admin", "admin");
             controller.loadAllData();
             controller.handlePersonMenu(new Scanner("1\n3\nP11\nV3\nVisitor 3\n0901234567\nSurvey\nW01\n31/02/2026\n29/10/2026\n0\n"));
             PersonRepository saved = new PersonRepository();
