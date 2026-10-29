@@ -61,4 +61,6 @@ Workshop/
 .smartsite.lock
 smartsite-export-*/
 accounts.csv
+activity_log.csv
+notifications.csv
 

@@ -19,7 +19,7 @@ import util.CsvHelper;
  * Invalid input never replaces active accounts or silently recreates default credentials.
  */
 public final class AccountRepository {
-    private static final String HEADER = "username,passwordHash,role,enabled,permissions";
+    private static final String HEADER = "username,passwordHash,role,enabled,permissions,personCode";
     private final Path file;
     private Map<String, Account> accounts = new LinkedHashMap<>();
 
@@ -43,7 +43,7 @@ public final class AccountRepository {
                 if (CsvHelper.isBlankRow(fields)) {
                     continue;
                 }
-                if (fields.length != 5 || !(fields[3].equals("true") || fields[3].equals("false"))) {
+                if (fields.length != 6 || !(fields[3].equals("true") || fields[3].equals("false"))) {
                     throw new IllegalArgumentException("Invalid account row " + (i + 1) + ".");
                 }
                 Set<Permission> permissions = EnumSet.noneOf(Permission.class);
@@ -56,7 +56,7 @@ public final class AccountRepository {
                 }
                 staged.add(new Account(
                         fields[0], fields[1], Account.Role.valueOf(fields[2]),
-                        Boolean.parseBoolean(fields[3]), permissions
+                        Boolean.parseBoolean(fields[3]), permissions, fields[5]
                 ));
             }
             accounts = validate(staged);
@@ -90,11 +90,15 @@ public final class AccountRepository {
     private static Map<String, Account> validate(List<Account> records) {
         Map<String, Account> staged = new LinkedHashMap<>();
         boolean hasAdmin = false;
+        Set<String> linked = new java.util.HashSet<>();
         for (Account account : records) {
             if (account == null || staged.putIfAbsent(account.getUsername(), account) != null) {
                 throw new IllegalArgumentException("Duplicate or missing account.");
             }
             hasAdmin |= account.isEnabled() && account.getRole() == Account.Role.ADMIN;
+            if (!account.getPersonCode().isEmpty() && !linked.add(account.getPersonCode())) {
+                throw new IllegalArgumentException("A person may only be linked to one account.");
+            }
         }
         if (!hasAdmin) {
             throw new IllegalArgumentException("At least one enabled administrator is required.");
