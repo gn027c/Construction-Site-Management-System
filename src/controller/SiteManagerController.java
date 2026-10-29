@@ -486,6 +486,27 @@ public class SiteManagerController {
         return new ArrayList<>(integrityIssues);
     }
 
+    /**
+     * Reads persisted attendance in CSV order for administrator review even when business data is blocked.
+     * An empty personnel code selects all records; other values use canonical identifier matching.
+     */
+    public List<AttendanceRecord> attendanceForReview(String personCode) throws IOException {
+        authentication.require(Permission.REVIEW_ATTENDANCE);
+        repository.AttendanceRepository records = new repository.AttendanceRepository();
+        if (!records.loadFromCsv(directory.resolve("attendance.csv").toString())) {
+            throw new IOException("Cannot read attendance.csv. Check its header, columns, values and duplicate IDs.");
+        }
+        String code = personCode.trim().isEmpty() ? "" : util.IdentifierHelper.normalize(personCode);
+        List<AttendanceRecord> matching = new ArrayList<>();
+        for (AttendanceRecord record : records.findAll()) {
+            if (code.isEmpty() || code.equals(record.getPersonCode())) {
+                matching.add(record);
+            }
+        }
+        authentication.audit("REVIEW_TIMELINE", "PERSON", code, "SUCCESS", "Read stored attendance in CSV order.");
+        return matching;
+    }
+
     public void correctAttendance(
             String id, String zoneId, String timestamp, String type, String reason, String evidence
     )

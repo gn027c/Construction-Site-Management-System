@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import model.ActivityEvent;
+import model.AttendanceRecord;
 import model.Notification;
 import model.Permission;
 import service.AuthenticationService;
@@ -14,6 +15,7 @@ import service.ReportService;
 import util.DateTimeHelper;
 import util.InputHelper;
 import view.ConsoleTheme;
+import view.AttendanceReviewView;
 import view.ListView;
 
 /**
@@ -59,8 +61,13 @@ public final class WorkspaceController {
     public void review(Scanner scanner) throws IOException {
         authentication.require(Permission.REVIEW_ATTENDANCE);
         while (true) {
-            ConsoleTheme.menu("DATA REVIEW", "Scan and list CSV issues", "Correct attendance with evidence");
-            int choice = InputHelper.getInt(scanner, "Choice (0-2): ", 0, 2);
+            ConsoleTheme.menu(
+                    "DATA REVIEW", "Scan and list CSV issues", "Correct attendance with evidence",
+                    "View a person's attendance timeline"
+            );
+            AttendanceReviewView.showGuide();
+            int choice = InputHelper.getInt(scanner, "Choice (0-3): ", 0, 3);
+            view.ConsoleScreen.begin();
             if (choice == 0) {
                 return;
             }
@@ -72,26 +79,58 @@ public final class WorkspaceController {
                     ListView.show(scanner, "CSV ISSUES", issues, s -> s, s -> s, null,
                             event -> authentication.audit(event, "REVIEW", "", "SUCCESS", "Navigated issues."));
                 }
+            } else if (choice == 3) {
+                String personCode = InputHelper.getString(scanner, "Person code from the issue (e.g., W1): ");
+                List<AttendanceRecord> timeline = site.attendanceForReview(personCode);
+                ListView.show(
+                        scanner, "ATTENDANCE TIMELINE / CSV ORDER / " + util.IdentifierHelper.normalize(personCode),
+                        timeline, AttendanceReviewView::formatRecord, AttendanceReviewView::formatRecord, null,
+                        event -> authentication.audit(event, "REVIEW", "", "SUCCESS", "Navigated timeline.")
+                );
             } else {
                 String id = InputHelper.getString(scanner, "Attendance ID: ");
-                String zone = InputHelper.getString(scanner, "Verified zone ID: ");
-                String timestamp = InputHelper.getString(scanner, "Verified timestamp (yyyy-MM-dd HH:mm:ss): ");
-                int type = InputHelper.getInt(scanner, "1-Check in, 2-Check out: ", 1, 2);
+                String normalizedId = util.IdentifierHelper.normalize(id);
+                AttendanceRecord original = site.attendanceForReview("").stream()
+                        .filter(record -> record.getRecordId().equals(normalizedId))
+                        .findFirst()
+                        .orElseThrow(() -> new exception.DataValidationException("recordId", "Record does not exist."));
+                AttendanceReviewView.showOriginal(original);
+                String zone = replacement(scanner, "Verified zone ID", original.getZoneId());
+                String timestamp = replacement(
+                        scanner, "Verified timestamp (yyyy-MM-dd HH:mm:ss)", original.getTimestamp()
+                );
+                int type = InputHelper.getInt(scanner, "1-Check in, 2-Check out, 0-Keep original: ", 0, 2);
+                String checkType = type == 0 ? original.getCheckType().name() : type == 1 ? "CHECK_IN" : "CHECK_OUT";
                 String reason = InputHelper.getString(scanner, "Correction reason: ");
                 String evidence = InputHelper.getString(scanner, "Evidence/reference: ");
+                System.out.println("Proposed: " + normalizedId + " | " + original.getPersonCode()
+                        + " | " + timestamp + " | " + checkType + " | " + zone);
                 String confirm = InputHelper.getString(scanner, "Save this verified correction? (yes/no): ");
                 if (confirm.equalsIgnoreCase("yes")) {
-                    site.correctAttendance(id, zone, timestamp, type == 1 ? "CHECK_IN" : "CHECK_OUT", reason, evidence);
-                    ConsoleTheme.success("Correction saved. Data active: " + site.isDataReady());
+                    site.correctAttendance(id, zone, timestamp, checkType, reason, evidence);
+                    ConsoleTheme.success("Correction saved.");
+                    if (site.isDataReady()) {
+                        ConsoleTheme.success("All checks passed. Business data is active.");
+                    } else {
+                        ConsoleTheme.warning("Other inconsistencies remain. Choose option 1 to review them.");
+                    }
                 } else {
                     authentication.audit("CORRECT_ATTENDANCE", "ATTENDANCE", id, "CANCELLED", "Review cancelled.");
+                    ConsoleTheme.warning("Correction cancelled. Original record retained.");
                 }
             }
         }
     }
 
+    private static String replacement(Scanner scanner, String label, String current) {
+        ConsoleTheme.prompt(label + " [" + current + "]: ");
+        String value = scanner.nextLine().trim();
+        return value.isEmpty() ? current : value;
+    }
+
     public void reports(Scanner scanner) throws IOException {
         authentication.require(Permission.EXPORT_REPORTS);
+        ConsoleTheme.title("PERIOD REPORTS");
         int type = InputHelper.getInt(scanner, "1-Attendance report, 2-Incident report, 0-Back: ", 0, 2);
         if (type == 0) {
             return;

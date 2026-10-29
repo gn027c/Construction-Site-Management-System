@@ -106,6 +106,18 @@ Do not use bare `javac Main.java`: Java 8 on Windows may use Cp1252 and reject
 UTF-8 source text with an `unmappable character for encoding Cp1252` error.
 Changing only the terminal code page does not set the compiler's source encoding.
 
+Interactive ANSI terminals clear the screen when navigating between menus, forms
+and list pages. Results remain visible until Enter is pressed. Sign-in and
+sign-out request clearing both the visible screen and terminal scrollback.
+Screen clearing is presentation only: terminal support varies and captured
+output is not erased. Never share an administrator's terminal session or expose
+the data directory to accounts that should not read it.
+
+Redirected input/output stays sequential without extra acknowledgement prompts.
+Use `./scripts/run.ps1 -ScreenMode never` to disable clearing, or `-ScreenMode always`
+for a terminal that supports ANSI but is not detected automatically. The matching
+Java option is `-Dsmartsite.screen=auto|always|never`.
+
 Select a different directory with `./scripts/run.ps1 -DataDirectory D:/SmartSiteData`.
 The first installation creates `admin` with password `admin`; existing credentials
 are never overwritten. Change the password through menu 7. Menu 8 signs out.
@@ -200,8 +212,29 @@ history deliberately contains invalid historical swipes; verify the evidence
 before correcting them. Menu 11 lists row/record/person issues and accepts an
 explicitly confirmed correction with reason and evidence. Original attendance
 values and the verified correction are retained in the administrator log. The
-whole history must pass validation before corrected data becomes active. The
-scanner does not infer race conditions or manufacture missing checkout records.
+whole history must pass validation before corrected data becomes active. Detailed
+startup diagnostics appear only after administrator sign-in; anonymous sessions
+receive no CSV health information. Other accounts receive a generic service
+availability message. A mismatch indicates inconsistent data, not proven misconduct.
+
+Use the administrator review workflow:
+
+1. Open menu 11, then option 1 to find the record and personnel codes.
+2. Use option 3 and enter that personnel code to inspect their events in CSV order.
+3. Verify the actual events against a reliable register or the data owner.
+4. Use option 2 and enter the record ID. The original record is displayed first.
+   Leave zone/time blank, or choose action 0, to retain the current value.
+5. Enter the verified reason and evidence/reference, inspect the proposed values,
+   then answer `yes` to save. Answering anything else preserves the record.
+6. Scan again if other inconsistencies remain. Missing or duplicate events require
+   reconciliation with the data owner; editing a row cannot recover an unknown event.
+
+For example, a verified checkout entered with the wrong zone can be corrected
+to the preceding check-in's zone while retaining its time and action. This is
+appropriate only when the supporting register confirms the zone. The sample's
+ATT6/ATT8 issues alone do not establish which timestamps or events are missing.
+
+The scanner does not infer race conditions or manufacture missing checkout records.
 
 ## Activity history and notifications
 
@@ -212,10 +245,11 @@ service boundary. Passwords, salts and credential hashes are excluded. Reading
 logs does not cause recursive logging.
 
 Menu 10 exposes only the current account's inbox and its own read markers. Failed
-attendance notifies the actor and enabled administrators, with an operation
-identifier when logging succeeds. Account changes also notify the affected user.
+attendance notifies the actor with a generic failed-operation message and enabled
+administrators with diagnostic details, with an operation identifier when logging
+succeeds. Account changes also notify the affected user.
 A log or notification storage failure does not reverse successfully persisted
-business data; the console reports the storage failure separately. If storage is
+business data; only the administrator sees storage diagnostics. If storage is
 unavailable, the application does not claim that the missing record was saved.
 Credentials, runtime activity and notifications are excluded from Git and
 business report exports. Passwords use PBKDF2-HMAC-SHA256 with 600,000 iterations

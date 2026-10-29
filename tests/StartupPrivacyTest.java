@@ -39,7 +39,9 @@ public class StartupPrivacyTest {
     public static void main(String[] args) throws Exception {
         test("Anonymous startup reveals no business data diagnostics", () -> {
             String invalid = ConsoleTest.launchRaw(invalidHistory(), "0\n", 0, false);
-            String empty = ConsoleTest.launchRaw(Files.createTempDirectory("smartsite-private-empty-"), "0\n", 0, false);
+            String empty = ConsoleTest.launchRaw(
+                    Files.createTempDirectory("smartsite-private-empty-"), "0\n", 0, false
+            );
             equal(empty, invalid);
             assertPrivate(invalid);
         });
