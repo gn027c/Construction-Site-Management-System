@@ -9,7 +9,7 @@ import util.DateTimeHelper;
 /**
  * Coordinates personnel lookup, zone access and attendance storage.
  *
- * <p>The service supplies the previous swipe to the attendance model, which owns
+ * <p>The repository supplies the previous swipe to the attendance model, which owns
  * the ordering rule. New record identifiers are derived from existing numeric
  * {@code REC} identifiers at construction and after successful CSV loading.
  */
@@ -59,12 +59,21 @@ public class AttendanceService {
      */
     public synchronized boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
+        AttendanceRecord record = createRecord(personCode, zoneId, type);
+        if (record == null || !attendanceRepository.save(record)) {
+            return false;
+        }
+        recordCounter = recordCounter.add(java.math.BigInteger.ONE);
+        return true;
+    }
+
+    private AttendanceRecord createRecord(String personCode, String zoneId, AttendanceRecord.CheckType type) {
         if (personCode == null
                 || personCode.trim().isEmpty()
                 || zoneId == null
                 || zoneId.trim().isEmpty()
                 || type == null) {
-            return false;
+            return null;
         }
         String cleanPersonCode = util.IdentifierHelper.normalize(personCode, "personCode");
         String cleanZoneId = util.IdentifierHelper.normalize(zoneId, "zoneId");
@@ -76,16 +85,9 @@ public class AttendanceService {
             }
             zoneService.verifyAccess(cleanZoneId, person);
         }
-        AttendanceRecord lastRecord = attendanceRepository.findLastByPersonCode(cleanPersonCode);
         String recordId = "REC" + recordCounter;
         String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
-        AttendanceRecord newRecord = new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
-        newRecord.assertCanFollow(lastRecord);
-        boolean saved = attendanceRepository.save(newRecord);
-        if (saved) {
-            recordCounter = recordCounter.add(java.math.BigInteger.ONE);
-        }
-        return saved;
+        return new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
     }
 
     public PersonnelService getPersonnelService() {
@@ -102,22 +104,22 @@ public class AttendanceService {
     }
 
     /**
-     * Commits one swipe to CSV and rolls back the append if file replacement fails.
+     * Commits one validated swipe to CSV before publishing it or consuming its identifier.
+     * A failed validation or file replacement leaves the collection and sequence unchanged.
      */
     public synchronized boolean recordAttendanceAndSave(
             String personCode, String zoneId, AttendanceRecord.CheckType type, String file
     ) {
-        List<AttendanceRecord> before = attendanceRepository.findAll();
-        if (!processAttendance(personCode, zoneId, type)) {
+        AttendanceRecord record = createRecord(personCode, zoneId, type);
+        if (record == null) {
             return false;
         }
-        if (!attendanceRepository.saveToCsv(file)) {
-            attendanceRepository.restore(before);
-            syncRecordCounter();
+        if (!attendanceRepository.saveAndPersist(record, file)) {
             throw new exception.SiteManagementException(
                     "Attendance was not saved; no swipe was recorded. Retry after fixing storage."
             );
         }
+        recordCounter = recordCounter.add(java.math.BigInteger.ONE);
         return true;
     }
 
@@ -129,7 +131,7 @@ public class AttendanceService {
         return loadFromCsv("data/attendance.csv");
     }
 
-    public boolean loadFromCsv(String filePath) {
+    public synchronized boolean loadFromCsv(String filePath) {
         boolean loaded = attendanceRepository.loadFromCsv(filePath);
         if (loaded) {
             syncRecordCounter();
@@ -141,7 +143,11 @@ public class AttendanceService {
         return saveToCsv("data/attendance.csv");
     }
 
-    public boolean saveToCsv(String filePath) {
+    public synchronized boolean saveToCsv(String filePath) {
         return attendanceRepository.saveToCsv(filePath);
+    }
+
+    public String getLastLoadError() {
+        return attendanceRepository.getLastLoadError();
     }
 }

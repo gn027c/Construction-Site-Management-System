@@ -5,11 +5,11 @@ import static model.ModelValidation.*;
 /**
  * Represents one check-in or check-out for a person at a zone.
  *
- * <p>Record identity, person, zone and action are fixed after construction. The
+ * <p>All record fields are fixed after construction. The
  * entity validates timestamps and checks whether a new swipe can follow the
- * preceding swipe supplied by the service.
+ * preceding swipe supplied by the repository.
  */
-public class AttendanceRecord {
+public final class AttendanceRecord {
     public enum CheckType {
         CHECK_IN,
         CHECK_OUT
@@ -19,7 +19,7 @@ public class AttendanceRecord {
     private final String personCode;
     private final String zoneId;
     private final CheckType checkType;
-    private String timestamp;
+    private final String timestamp;
 
     public AttendanceRecord(String recordId, String personCode, String zoneId, String timestamp, CheckType checkType) {
         this.recordId = identifier(recordId, "recordId");
@@ -47,10 +47,6 @@ public class AttendanceRecord {
 
     public CheckType getCheckType() {
         return checkType;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp(timestamp);
     }
 
     /**

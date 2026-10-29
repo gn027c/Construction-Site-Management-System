@@ -50,7 +50,7 @@ public class AttendanceTimestampTest {
         test("Attendance model rejects legacy timestamps at construction", () -> {
             throwsType(DataValidationException.class, () -> record("REC1", "29/10/2026 07:05"));
         });
-        test("Invalid timestamp update preserves the model and its valid CSV", () -> {
+        test("Invalid replacement cannot change an immutable attendance event or its CSV", () -> {
             AttendanceRepository repo = new AttendanceRepository();
             AttendanceRecord record = record("REC1", "2026-10-29 07:05:00");
             require(repo.save(record));
@@ -58,7 +58,7 @@ public class AttendanceTimestampTest {
             try {
                 require(repo.saveToCsv(csv.toString()));
                 byte[] before = Files.readAllBytes(csv);
-                throwsType(DataValidationException.class, () -> record.setTimestamp("29/10/2026 07:05"));
+                throwsType(DataValidationException.class, () -> record("REC1", "29/10/2026 07:05"));
                 equal("2026-10-29 07:05:00", record.getTimestamp());
                 require(repo.saveToCsv(csv.toString()));
                 require(Arrays.equals(before, Files.readAllBytes(csv)));

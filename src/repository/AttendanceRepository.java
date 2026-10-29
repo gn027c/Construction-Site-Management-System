@@ -3,6 +3,8 @@ package repository;
 import model.AttendanceRecord;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.time.format.DateTimeParseException;
 import util.DateTimeHelper;
 
@@ -14,11 +16,19 @@ import util.DateTimeHelper;
  */
 public class AttendanceRepository {
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();
+    private String lastLoadError = "";
 
     /**
-     * Stores a record after checking its timestamp and unique record identifier.
+     * Stores a record only after its identifier and transition from the previous event are valid.
      */
-    public boolean save(AttendanceRecord record) {
+    public synchronized boolean save(AttendanceRecord record) {
+        if (!canAppend(record)) {
+            return false;
+        }
+        return attendanceList.add(record);
+    }
+
+    private boolean canAppend(AttendanceRecord record) {
         if (record == null) {
             return false;
         }
@@ -32,7 +42,25 @@ public class AttendanceRepository {
                 return false;
             }
         }
-        return attendanceList.add(record);
+        record.assertCanFollow(findLastByPersonCode(record.getPersonCode()));
+        return true;
+    }
+
+    /**
+     * Validates and persists a candidate before publishing it to readers of this repository.
+     * The same monitor protects validation, file replacement and publication against competing appends.
+     */
+    public synchronized boolean saveAndPersist(AttendanceRecord record, String filePath) {
+        if (!canAppend(record)) {
+            return false;
+        }
+        List<AttendanceRecord> candidate = new ArrayList<>(attendanceList);
+        candidate.add(record);
+        if (!writeRecords(filePath, candidate)) {
+            return false;
+        }
+        attendanceList.add(record);
+        return true;
     }
 
     /**
@@ -40,7 +68,7 @@ public class AttendanceRepository {
      *
      * <p>Insertion order defines the preceding swipe. Records are not sorted by timestamp.
      */
-    public AttendanceRecord findLastByPersonCode(String personCode) {
+    public synchronized AttendanceRecord findLastByPersonCode(String personCode) {
         String cleanCode = util.IdentifierHelper.normalizeForLookup(personCode);
         if (cleanCode == null) {
             return null;
@@ -58,50 +86,54 @@ public class AttendanceRepository {
      * Returns a separate list in storage order containing the stored model objects.
      *
      * <p>Changing the returned list does not change this repository's collection.
-     * The model objects themselves are shared and retain their validated operations.
+     * Stored attendance events are immutable.
      */
-    public List<AttendanceRecord> findAll() {
+    public synchronized List<AttendanceRecord> findAll() {
         return new ArrayList<>(attendanceList);
     }
 
-    /**
-     * Removes a staged append when its CSV replacement could not be persisted.
-     */
-    public void restore(List<AttendanceRecord> previous) {
-        attendanceList.clear();
-        attendanceList.addAll(previous);
+    public synchronized String getLastLoadError() {
+        return lastLoadError;
     }
 
     /**
      * Loads CSV into a temporary repository before replacing active data.
      * A read or validation failure returns false and retains the current collection.
      */
-    public boolean loadFromCsv(String filePath) {
+    public synchronized boolean loadFromCsv(String filePath) {
         AttendanceRepository staged = new AttendanceRepository();
+        lastLoadError = "";
+        String location = "header";
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
             if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), new String[] {
                     "recordId", "personCode", "zoneId", "timestamp", "checkType"
             })) {
+                lastLoadError = "Expected the attendance CSV header with five columns.";
                 return false;
             }
             for (int i = 1; i < rows.size(); i++) {
                 String[] p = rows.get(i);
+                location = "row " + (i + 1);
                 if (util.CsvHelper.isBlankRow(p)) {
                     continue;
                 }
                 if (p.length != 5 || p[0].trim().isEmpty() || p[1].trim().isEmpty() || p[2].trim().isEmpty()) {
+                    lastLoadError = location + ": expected five columns with record, person and zone identifiers.";
                     return false;
                 }
+                location += " / " + p[0];
                 if (
                         !staged.save(
                                 new AttendanceRecord(p[0], p[1], p[2], p[3], AttendanceRecord.CheckType.valueOf(p[4]))
                         )
                 ) {
+                    lastLoadError = location + ": invalid or duplicate attendance record.";
                     return false;
                 }
             }
         } catch (RuntimeException e) {
+            lastLoadError = location + ": " + e.getMessage();
             return false;
         }
         attendanceList.clear();
@@ -112,15 +144,22 @@ public class AttendanceRepository {
     /**
      * Serializes current data and requests an atomic replacement of one CSV file.
      */
-    public boolean saveToCsv(String filePath) {
+    public synchronized boolean saveToCsv(String filePath) {
+        return writeRecords(filePath, attendanceList);
+    }
+
+    private boolean writeRecords(String filePath, List<AttendanceRecord> records) {
         List<String> lines = new ArrayList<>();
+        Map<String, AttendanceRecord> previous = new HashMap<>();
         lines.add("recordId,personCode,zoneId,timestamp,checkType");
-        for (AttendanceRecord rec : attendanceList) {
+        for (AttendanceRecord rec : records) {
             try {
                 DateTimeHelper.parseTimestamp(rec.getTimestamp());
-            } catch (DateTimeParseException e) {
+                rec.assertCanFollow(previous.get(rec.getPersonCode()));
+            } catch (RuntimeException e) {
                 return false;
             }
+            previous.put(rec.getPersonCode(), rec);
             lines.add(rec.toCsvLine());
         }
         return util.CsvHelper.writeAllLines(filePath, lines);
