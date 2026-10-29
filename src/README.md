@@ -122,6 +122,24 @@ Select a different directory with `./scripts/run.ps1 -DataDirectory D:/SmartSite
 The first installation creates `admin` with password `admin`; existing credentials
 are never overwritten. Change the password through menu 7. Menu 8 signs out.
 
+## Leaving menus and cancelling input
+
+At navigation menus, Enter or 0 chooses Back; at Home it saves and exits.
+Lists also accept Enter, 0 or `/cancel` to return. At an entry field, `/cancel`
+abandons the current entry and returns to Home. Numeric selections also accept
+Enter to cancel. Cancellation is recorded as CANCELLED rather than FAILED.
+
+Cancellation does not submit partially entered personnel, account, attendance,
+report or correction data. Earlier completed operations remain saved. Empty
+optional values retain their documented meanings, including keeping contact
+values or a correction's original fields. Zero still means deactivate, disable,
+no permissions or keep original wherever the prompt says so.
+
+The command `/cancel` is reserved by console readers. Enter `//cancel` to use the
+literal text `/cancel`, including as a password; password whitespace is preserved.
+At sign-in, cancelling password entry returns to Username without consuming a
+failed login attempt. Enter, 0 or `/cancel` at Username exits.
+
 ## People, accounts and permissions
 
 Person subclasses are `Worker`, `Staff`, `Contractor` and `Visitor`. Staff have a

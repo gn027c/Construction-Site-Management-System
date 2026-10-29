@@ -45,8 +45,7 @@ public final class WorkspaceController {
         ListView.show(scanner, "MY NOTIFICATIONS", notifications, Notification::toString, Notification::toString,
                 java.util.Comparator.comparing(Notification::getTimestamp).reversed(),
                 event -> authentication.audit(event, "NOTIFICATION", "", "SUCCESS", "Navigated own inbox."));
-        System.out.print("Notification ID to mark read (blank-Back): ");
-        String id = scanner.nextLine().trim();
+        String id = InputHelper.readLine(scanner, "Notification ID to mark read (blank-Back): ").trim();
         if (!id.isEmpty()) {
             boolean marked = authentication.getNotifications().markRead(authentication, id);
             authentication.audit("READ_NOTIFICATION", "NOTIFICATION", id, marked ? "SUCCESS" : "FAILED",
@@ -66,7 +65,7 @@ public final class WorkspaceController {
                     "View a person's attendance timeline"
             );
             AttendanceReviewView.showGuide();
-            int choice = InputHelper.getInt(scanner, "Choice (0-3): ", 0, 3);
+            int choice = InputHelper.getMenuChoice(scanner, "Choice (0-3): ", 3);
             view.ConsoleScreen.begin();
             if (choice == 0) {
                 return;
@@ -105,7 +104,9 @@ public final class WorkspaceController {
                 String evidence = InputHelper.getString(scanner, "Evidence/reference: ");
                 System.out.println("Proposed: " + normalizedId + " | " + original.getPersonCode()
                         + " | " + timestamp + " | " + checkType + " | " + zone);
-                String confirm = InputHelper.getString(scanner, "Save this verified correction? (yes/no): ");
+                String confirm = InputHelper.readLine(
+                        scanner, "Save this verified correction? (yes to save, Enter/no to cancel): "
+                ).trim();
                 if (confirm.equalsIgnoreCase("yes")) {
                     site.correctAttendance(id, zone, timestamp, checkType, reason, evidence);
                     ConsoleTheme.success("Correction saved.");
@@ -123,15 +124,14 @@ public final class WorkspaceController {
     }
 
     private static String replacement(Scanner scanner, String label, String current) {
-        ConsoleTheme.prompt(label + " [" + current + "]: ");
-        String value = scanner.nextLine().trim();
+        String value = InputHelper.readLine(scanner, label + " [" + current + "]: ").trim();
         return value.isEmpty() ? current : value;
     }
 
     public void reports(Scanner scanner) throws IOException {
         authentication.require(Permission.EXPORT_REPORTS);
         ConsoleTheme.title("PERIOD REPORTS");
-        int type = InputHelper.getInt(scanner, "1-Attendance report, 2-Incident report, 0-Back: ", 0, 2);
+        int type = InputHelper.getMenuChoice(scanner, "1-Attendance report, 2-Incident report, 0-Back: ", 2);
         if (type == 0) {
             return;
         }
@@ -142,16 +142,13 @@ public final class WorkspaceController {
         String person = "";
         String zone = "";
         if (type == 1) {
-            System.out.print("Person code filter (blank-All): ");
-            person = scanner.nextLine().trim();
-            System.out.print("Zone ID filter (blank-All): ");
-            zone = scanner.nextLine().trim();
+            person = InputHelper.readLine(scanner, "Person code filter (blank-All): ").trim();
+            zone = InputHelper.readLine(scanner, "Zone ID filter (blank-All): ").trim();
         }
         List<String[]> rows = site.report(from, to, period, type == 2, person, zone);
         ListView.show(scanner, "REPORT", rows, Arrays::toString, Arrays::toString, null,
                 event -> authentication.audit(event, "REPORT", "", "SUCCESS", "Navigated report."));
-        System.out.print("Export parent directory (blank-Back): ");
-        String destination = scanner.nextLine().trim();
+        String destination = InputHelper.readLine(scanner, "Export parent directory (blank-Back): ").trim();
         if (!destination.isEmpty()) {
             ConsoleTheme.success("Report exported: " + site.exportReport(rows, Paths.get(destination)));
         }

@@ -85,6 +85,29 @@ public class InputCancellationTest {
             require(!output.contains("Sign-in attempts exhausted"));
             require(!output.contains("HOME /"));
         });
+        test("Cancelling a report filter returns Home without creating an export", () -> {
+            Path root = Files.createTempDirectory("smartsite-cancel-report-");
+            String output = ConsoleTest.launch(
+                    root, "12\n1\n29/10/2026\n29/10/2026\n1\n/cancel\n0\n", 0, false
+            );
+            require(output.contains("Current entry cancelled"));
+            require(!output.contains("Report exported:"));
+            try (java.util.stream.Stream<Path> files = Files.list(root)) {
+                require(files.noneMatch(Files::isDirectory));
+            }
+        });
+        test("Cancelling attendance correction evidence preserves the complete source history", () -> {
+            Path root = Files.createTempDirectory("smartsite-cancel-review-");
+            for (String file : new String[] { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" }) {
+                Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
+            }
+            byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
+            String output = ConsoleTest.launch(
+                    root, "11\n2\nATT6\n\n\n0\nReason\n/cancel\n0\n", 0, false
+            );
+            require(output.contains("Current entry cancelled"));
+            require(java.util.Arrays.equals(original, Files.readAllBytes(root.resolve("attendance.csv"))));
+        });
         finish();
     }
 }

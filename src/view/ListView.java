@@ -69,9 +69,9 @@ public final class ListView {
             for (T record : page(matching, currentPage)) {
                 System.out.println(renderer.apply(record));
             }
-            ConsoleTheme.prompt("N-Next, P-Previous, F-Filter, R-Reset, page number, 0-Back: ");
+            ConsoleTheme.prompt("N-Next, P-Previous, F-Filter, R-Reset, page number, Enter/0-Back: ");
             String command = scanner.nextLine().trim();
-            if (command.equals("0")) {
+            if (command.isEmpty() || command.equals("0") || command.equalsIgnoreCase("/cancel")) {
                 onNavigation.accept("BACK");
                 return;
             }
@@ -90,8 +90,7 @@ public final class ListView {
                     ConsoleTheme.warning("No previous page.");
                 }
             } else if (command.equalsIgnoreCase("f")) {
-                ConsoleTheme.prompt("Search text or codes (space-separated terms): ");
-                query = scanner.nextLine().trim();
+                query = util.InputHelper.readLine(scanner, "Search text or codes (space-separated terms): ").trim();
                 currentPage = 1;
                 onNavigation.accept("FILTER");
             } else if (command.equalsIgnoreCase("r")) {
