@@ -11,7 +11,10 @@ snapshot, manifest và CURRENT khỏi luồng chạy. Bốn CSV là nguồn dữ
 - Thời gian điểm danh chỉ nhận `yyyy-MM-dd HH:mm:ss`; không chuyển đổi định
   dạng cũ. DateTimeHelper dùng chung khi tạo bản ghi và kiểm tra lúc đọc/ghi.
 - Worker lưu đủ chứng chỉ, nghề, tổ đội; Visitor lưu đủ ngày đến.
-  Dữ liệu cũ thiếu thông tin được ghi rõ `Unknown (legacy)`.
+  Thông tin nghề/tổ đội chưa biết được ghi rõ `Unknown` trong CSV; ngày đến
+  chưa biết là ô trống. Loader không tự tạo ngày giả hoặc bù cột thiếu.
+- Ngày đến Visitor dùng `dd/MM/yyyy`, kiểm tra bằng DateTimeHelper cả ở
+  console và model. Timestamp AttendanceRecord cũng được kiểm tra khi tạo/sửa.
 - Service kiểm tra chu kỳ CHECK_IN → CHECK_OUT và khu vực khi ra.
 - Sự cố theo OPEN → ASSIGNED → RESOLVED; người được phân công phải tồn tại.
 - Menu cấp/thu hồi quyền khu vực; whitelist kết hợp chứng chỉ hợp lệ.
@@ -80,13 +83,15 @@ java '-Dfile.encoding=UTF-8' -cp bin Main
 
 ## Kết quả kiểm thử sau khi gỡ state
 
-Ngày 29/10/2026, Java 8: **84/84 ca qua** sau khi thống nhất định dạng thời gian.
+Ngày 29/10/2026, Java 8: **96/96 ca qua** sau khi rà soát toàn bộ ngày giờ.
 
 | Bộ kiểm thử | Số ca |
 | --- | ---: |
 | HistoricalMatrixTest — đúng 25 kịch bản WS6 gốc | 25 |
 | AttendanceIncidentTest | 14 |
 | AttendanceTimestampTest — định dạng duy nhất, ngày/giờ hợp lệ và từ chối CSV cũ | 8 |
+| DateTimeHelperTest — ngày nhuận, định dạng ngày, nhập lại và biên năm | 4 |
+| VisitorDateTest — ngày sai, ngày chưa biết, schema CSV và export | 8 |
 | PersonnelTest | 9 |
 | ZoneTest | 7 |
 | CsvHelperTest | 4 |
@@ -94,7 +99,7 @@ Ngày 29/10/2026, Java 8: **84/84 ca qua** sau khi thống nhất định dạng
 | ConsoleTest — EOF, menu, ngày hợp lệ, màu và kill sau khi đã lưu CSV | 7 |
 
 Test đọc fixture gốc nhưng mọi file ghi đều nằm trong thư mục tạm riêng.
-Log lần chạy mới: `output/attendance-timestamp-tests.txt`. Thư mục build test:
+Log lần chạy mới: `output/date-time-audit-tests.txt`. Thư mục build test:
 `bin/csv-tests`. Các kết quả snapshot của phiên bản trước không được dùng
 làm bằng chứng cho phiên bản hiện tại.
 
@@ -112,6 +117,11 @@ Nhánh `loint-attendance-timestamp-format` tiếp tục từ bản đã gỡ sta
 thống nhất thời gian điểm danh qua DateTimeHelper và loại bỏ chuyển đổi
 CSV thời gian cũ. 15 timestamp trong fixture đã đúng định dạng nên giữ
 nguyên giá trị; 8 ca kiểm thử mới bảo vệ hợp đồng định dạng này.
+
+Nhánh `codex/date-time-validation` tiếp tục rà soát ngày giờ: dùng chung
+formatter ngày ở InputHelper và Visitor, chặn sửa timestamp sai tại model,
+và chuẩn hóa persons.csv thành đúng chín cột cho mọi loại nhân sự.
+Chi tiết vị trí và lỗi được ghi trong [DATE_TIME_REVIEW.md](DATE_TIME_REVIEW.md).
 
 ## Phần còn lại của workflow
 

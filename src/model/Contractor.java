@@ -71,7 +71,7 @@ public class Contractor extends Person {
 
     @Override
 public String toCsvLine() {
-    // CONTRACTOR,id,code,name,phoneNumber,role,contractId,companyName
+    // CONTRACTOR,id,code,name,phoneNumber,role,contractId,companyName,unused
     return baseCsv("CONTRACTOR") + "," + util.CsvHelper.toCsvLine(contractId, companyName, "");
 }
 

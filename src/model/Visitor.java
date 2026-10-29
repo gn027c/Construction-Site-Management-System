@@ -50,6 +50,7 @@ public class Visitor extends Person {
         this.hostPersonName = hostPersonName.trim();
     }
 
+    /** dd/MM/yyyy; an empty value explicitly means the date is not known. */
     public String getEntryDate() {
         return entryDate;
     }
@@ -83,7 +84,7 @@ public class Visitor extends Person {
     }
     @Override
     public String toCsvLine() {
-        // VISITOR,id,code,name,phoneNumber,role,purpose,hostPersonName
+        // VISITOR,id,code,name,phoneNumber,role,purpose,hostPersonName,entryDate
         return baseCsv("VISITOR") + "," + util.CsvHelper.toCsvLine(purpose, hostPersonName, entryDate);
     }
 

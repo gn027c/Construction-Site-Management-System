@@ -59,7 +59,7 @@ filesystem/network share có độ bền như database. Xem
    sửa hướng dẫn split CSV trong Audit Log; cập nhật UML theo luồng
    Controller → Service → Repository → CSV, schema nhân sự và kết quả
    25/25 cùng 51 ca bổ sung. Render lại DOCX/PDF sau chỉnh sửa.
-2. **Đối soát dữ liệu thật:** bổ sung thông tin `Unknown (legacy)`, kiểm tra
+2. **Đối soát dữ liệu thật:** bổ sung thông tin `Unknown` và ngày đến còn trống, kiểm tra
    các lượt vào/ra cũ sai chu kỳ. Không đoán dữ liệu đã bị mất.
 3. **Lịch sử cá nhân và báo cáo theo ngày/tuần:** lọc theo mã, khoảng thời
    gian và khu vực; xuất thống kê tổng số lượt và sự cố theo trạng thái.
