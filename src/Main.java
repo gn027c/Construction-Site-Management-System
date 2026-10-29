@@ -52,7 +52,7 @@ public class Main {
                         }
                     }
                     MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getInt(scanner, "Choice (0-12): ", 0, 12);
+                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-12): ", 12);
                     ConsoleScreen.begin();
                     switch (choice) {
                         case 1:
@@ -70,7 +70,7 @@ public class Main {
                         case 5:
                             authentication.requireAny(Permission.RELOAD_DATA, Permission.EXPORT_REPORTS);
                             MenuView.showDataMenu(authentication);
-                            int action = InputHelper.getInt(scanner, "Choice (0-3): ", 0, 3);
+                            int action = InputHelper.getMenuChoice(scanner, "Choice (0-3): ", 3);
                             if (action == 1) {
                                 authentication.require(Permission.RELOAD_DATA);
                                 String answer = InputHelper.getString(
@@ -127,6 +127,9 @@ public class Main {
                             exit = true;
                             break;
                     }
+                } catch (exception.InputCancelledException e) {
+                    authentication.audit("CONSOLE_OPERATION", "MENU", "", "CANCELLED", "User cancelled input.");
+                    ConsoleTheme.warning("Current entry cancelled. Returned to the main menu.");
                 } catch (NoSuchElementException e) {
                     if (authentication.isLoggedIn() && controller.isDataReady()) {
                         controller.saveAllData();

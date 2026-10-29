@@ -31,7 +31,7 @@ public class ZoneController {
         site.getAuthentication().require(Permission.MANAGE_ZONES);
         while (true) {
             MenuView.showZoneMenu();
-            int choice = InputHelper.getInt(scanner, "Enter option (0-4): ", 0, 4);
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-4): ", 4);
             view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
@@ -63,10 +63,9 @@ public class ZoneController {
 
     private void addZoneFlow(Scanner scanner) {
         view.ConsoleTheme.title("ADD NEW ZONE");
-        int type = InputHelper.getInt(
+        int type = InputHelper.getMenuChoice(
                 scanner,
                 "Select zone type: 1. Normal Zone | 2. Restricted Zone (0-Cancel): ",
-                0,
                 2
         );
         if (type == 0) {

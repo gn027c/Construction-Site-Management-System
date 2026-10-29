@@ -26,7 +26,7 @@ public class IncidentController {
     public void handleMenu(Scanner scanner) {
         while (true) {
             MenuView.showIncidentMenu(authentication);
-            int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-6): ", 6);
             view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:

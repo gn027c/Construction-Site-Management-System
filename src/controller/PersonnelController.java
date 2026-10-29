@@ -33,7 +33,7 @@ public class PersonnelController {
         authentication.require(Permission.MANAGE_PERSONNEL);
         while (true) {
             MenuView.showPersonMenu();
-            int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-5): ", 5);
             view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
@@ -78,7 +78,7 @@ public class PersonnelController {
         System.out.println("2. Contractor");
         System.out.println("3. Visitor");
         System.out.println("4. Staff (Internal staff)");
-        int type = InputHelper.getInt(scanner, "Choice (1-4, 0-Cancel): ", 0, 4);
+        int type = InputHelper.getMenuChoice(scanner, "Choice (1-4, 0-Cancel): ", 4);
         if (type == 0) {
             return;
         }
@@ -111,8 +111,9 @@ public class PersonnelController {
                     break;
                 case 4:
                     String position = InputHelper.getString(scanner, "Position: ");
-                    System.out.print("Safety certificate (blank if unknown): ");
-                    String certificate = scanner.nextLine().trim();
+                    String certificate = InputHelper.readLine(
+                            scanner, "Safety certificate (blank if unknown): "
+                    ).trim();
                     newPerson = new model.Staff(id, code, name, phone, position, certificate);
                     break;
                 default:
@@ -144,13 +145,11 @@ public class PersonnelController {
             Person p = site.person(code);
             PersonnelView.showDetails(p);
             System.out.println("\nEnter new details (press Enter to keep the current value):");
-            System.out.print("New Name [" + p.getName() + "]: ");
-            String newName = scanner.nextLine().trim();
+            String newName = InputHelper.readLine(scanner, "New Name [" + p.getName() + "]: ").trim();
             if (newName.isEmpty()) {
                 newName = p.getName();
             }
-            System.out.print("New Phone [" + p.getPhoneNumber() + "]: ");
-            String newPhone = scanner.nextLine().trim();
+            String newPhone = InputHelper.readLine(scanner, "New Phone [" + p.getPhoneNumber() + "]: ").trim();
             if (newPhone.isEmpty()) {
                 newPhone = p.getPhoneNumber();
             }

@@ -25,7 +25,7 @@ public class AttendanceController {
     public void handleMenu(Scanner scanner) {
         while (true) {
             MenuView.showAttendanceMenu(authentication);
-            int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-6): ", 6);
             view.ConsoleScreen.begin();
             if (choice == 0) {
                 return;
@@ -38,7 +38,7 @@ public class AttendanceController {
                     String person = personal ? authentication.currentPersonCode()
                             : InputHelper.getString(scanner, "Person code: ");
                     String zone = InputHelper.getString(scanner, "Zone ID: ");
-                    int action = InputHelper.getInt(scanner, "1-Check in, 2-Check out, 0-Cancel: ", 0, 2);
+                    int action = InputHelper.getMenuChoice(scanner, "1-Check in, 2-Check out, 0-Cancel: ", 2);
                     if (action == 0) {
                         authentication.audit("ATTENDANCE", "PERSON", person, "CANCELLED", "Cancelled by user.");
                         break;

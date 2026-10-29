@@ -28,18 +28,27 @@ public final class AccountController {
     public boolean signIn(Scanner scanner) {
         ConsoleScreen.identityBoundary();
         ConsoleTheme.title("STAFF SIGN IN");
-        for (int attempt = 0; attempt < 3; attempt++) {
-            String username = InputHelper.getString(scanner, "Username (0-Exit): ");
-            if (username.equals("0")) {
+        int attempt = 0;
+        while (attempt < 3) {
+            String username;
+            try {
+                username = InputHelper.readLine(scanner, "Username (Enter or 0-Exit): ").trim();
+            } catch (exception.InputCancelledException e) {
                 return false;
             }
-            String password = InputHelper.getPassword(scanner, "Password: ");
+            if (username.isEmpty() || username.equals("0")) {
+                return false;
+            }
             try {
+                String password = InputHelper.getPassword(scanner, "Password: ");
                 Account account = authentication.login(username, password);
                 ConsoleTheme.success("Signed in as " + account.getUsername() + " (" + account.getRole() + ").");
                 return true;
             } catch (AuthenticationException e) {
+                attempt++;
                 ConsoleTheme.warning(e.getMessage());
+            } catch (exception.InputCancelledException e) {
+                ConsoleTheme.warning("Sign-in cancelled. Enter another username or 0 to exit.");
             }
         }
         ConsoleTheme.warning("Sign-in attempts exhausted. Session closed.");
@@ -61,7 +70,7 @@ public final class AccountController {
                     "ACCOUNT ADMINISTRATION", "List accounts", "Create account", "Assign role",
                     "Edit permissions", "Enable or disable account", "Reset password", "Link personnel record"
             );
-            int choice = InputHelper.getInt(scanner, "Choice (0-7): ", 0, 7);
+            int choice = InputHelper.getMenuChoice(scanner, "Choice (0-7): ", 7);
             ConsoleScreen.begin();
             if (choice == 0) {
                 return;
