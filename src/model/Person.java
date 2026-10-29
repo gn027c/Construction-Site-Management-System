@@ -8,9 +8,6 @@ import static model.ModelValidation.*;
  * <p>Identity, personnel code and role are fixed after construction. Contact
  * changes are validated by the model. Subclasses define their own safety
  * credentials and CSV representation.
- *
- * <p>Responsibilities: Huynh Nguyen Hoang Khang (SE201461) - base personnel model;
- * Tran Ngoc Anh Tuan (SE201513) - personnel subclass integration.
  */
 public abstract class Person {
     private final String id;

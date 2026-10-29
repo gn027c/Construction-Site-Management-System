@@ -11,8 +11,6 @@ import util.DateTimeHelper;
  *
  * <p>Record identifiers must be unique. CSV loading builds a separate collection
  * and replaces active data only after all rows have been accepted.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance storage.
  */
 public class AttendanceRepository {
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();

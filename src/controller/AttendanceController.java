@@ -11,8 +11,6 @@ import java.util.Scanner;
  *
  * <p>The service performs lookups and delegates swipe ordering to the model.
  * The controller presents recoverable access and attendance errors.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance console flows.
  */
 public class AttendanceController {
     private final AttendanceService attendanceService;

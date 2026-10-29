@@ -12,8 +12,6 @@ import util.DateTimeHelper;
  * <p>The service supplies the previous swipe to the attendance model, which owns
  * the ordering rule. New record identifiers are derived from existing numeric
  * {@code REC} identifiers at construction and after successful CSV loading.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance operations.
  */
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;

@@ -11,8 +11,6 @@ import java.util.Scanner;
  *
  * <p>Reporting, assignment, resolution and removal of resolved incidents are
  * delegated to {@link service.IncidentService}.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident console flows.
  */
 public class IncidentController {
     private final IncidentService incidentService;

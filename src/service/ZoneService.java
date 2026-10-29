@@ -14,8 +14,6 @@ import java.util.List;
  *
  * <p>Access checks call the zone's polymorphic policy. Permission changes apply
  * only to restricted zones; personnel registry checks belong to the caller.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - zone operations.
  */
 public class ZoneService {
     private final ZoneRepository zoneRepository;

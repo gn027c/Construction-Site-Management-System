@@ -7,8 +7,6 @@ package exception;
  *
  * <p>Models and services decide when to raise this error; the exception class
  * only carries the error to the caller.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - module exceptions.
  */
 public class InvalidIncidentStateException extends SiteManagementException {
     public InvalidIncidentStateException(String incidentId, String currentState, String reason) {

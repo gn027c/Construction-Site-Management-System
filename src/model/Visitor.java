@@ -7,8 +7,6 @@ import static model.ModelValidation.*;
  *
  * <p>The entry date uses {@code dd/MM/yyyy}; an empty string means the date is
  * unknown. Visitors do not satisfy the current safety credential rule.
- *
- * <p>Responsibility: Tran Ngoc Anh Tuan (SE201513) - visitor personnel model.
  */
 public class Visitor extends Person {
     private String purpose;

@@ -8,8 +8,6 @@ import java.util.Scanner;
  *
  * <p>Interactive readers trim accepted input and retry after validation failures.
  * End of input propagates to the application loop so it can attempt to save and exit.
- *
- * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - console input utilities.
  */
 public class InputHelper {
     public static void validateString(String input, String fieldName) throws DataValidationException {

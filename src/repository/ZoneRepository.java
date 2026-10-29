@@ -18,8 +18,6 @@ import java.util.Set;
  * <p>Zone identifiers are compared without case. CSV loading validates a separate
  * collection before replacing active data. Restricted-zone permissions use
  * semicolon-separated codes; {@code NONE} represents an empty list.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - zone storage.
  */
 public class ZoneRepository {
     private final List<Zone> zoneList = new ArrayList<>();

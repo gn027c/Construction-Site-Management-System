@@ -7,9 +7,6 @@ import static model.ModelValidation.*;
  *
  * <p>Both contractor fields are required. A contract identifier beginning with
  * {@code CTR-} satisfies the current safety credential rule.
- *
- * <p>Responsibilities: Tran Ngoc Anh Tuan (SE201513) - personnel subclasses;
- * Nguyen Tan Loi (SE211059) - completion of the contractor subclass.
  */
 public class Contractor extends Person {
     private String companyName;

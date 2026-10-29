@@ -14,8 +14,6 @@ import java.util.Arrays;
  *
  * <p>Code lookup is case-sensitive. CSV loading requires the canonical nine-column
  * header and validates all rows before replacing the active map.
- *
- * <p>Responsibility: Tran Ngoc Anh Tuan (SE201513) - personnel storage.
  */
 public class PersonRepository {
     private final Map<String, Person> store = new LinkedHashMap<>();

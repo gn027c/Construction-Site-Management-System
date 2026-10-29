@@ -7,9 +7,6 @@ import static model.ModelValidation.*;
  *
  * <p>All worker fields are required. A certificate ending with {@code _SAFE}
  * satisfies the current safety credential rule.
- *
- * <p>Responsibilities: Huynh Nguyen Hoang Khang (SE201461) - initial worker model;
- * Tran Ngoc Anh Tuan (SE201513) - personnel subclass integration.
  */
 public class Worker extends Person {
     private String trade;

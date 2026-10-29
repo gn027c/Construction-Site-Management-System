@@ -5,8 +5,6 @@ package view;
  *
  * <p>This view contains menu labels only; input handling and application
  * operations belong to controllers and services.
- *
- * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - console navigation.
  */
 public final class MenuView {
     private MenuView() {

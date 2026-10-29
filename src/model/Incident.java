@@ -8,8 +8,6 @@ import static model.ModelValidation.*;
  * <p>The lifecycle is {@code OPEN -> ASSIGNED -> RESOLVED}. An open incident has
  * no assignee; an assigned or resolved incident must retain an assignee code.
  * The service checks whether that code belongs to a registered person.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident data and lifecycle rules.
  */
 public class Incident {
     public enum IncidentSeverity {

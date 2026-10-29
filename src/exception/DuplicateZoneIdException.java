@@ -5,8 +5,6 @@ package exception;
  *
  * <p>Models and services decide when to raise this error; the exception class
  * only carries the error to the caller.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - module exceptions.
  */
 public class DuplicateZoneIdException extends SiteManagementException {
     public DuplicateZoneIdException(String zoneId) {

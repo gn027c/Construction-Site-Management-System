@@ -7,8 +7,6 @@ import static model.ModelValidation.*;
  *
  * <p>A regular zone accepts any non-null person. Subclasses may override
  * {@link #checkAccess(Person)} to apply stricter access rules.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - zone models and access policy.
  */
 public class Zone {
     private final String zoneId;

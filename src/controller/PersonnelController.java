@@ -19,8 +19,6 @@ import java.util.Scanner;
  * <p>Operations are delegated to {@link service.PersonnelService}. The optional
  * save callback runs after a modifying menu choice, including choices that are
  * cancelled or report a handled error.
- *
- * <p>Responsibility: Tran Ngoc Anh Tuan (SE201513) - personnel console flows.
  */
 public class PersonnelController {
     private final PersonnelService personnelService;

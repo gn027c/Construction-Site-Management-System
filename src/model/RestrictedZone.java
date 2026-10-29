@@ -11,8 +11,6 @@ import java.util.TreeSet;
  * <p>Access requires both whitelist membership and a valid credential supplied
  * by the person subtype. The safety level describes the zone hazard; personnel
  * do not currently have a comparable credential level.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - restricted zones and access rules.
  */
 public class RestrictedZone extends Zone {
     public enum SafetyLevel {

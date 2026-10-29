@@ -10,8 +10,6 @@ import java.util.List;
  * <p>Incident identifiers are compared without case. CSV loading validates a
  * separate collection before replacing active data. Lifecycle rules remain
  * in {@link model.Incident}.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident storage.
  */
 public class IncidentRepository {
     private final List<Incident> incidentList = new ArrayList<>();

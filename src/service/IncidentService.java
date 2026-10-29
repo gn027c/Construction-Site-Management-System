@@ -9,8 +9,6 @@ import java.util.List;
  *
  * <p>The service confirms that an assignee exists before asking the incident to
  * change its lifecycle status. The incident model owns transition validation.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident operations.
  */
 public class IncidentService {
     private final IncidentRepository incidentRepository;

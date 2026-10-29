@@ -44,11 +44,11 @@ domain guards and the application's existing exception types.
 ## Class Javadoc
 
 Start with one sentence describing the class's purpose. Add paragraphs for
-important rules, limitations or collaborators. Retain responsibility information
-where it is recorded; shared classes list all contributors and their duties.
-Responsibility notes describe project duties rather than Git authorship.
+important rules, limitations or collaborating classes. Keep the description
+focused on the program's behavior.
 
-Avoid workshop-specific task instructions, branch assignments, obsolete TODOs
+Exclude member names, student identifiers, work allocation, contribution history
+and branch assignments. Avoid workshop-specific instructions, obsolete TODOs
 and claims about behavior that the implementation does not provide.
 
 ## Method Javadoc

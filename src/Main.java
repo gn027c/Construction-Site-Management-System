@@ -12,8 +12,6 @@ import java.util.*;
  * <p>The {@code smartsite.dataDir} property selects the data directory and defaults
  * to {@code data}. A directory lock is held for the session lifetime. Normal exit
  * and end of input both attempt to save current data.
- *
- * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - application startup and console integration.
  */
 public class Main {
     public static void main(String[] args) {

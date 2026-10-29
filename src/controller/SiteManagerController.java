@@ -12,14 +12,6 @@ import java.util.*;
  * <p>Loading stages fresh services and checks cross-file references before
  * replacing active services. Saving replaces each CSV file independently;
  * the four-file set is not a single transaction.
- *
- * <p>Responsibilities:
- * <ul>
- *     <li>Huynh Nguyen Hoang Khang (SE201461) - facade integration and console coordination.</li>
- *     <li>Tran Ngoc Anh Tuan (SE201513) - personnel operations.</li>
- *     <li>Le Tan Thien (SE201852) - zones and access permissions.</li>
- *     <li>Nguyen Tan Loi (SE211059) - attendance and incident operations.</li>
- * </ul>
  */
 public class SiteManagerController {
     private final Path directory;

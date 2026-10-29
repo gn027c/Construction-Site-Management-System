@@ -12,8 +12,6 @@ import java.util.List;
  *
  * <p>The repository enforces unique personnel codes. Models validate their
  * fields and contact changes. This service performs no console input or output.
- *
- * <p>Responsibility: Tran Ngoc Anh Tuan (SE201513) - personnel operations.
  */
 public class PersonnelService {
     private final PersonRepository personRepository;

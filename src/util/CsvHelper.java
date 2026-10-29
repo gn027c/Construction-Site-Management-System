@@ -10,8 +10,6 @@ import java.util.*;
  *
  * <p>The codec preserves empty fields, commas, escaped quotes and embedded line
  * breaks. Writes use a sibling temporary file followed by atomic replacement.
- *
- * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - shared CSV utilities.
  */
 public final class CsvHelper {
     public static final String UTF8_BOM = "\uFEFF";

@@ -8,8 +8,6 @@ package exception;
  *
  * <p>Models and services decide when to raise this error; the exception class
  * only carries the error to the caller.
- *
- * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - module exceptions.
  */
 public class DataValidationException extends SiteManagementException {
     public DataValidationException(String message) {

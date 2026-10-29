@@ -9,8 +9,6 @@ import java.io.Serializable;
  * <p>Record identity, person, zone and action are fixed after construction. The
  * entity validates timestamps and checks whether a new swipe can follow the
  * preceding swipe supplied by the service.
- *
- * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance records and swipe rules.
  */
 public class AttendanceRecord implements Serializable {
     private static final long serialVersionUID = 1L;

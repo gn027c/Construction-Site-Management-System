@@ -17,8 +17,6 @@ import java.util.Scanner;
  *
  * <p>Zone rules are delegated to {@link service.ZoneService}. Permission flows
  * verify personnel registration before changing a restricted zone's whitelist.
- *
- * <p>Responsibility: Le Tan Thien (SE201852) - zone console flows.
  */
 public class ZoneController {
     private final ZoneService zoneService;
