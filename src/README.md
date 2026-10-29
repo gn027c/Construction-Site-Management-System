@@ -95,13 +95,18 @@ The application uses Java 8, CSV storage and a console/terminal interface.
 Run from the project root in PowerShell:
 
 ```powershell
-$sources = @(Get-ChildItem src -Recurse -Filter '*.java' | ForEach-Object FullName)
-javac -encoding UTF-8 -d bin $sources
-java '-Dfile.encoding=UTF-8' -cp bin Main
+./scripts/run.ps1
 ./scripts/test.ps1
 ```
 
-Select a different directory with `-Dsmartsite.dataDir=D:/SmartSiteData`.
+When the terminal is inside `src`, run `../scripts/run.ps1` instead. The launcher
+always compiles from the project root with UTF-8 and writes classes to `bin/app`.
+Use `./scripts/run.ps1 -BuildOnly` to compile without starting the application.
+Do not use bare `javac Main.java`: Java 8 on Windows may use Cp1252 and reject
+UTF-8 source text with an `unmappable character for encoding Cp1252` error.
+Changing only the terminal code page does not set the compiler's source encoding.
+
+Select a different directory with `./scripts/run.ps1 -DataDirectory D:/SmartSiteData`.
 The first installation creates `admin` with password `admin`; existing credentials
 are never overwritten. Change the password through menu 7. Menu 8 signs out.
 
@@ -165,7 +170,7 @@ dates or fix unknown attendance history.
 Convert an older CSV directory once into a new destination:
 
 ```powershell
-java '-Dfile.encoding=UTF-8' -cp bin util.CsvMigration D:/OldData D:/ConvertedData
+java '-Dfile.encoding=UTF-8' -cp bin/app util.CsvMigration D:/OldData D:/ConvertedData
 ```
 
 The converter preserves source files, credentials and free-text fields, checks
