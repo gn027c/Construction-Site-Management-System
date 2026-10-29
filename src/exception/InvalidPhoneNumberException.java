@@ -12,9 +12,9 @@ package exception;
  *   2. Kiểm tra nếu chuỗi số điện thoại không thỏa mãn chuẩn 10 số (bắt đầu bằng 0, chỉ chứa chữ số) thì ném:
  *      throw new InvalidPhoneNumberException(phone);
  */
-public class InvalidPhoneNumberException extends SiteManagementException {
+public class InvalidPhoneNumberException extends DataValidationException {
 
     public InvalidPhoneNumberException(String phone) {
-        super("Invalid phone number format: " + phone + ". Expected 10 digits starting with 0.");
+        super("phoneNumber", "Must contain 10 digits and start with 0.");
     }
 }

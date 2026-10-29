@@ -1,5 +1,7 @@
 package model;
 
+import static model.ModelValidation.*;
+
 /**
  * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
  * MỞ RỘNG ĐA HÌNH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
@@ -14,56 +16,19 @@ public class Worker extends Person {
     private String safetyCertId;
     private String assignedTeam;
 
-    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
-    public Worker(String id, String code, String name, String phoneNumber,
-                  String trade, String safetyCertId, String assignedTeam) {
+    public Worker(String id, String code, String name, String phoneNumber, String trade, String safetyCertId, String assignedTeam) {
         super(id, code, name, phoneNumber, Role.WORKER);
-        if (trade == null || trade.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ngành nghề (trade) không được để trống.");
-        }
-        if (safetyCertId == null || safetyCertId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã chứng chỉ an toàn không được để trống.");
-        }
-        if (assignedTeam == null || assignedTeam.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tổ đội thi công không được để trống.");
-        }
-        this.trade = trade.trim();
-        this.safetyCertId = safetyCertId.trim();
-        this.assignedTeam = assignedTeam.trim();
+        this.trade = requiredText(trade, "trade");
+        this.safetyCertId = requiredText(safetyCertId, "safetyCertId");
+        this.assignedTeam = requiredText(assignedTeam, "assignedTeam");
     }
 
-    public String getTrade() {
-        return trade;
-    }
-
-    public void setTrade(String trade) {
-        if (trade == null || trade.trim().isEmpty()) {
-            throw new IllegalArgumentException("Ngành nghề (trade) không được để trống.");
-        }
-        this.trade = trade.trim();
-    }
-
-    public String getSafetyCertId() {
-        return safetyCertId;
-    }
-
-    public void setSafetyCertId(String safetyCertId) {
-        if (safetyCertId == null || safetyCertId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã chứng chỉ an toàn không được để trống.");
-        }
-        this.safetyCertId = safetyCertId.trim();
-    }
-
-    public String getAssignedTeam() {
-        return assignedTeam;
-    }
-
-    public void setAssignedTeam(String assignedTeam) {
-        if (assignedTeam == null || assignedTeam.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tổ đội thi công không được để trống.");
-        }
-        this.assignedTeam = assignedTeam.trim();
-    }
+    public String getTrade() { return trade; }
+    public void setTrade(String trade) { this.trade = requiredText(trade, "trade"); }
+    public String getSafetyCertId() { return safetyCertId; }
+    public void setSafetyCertId(String safetyCertId) { this.safetyCertId = requiredText(safetyCertId, "safetyCertId"); }
+    public String getAssignedTeam() { return assignedTeam; }
+    public void setAssignedTeam(String assignedTeam) { this.assignedTeam = requiredText(assignedTeam, "assignedTeam"); }
 
     @Override
     public void displayDetails() {
@@ -79,23 +44,13 @@ public class Worker extends Person {
         System.out.println("========================================");
     }
 
-// Valid when safetyCertId is not empty and ends with "_SAFE"
-    @Override
-    public boolean hasValidSafetyCredential() {
-        return safetyCertId != null
-                && !safetyCertId.trim().isEmpty()
-                && safetyCertId.endsWith("_SAFE");
+    @Override public boolean hasValidSafetyCredential() { return safetyCertId.endsWith("_SAFE"); }
+
+    @Override public String toCsvLine() {
+        return baseCsv("WORKER") + "," + util.CsvHelper.toCsvLine(safetyCertId, trade, assignedTeam);
     }
 
-  @Override
-public String toCsvLine() {
-    // WORKER,id,code,name,phoneNumber,role,safetyCertId
-    return baseCsv("WORKER") + "," + util.CsvHelper.toCsvLine(safetyCertId, trade, assignedTeam);
-}
-    
-    @Override
-    public String toString() {
-        return String.format("Worker{%s, safetyCertId='%s'}",
-                super.toString(), safetyCertId);
+    @Override public String toString() {
+        return "Worker{" + super.toString() + "}";
     }
 }

@@ -1,5 +1,7 @@
 package model;
 
+import static model.ModelValidation.*;
+
 /**
  * NHIỆM VỤ: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
  * MÔ TẢ:
@@ -12,41 +14,16 @@ public class Contractor extends Person {
     private String companyName;
     private String contractId;
 
-    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
-    public Contractor(String id, String code, String name, String phoneNumber,
-                      String companyName, String contractId) {
+    public Contractor(String id, String code, String name, String phoneNumber, String companyName, String contractId) {
         super(id, code, name, phoneNumber, Role.CONTRACTOR);
-        if (companyName == null || companyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
-        }
-        if (contractId == null || contractId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
-        }
-        this.companyName = companyName.trim();
-        this.contractId = contractId.trim();
+        this.companyName = requiredText(companyName, "companyName");
+        this.contractId = requiredText(contractId, "contractId");
     }
 
-    public String getCompanyName() {
-        return companyName;
-    }
-
-    public void setCompanyName(String companyName) {
-        if (companyName == null || companyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
-        }
-        this.companyName = companyName.trim();
-    }
-
-    public String getContractId() {
-        return contractId;
-    }
-
-    public void setContractId(String contractId) {
-        if (contractId == null || contractId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
-        }
-        this.contractId = contractId.trim();
-    }
+    public String getCompanyName() { return companyName; }
+    public void setCompanyName(String companyName) { this.companyName = requiredText(companyName, "companyName"); }
+    public String getContractId() { return contractId; }
+    public void setContractId(String contractId) { this.contractId = requiredText(contractId, "contractId"); }
 
     @Override
     public void displayDetails() {
@@ -61,24 +38,13 @@ public class Contractor extends Person {
         System.out.println("===========================================");
     }
 
-    // Valid when contractId is not empty and starts with "CTR-"
-    @Override
-    public boolean hasValidSafetyCredential() {
-        return contractId != null
-                && !contractId.trim().isEmpty()
-                && contractId.startsWith("CTR-");
+    @Override public boolean hasValidSafetyCredential() { return contractId.startsWith("CTR-"); }
+
+    @Override public String toCsvLine() {
+        return baseCsv("CONTRACTOR") + "," + util.CsvHelper.toCsvLine(contractId, companyName, "");
     }
 
-    @Override
-public String toCsvLine() {
-    // CONTRACTOR,id,code,name,phoneNumber,role,contractId,companyName,unused
-    return baseCsv("CONTRACTOR") + "," + util.CsvHelper.toCsvLine(contractId, companyName, "");
-}
-
-    @Override
-    public String toString() {
-        return String.format("Contractor{%s, companyName='%s', contractId='%s'}",
-                super.toString(), companyName, contractId);
+    @Override public String toString() {
+        return "Contractor{" + super.toString() + "}";
     }
-
 }

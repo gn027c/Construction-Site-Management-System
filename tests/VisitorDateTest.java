@@ -1,6 +1,6 @@
 import static support.Checks.*;
 import java.nio.file.*;
-import java.time.format.DateTimeParseException;
+import exception.DataValidationException;
 import java.util.*;
 import controller.SiteManagerController;
 import model.*;
@@ -17,14 +17,14 @@ public class VisitorDateTest {
         test("Visitor accepts a real leap-day date", () -> equal("29/02/2024", visitor("29/02/2024").getEntryDate()));
         test("Visitor constructor rejects impossible dates and alternate formats", () -> {
             for (String value : Arrays.asList("31/02/2026", "2026-10-29", "29/10/2026 07:05:00", "Unknown (legacy)"))
-                throwsType(DateTimeParseException.class, () -> visitor(value));
-            throwsType(IllegalArgumentException.class, () -> visitor(null));
+                throwsType(DataValidationException.class, () -> visitor(value));
+            throwsType(DataValidationException.class, () -> visitor(null));
         });
         test("Visitor date setter preserves its old value on invalid input", () -> {
             Visitor value = visitor("29/10/2026");
-            throwsType(DateTimeParseException.class, () -> value.setEntryDate("29/02/2026"));
+            throwsType(DataValidationException.class, () -> value.setEntryDate("29/02/2026"));
             equal("29/10/2026", value.getEntryDate());
-            throwsType(DateTimeParseException.class, () -> value.setEntryDate(" 29/10/2026 "));
+            throwsType(DataValidationException.class, () -> value.setEntryDate(" 29/10/2026 "));
             equal("29/10/2026", value.getEntryDate());
         });
         test("Unknown visitor dates round trip as an explicit empty CSV cell", () -> {

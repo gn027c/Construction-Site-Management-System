@@ -1,5 +1,7 @@
 package model;
 
+import static model.ModelValidation.*;
+
 /**
  * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
  * MỞ RỘNG ĐA HÌNH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
@@ -9,126 +11,50 @@ package model;
  * - Cung cấp các phương thức trừu tượng displayDetails() và toCsvLine() cho các lớp con kế thừa.
  */
 public abstract class Person {
-    protected String id;
-    protected String code;
-    protected String name;
-    protected String phoneNumber;
-    protected Role role;
+    private final String id;
+    private final String code;
+    private final Role role;
+    private String name;
+    private String phoneNumber;
 
-    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
-    public Person(String id, String code, String name, String phoneNumber, Role role) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("ID không được để trống.");
-        }
-        if (code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã (code) không được để trống.");
-        }
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Họ tên không được để trống.");
-        }
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            throw new IllegalArgumentException("Số điện thoại không được để trống.");
-        }
-        if (role == null) {
-            throw new IllegalArgumentException("Vai trò (role) không được để trống.");
-        }
-        this.id = id.trim();
-        this.code = code.trim();
-        this.name = name.trim();
-        this.phoneNumber = phoneNumber.trim();
-        this.role = role;
+    protected Person(String id, String code, String name, String phoneNumber, Role role) {
+        this.id = requiredText(id, "id");
+        this.code = personCode(code, "code");
+        this.name = requiredText(name, "name");
+        this.phoneNumber = phoneNumber(phoneNumber);
+        this.role = requiredValue(role, "role");
     }
 
-    // Getters and Setters with validation
-    public String getId() {
-        return id;
+    public String getId() { return id; }
+    public String getCode() { return code; }
+    public Role getRole() { return role; }
+    public String getName() { return name; }
+    public String getPhoneNumber() { return phoneNumber; }
+
+    public void setName(String name) { this.name = requiredText(name, "name"); }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber(phoneNumber); }
+
+    /** Validate both values before changing either field. */
+    public void updateContactDetails(String name, String phoneNumber) {
+        String validName = requiredText(name, "name");
+        String validPhone = phoneNumber(phoneNumber);
+        this.name = validName;
+        this.phoneNumber = validPhone;
     }
 
-    public void setId(String id) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("ID không được để trống.");
-        }
-        this.id = id.trim();
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        if (code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã (code) không được để trống.");
-        }
-        this.code = code.trim();
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Họ tên không được để trống.");
-        }
-        this.name = name.trim();
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            throw new IllegalArgumentException("Số điện thoại không được để trống.");
-        }
-        this.phoneNumber = phoneNumber.trim();
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        if (role == null) {
-            throw new IllegalArgumentException("Vai trò (role) không được để trống.");
-        }
-        this.role = role;
-    }
-
-    /**
-     * Phương thức trừu tượng kiểm tra điều kiện chứng chỉ/hợp đồng an toàn hợp lệ.
-     * PHỤ TRÁCH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
-     *
-     * @return true nếu đáp ứng tiêu chuẩn an toàn công trường, ngược lại false.
-     */
     public abstract boolean hasValidSafetyCredential();
-
-    // CSV line used when saving to file
     public abstract String toCsvLine();
 
-    /**
- * Helper: tạo phần đầu chung của dòng CSV cho mọi subclass.
- * Định dạng: TYPE,id,code,name,phoneNumber,role
- */
-protected String baseCsv(String type) {
-    return util.CsvHelper.toCsvLine(
-            type,
-            id,
-            code,
-            name,
-            phoneNumber,
-            role.name());
-}
+    protected String baseCsv(String type) {
+        return util.CsvHelper.toCsvLine(type, id, code, name, phoneNumber, role.name());
+    }
 
-    // Polymorphic display: each subclass prints its own details via toString()
     public void displayDetails() {
         System.out.println(this);
         System.out.println("   Valid safety credential: " + hasValidSafetyCredential());
     }
 
-    @Override
-    public String toString() {
-        return String.format("ID: %s | Code: %s | Name: %s | Phone: %s | Role: %s",
-                id, code, name, phoneNumber, role != null ? role.name() : "N/A");
+    @Override public String toString() {
+        return String.format("ID: %s | Code: %s | Name: %s | Phone: %s | Role: %s", id, code, name, phoneNumber, role);
     }
 }

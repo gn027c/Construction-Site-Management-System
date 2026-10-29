@@ -65,7 +65,7 @@ public class PersonRepository {
             for (int i = 1; i < rows.size(); i++) {
                 String[] p = rows.get(i);
                 if (util.CsvHelper.isBlankRow(p)) continue;
-                if (p.length != 9 || !p[4].matches("0\\d{9}")) return false;
+                if (p.length != 9) return false;
                 Person person;
                 switch (p[0]) {
                     case "WORKER":

@@ -13,9 +13,6 @@ import java.util.List;
  * MÔ TẢ: Xử lý các quy tắc nghiệp vụ liên quan đến hồ sơ nhân sự có xử lý Exception.
  */
 public class PersonnelService {
-    // Phone number: 10 digits, starts with 0
-    private static final String PHONE_REGEX = "0\\d{9}";
-
     private final PersonRepository personRepository;
 
     public PersonnelService() {
@@ -33,7 +30,6 @@ public class PersonnelService {
             return false;
         }
 
-        checkPhone(p.getPhoneNumber()); // throws InvalidPhoneNumberException
         return personRepository.save(p); // throws DuplicatePersonCodeException
     }
 
@@ -46,12 +42,8 @@ public class PersonnelService {
     public boolean updatePerson(String code, String newName, String newPhone)
             throws PersonNotFoundException, InvalidPhoneNumberException {
         Person p = findPersonByCode(code); // throws PersonNotFoundException
-        checkPhone(newPhone); // throws InvalidPhoneNumberException
-
-        if (newName != null && !newName.trim().isEmpty()) {
-            p.setName(newName.trim());
-        }
-        p.setPhoneNumber(newPhone.trim());
+        String name = newName == null || newName.trim().isEmpty() ? p.getName() : newName;
+        p.updateContactDetails(name, newPhone);
         return true;
     }
 
@@ -63,13 +55,6 @@ public class PersonnelService {
     // Get all persons
     public List<Person> getAllPersons() {
         return personRepository.findAll();
-    }
-
-    // Throw InvalidPhoneNumberException if the phone number is not valid
-    private void checkPhone(String phone) throws InvalidPhoneNumberException {
-        if (phone == null || !phone.trim().matches(PHONE_REGEX)) {
-            throw new InvalidPhoneNumberException(phone);
-        }
     }
 
     public boolean loadFromCsv() {

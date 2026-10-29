@@ -1,7 +1,9 @@
 package model;
 
+import static model.ModelValidation.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * NHIỆM VỤ: Thành viên 3 (Lê Tấn Thiên - SE201852)
@@ -13,88 +15,43 @@ import java.util.Set;
  * - Khai báo Enum SafetyLevel bên trong để định nghĩa cấp độ an toàn.
  */
 public class RestrictedZone extends Zone {
-
-    public enum SafetyLevel {
-        LOW,
-        MEDIUM,
-        HIGH,
-        CRITICAL
-    }
+    public enum SafetyLevel { LOW, MEDIUM, HIGH, CRITICAL }
 
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
-    // Parameterized Constructor
     public RestrictedZone(String zoneId, String zoneName, SafetyLevel requiredSafetyLevel, Set<String> allowedPersonCodes) {
         super(zoneId, zoneName);
-        if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
-        }
-        if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự được cấp phép không được null.");
-        }
-        this.requiredSafetyLevel = requiredSafetyLevel;
-        this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
+        this.requiredSafetyLevel = requiredValue(requiredSafetyLevel, "requiredSafetyLevel");
+        this.allowedPersonCodes = validatedCodes(allowedPersonCodes);
     }
 
-    public SafetyLevel getRequiredSafetyLevel() {
-        return requiredSafetyLevel;
+    private static Set<String> validatedCodes(Set<String> codes) {
+        requiredValue(codes, "allowedPersonCodes");
+        Set<String> normalized = new HashSet<>();
+        for (String code : codes) normalized.add(personCode(code, "allowedPersonCodes"));
+        return normalized;
     }
 
-    public void setRequiredSafetyLevel(SafetyLevel requiredSafetyLevel) {
-        if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
-        }
-        this.requiredSafetyLevel = requiredSafetyLevel;
+    public SafetyLevel getRequiredSafetyLevel() { return requiredSafetyLevel; }
+    public void setRequiredSafetyLevel(SafetyLevel level) { requiredSafetyLevel = requiredValue(level, "requiredSafetyLevel"); }
+    public Set<String> getAllowedPersonCodes() { return new HashSet<>(allowedPersonCodes); }
+    public void setAllowedPersonCodes(Set<String> codes) { allowedPersonCodes = validatedCodes(codes); }
+
+    public boolean grantAccess(String code) { return allowedPersonCodes.add(personCode(code, "personCode")); }
+    public boolean revokeAccess(String code) { return allowedPersonCodes.remove(personCode(code, "personCode")); }
+
+    // Hazard level is metadata until personnel credentials have comparable levels.
+    @Override public boolean checkAccess(Person person) {
+        return person != null && allowedPersonCodes.contains(person.getCode()) && person.hasValidSafetyCredential();
     }
 
-    public Set<String> getAllowedPersonCodes() {
-        return new HashSet<>(allowedPersonCodes);
+    @Override public String toCsvLine() {
+        String codes = allowedPersonCodes.isEmpty() ? "NONE" : String.join(";", new TreeSet<>(allowedPersonCodes));
+        return util.CsvHelper.toCsvLine("RESTRICTED", getZoneId(), getZoneName(), requiredSafetyLevel.name(), codes);
     }
 
-    public void setAllowedPersonCodes(Set<String> allowedPersonCodes) {
-        if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự không được null.");
-        }
-        this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
-    }
-
-    public void grantAccess(String personCode) {
-        if (personCode != null && !personCode.trim().isEmpty()) {
-            allowedPersonCodes.add(personCode.trim());
-        }
-    }
-
-    public void revokeAccess(String personCode) {
-        if (personCode != null) {
-            allowedPersonCodes.remove(personCode.trim());
-        }
-    }
-
-    // Safety level describes zone hazard; access requires whitelist and a valid credential.
-    @Override
-    public boolean checkAccess(Person person) {
-        if (person == null || person.getCode() == null) {
-            return false;
-        }
-        boolean isAccessGranted = allowedPersonCodes.contains(person.getCode().trim());
-        boolean hasValidSafety = person.hasValidSafetyCredential();
-
-        return isAccessGranted && hasValidSafety;
-    }
-
-    @Override
-    public String toCsvLine() {
-        String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty()) 
-                ? "NONE" 
-                : String.join(";", new java.util.TreeSet<>(allowedPersonCodes));
-        return util.CsvHelper.toCsvLine("RESTRICTED", 
-                zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("RestrictedZone{%s, requiredSafetyLevel=%s, allowedCount=%d}",
-                super.toString(), requiredSafetyLevel, allowedPersonCodes.size());
+    @Override public String toString() {
+        return String.format("RestrictedZone{%s, requiredSafetyLevel=%s, allowedCount=%d}", super.toString(), requiredSafetyLevel, allowedPersonCodes.size());
     }
 }

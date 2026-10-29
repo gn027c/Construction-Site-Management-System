@@ -1,5 +1,7 @@
 package model;
 
+import static model.ModelValidation.*;
+
 /**
  * NHIỆM VỤ: Thành viên 3 (Lê Tấn Thiên - SE201852)
  * MÔ TẢ:
@@ -8,52 +10,25 @@ package model;
  * - Định nghĩa cơ chế kiểm soát quyền ra/vào cổng checkAccess(Person person).
  */
 public class Zone {
-    protected String zoneId;
-    protected String zoneName;
+    private final String zoneId;
+    private String zoneName;
 
     public Zone(String zoneId, String zoneName) {
-        if (zoneId == null || zoneId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã khu vực (zoneId) không được để trống.");
-        }
-        if (zoneName == null || zoneName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên khu vực (zoneName) không được để trống.");
-        }
-        this.zoneId = zoneId.trim();
-        this.zoneName = zoneName.trim();
+        this.zoneId = requiredText(zoneId, "zoneId");
+        this.zoneName = requiredText(zoneName, "zoneName");
     }
 
-    public String getZoneId() {
-        return zoneId;
-    }
+    public String getZoneId() { return zoneId; }
+    public String getZoneName() { return zoneName; }
+    public void setZoneName(String zoneName) { this.zoneName = requiredText(zoneName, "zoneName"); }
 
-    public void setZoneId(String zoneId) {
-        if (zoneId == null || zoneId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã khu vực (zoneId) không được để trống.");
-        }
-        this.zoneId = zoneId.trim();
-    }
-
-    public String getZoneName() {
-        return zoneName;
-    }
-
-    public void setZoneName(String zoneName) {
-        if (zoneName == null || zoneName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên khu vực (zoneName) không được để trống.");
-        }
-        this.zoneName = zoneName.trim();
-    }
-
-    public boolean checkAccess(Person person) {
-        return person != null;
-    }
+    public boolean checkAccess(Person person) { return person != null; }
 
     public String toCsvLine() {
         return util.CsvHelper.toCsvLine("REGULAR", zoneId, zoneName, "NONE", "NONE");
     }
 
-    @Override
-    public String toString() {
+    @Override public String toString() {
         return String.format("Zone{zoneId='%s', zoneName='%s'}", zoneId, zoneName);
     }
 }
