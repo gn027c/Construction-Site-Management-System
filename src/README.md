@@ -89,51 +89,147 @@ the four files are saved independently, attendance uses insertion order, and
 spreadsheet exports may prefix formula-like cells. Update these explanations
 when the corresponding implementation changes.
 
-## Sign-in and account administration
+## Run and verify
 
-Start the application normally and sign in with username `admin` and password
-`admin` on a new installation. The default account is created only when
-`accounts.csv` does not exist in the selected data directory. Startup preserves
-existing credentials and stops if that file is invalid; it never resets an
-existing password to the default.
+The application uses Java 8, CSV storage and a console/terminal interface.
+Run from the project root in PowerShell:
 
-Choose **6 - Account administration** as an administrator to list or create
-accounts, assign roles, replace account permissions, enable or disable an
-account, or reset a password. Choose **7 - Change my password** to change the
-signed-in account's password, or **8 - Sign out** to switch users. Password
-creation and reset require confirmation in the console.
+```powershell
+$sources = @(Get-ChildItem src -Recurse -Filter '*.java' | ForEach-Object FullName)
+javac -encoding UTF-8 -d bin $sources
+java '-Dfile.encoding=UTF-8' -cp bin Main
+./scripts/test.ps1
+```
 
-Login roles are declared in `Account.Role` and are separate from the personnel
-labels in `Role`. Creating a worker, contractor or visitor does not create a
-login account. Staff accounts do not automatically receive physical access to
-restricted zones.
+Select a different directory with `-Dsmartsite.dataDir=D:/SmartSiteData`.
+The first installation creates `admin` with password `admin`; existing credentials
+are never overwritten. Change the password through menu 7. Menu 8 signs out.
 
-| Login role | Default access |
+## People, accounts and permissions
+
+Person subclasses are `Worker`, `Staff`, `Contractor` and `Visitor`. Staff have a
+required position and an optional safety certificate. They follow the same
+check-in, check-out and zone rules as other personnel. Their position alone does
+not grant application access. Personnel can be deactivated; an inactive person
+cannot check in again but can check out of an already-open visit.
+
+Accounts are separate from people. A person can be linked to at most one account.
+Admin menu 6 creates accounts, assigns roles and permissions, changes account
+status, resets passwords and links personnel. The creation flow requests the
+personnel code before the password for non-admin roles.
+
+| Account role | Default access |
 | --- | --- |
-| `ADMIN` | All application operations and account administration |
-| `SITE_MANAGER` | Personnel and zone management, attendance and incident viewing, report exports |
-| `SAFETY_OFFICER` | Incident reporting, viewing, assignment and resolution |
+| ADMIN | Application and account administration, logs and data review |
+| SITE_MANAGER | Personal attendance, personnel/zones, occupancy, reports |
+| SAFETY_OFFICER | Personal attendance, occupancy, incident handling |
+| SITE_USER | Personal attendance and personal attendance history |
 
-Administrators can replace a staff account's permissions with a selected subset
-of application operations. Assigning a role restores that role's defaults.
-Account administration is reserved for `ADMIN`, and administrator accounts retain
-all permissions. At least one enabled administrator must remain. A signed-in
-account cannot disable itself.
+Personal attendance derives identity from the signed-in account; it never accepts
+a substitute person code. Staff accounts without a personnel link can still use
+their management operations but must be linked before using personal attendance.
+Administrator-only log and review permissions cannot be granted to staff roles.
+No account can bypass attendance order or restricted-zone credentials.
 
-Menus retain stable option numbers while hiding unavailable operations. Entering
-a hidden number still triggers permission validation before the operation runs.
-Permission changes apply to subsequent operations, and successful account changes
-are saved immediately. A failed save retains the previous in-memory accounts.
+## Canonical identifiers
 
-The four business CSV files remain independent of `accounts.csv`. Accounts are
-excluded from business exports, and the credential file is ignored by Git.
-Passwords use PBKDF2-HMAC-SHA256 with 600,000 iterations, a random 16-byte salt
-and a 32-byte derived key. This configuration follows the PBKDF2 parameters in
-the [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
-The account list never displays stored password hashes. Native consoles hide
-password input; embedded terminals and redirected input use the line reader.
+Stored identifiers use an uppercase prefix and a positive, unpadded number:
+`P1`, `W1`, `S2`, `Z10`, `INC101`, `ATT1`, `REC1`. Input such as `w01`, `W001`
+or `w-001` resolves to `W1`. Prefix-only values, zero and malformed numbers are
+rejected. Natural sorting places `S2` before `S10`. All references, including
+whitelists and linked accounts, use the same normalizer.
 
-Authentication and permissions govern the staff console. Business services and
-repositories remain reusable inside the application; the facade and controllers
-guard interactive operations. The data-directory lock still limits access to
-one cooperating console process at a time.
+Phone numbers, passwords, usernames, certificate numbers, contract numbers and
+free text do not use business identifier normalization. Account usernames retain
+their own case-insensitive rules. Migration stops on identifier collisions and
+never silently merges records.
+
+## CSV schemas and migration
+
+| File | Columns |
+| --- | --- |
+| persons.csv | type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active |
+| zones.csv | type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes |
+| attendance.csv | recordId,personCode,zoneId,timestamp,checkType |
+| incidents.csv | incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived |
+| accounts.csv | username,passwordHash,role,enabled,permissions,personCode |
+| activity_log.csv | logId,operationId,timestamp,actorUsername,actorRole,action,targetType,targetId,status,reason |
+| notifications.csv | notificationId,recipientUsername,operationId,timestamp,message,read |
+
+Worker extras are certificate/trade/team; Staff extras are certificate/position/
+empty; Contractor extras are contract/company/empty; Visitor extras are purpose/
+host/date. Dates use `dd/MM/yyyy`; timestamps use `yyyy-MM-dd HH:mm:ss`.
+Unknown historical incident timestamps remain empty. Migration does not invent
+dates or fix unknown attendance history.
+
+Convert an older CSV directory once into a new destination:
+
+```powershell
+java '-Dfile.encoding=UTF-8' -cp bin util.CsvMigration D:/OldData D:/ConvertedData
+```
+
+The converter preserves source files, credentials and free-text fields, checks
+collisions/references before writing, and refuses an existing destination. It
+converts old personnel, incident and account schemas; runtime loaders use the new
+schemas. Existing activity and notification files are not copied by migration.
+Each business CSV replacement is atomic; the collection is not a multi-file
+transaction. No file-based application snapshot or state store is used.
+
+## Attendance, occupancy and data review
+
+Attendance menu 3 retains staff entry/history at options 1/2, and adds personal
+entry/history at 3/4 and occupancy at 5/6. Staff entry on behalf of others needs
+its separate permission. Failed swipes are logged with `FAILED` but are not added
+to attendance.csv. A recorded check-in at one zone must be checked out there
+before entering another. Concurrent submissions are serialized. If attendance
+storage fails, the staged swipe and sequence are rolled back so retry is safe.
+
+Occupancy is derived from the last successful swipe for each person, including
+inactive people who have not checked out. Global occupancy requires its own
+permission; personal occupancy includes only the linked person.
+
+The scanner validates row formats, references and complete swipe order. A failed
+reload preserves active data. Invalid startup data keeps business operations
+blocked while an administrator can sign in and use menu 11. The included sample
+history deliberately contains invalid historical swipes; verify the evidence
+before correcting them. Menu 11 lists row/record/person issues and accepts an
+explicitly confirmed correction with reason and evidence. Original attendance
+values and the verified correction are retained in the administrator log. The
+whole history must pass validation before corrected data becomes active. The
+scanner does not infer race conditions or manufacture missing checkout records.
+
+## Activity history and notifications
+
+Activity history records logins, account operations, protected business actions,
+reads/search/navigation, exports, denied operations and verified corrections.
+Statuses are SUCCESS, FAILED and CANCELLED. Menu 9 is restricted to ADMIN at the
+service boundary. Passwords, salts and credential hashes are excluded. Reading
+logs does not cause recursive logging.
+
+Menu 10 exposes only the current account's inbox and its own read markers. Failed
+attendance notifies the actor and enabled administrators, with an operation
+identifier when logging succeeds. Account changes also notify the affected user.
+A log or notification storage failure does not reverse successfully persisted
+business data; the console reports the storage failure separately. If storage is
+unavailable, the application does not claim that the missing record was saved.
+Credentials, runtime activity and notifications are excluded from Git and
+business report exports. Passwords use PBKDF2-HMAC-SHA256 with 600,000 iterations
+and independent salts, following the [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+
+## Search, archive and reports
+
+Lists show ten rows per page. Use N/P for next/previous, a page number to jump,
+F to filter, R to clear filters and 0 to return. Filter terms combine with AND;
+identifiers accept canonical aliases. Status words such as active/inactive and
+success/failed are matched as whole words. Authorization limits the collection
+before searching or paging.
+
+Incident menu 5 archives resolved incidents instead of deleting history; option
+6 includes archived records. Archived incidents remain in reports. Resolving an
+incident stamps its resolution time; reporting stamps its creation time.
+
+Menu 12 generates attendance and incident summaries by day, Monday-based week or
+calendar month, with inclusive from/to dates. Attendance reports can filter person
+and zone; incident reports include unknown historical dates in a separate row.
+Exports contain the filtered report and do not include accounts or logs. Menu 5
+still saves/reloads/exports business CSV data according to account permissions.
