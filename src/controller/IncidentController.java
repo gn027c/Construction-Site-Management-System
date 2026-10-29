@@ -7,11 +7,12 @@ import util.InputHelper;
 import java.util.Scanner;
 
 /**
- * TẦNG ĐIỀU KHIỂN (CONTROLLER LAYER)
- * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ:
- * - Điều hướng luồng tương tác Console cho Menu Quản lý Sự cố An toàn.
- * - Thu thập input, gọi IncidentService và hiển thị kết quả ra giao diện.
+ * Handles console input and result messages for incident operations.
+ *
+ * <p>Reporting, assignment, resolution and removal of resolved incidents are
+ * delegated to {@link service.IncidentService}.
+ *
+ * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident console flows.
  */
 public class IncidentController {
     private final IncidentService incidentService;
@@ -20,8 +21,20 @@ public class IncidentController {
         this.incidentService = incidentService;
     }
 
-    public void handleMenu(Scanner scanner) { handleMenu(scanner, () -> { }); }
+    public void handleMenu(Scanner scanner) {
+        handleMenu(scanner, () -> {
+        });
+    }
 
+    /**
+     * Runs the submenu and calls the supplied action after modifying menu choices.
+     *
+     * <p>The callback runs after the flow returns, including cancellation or handled
+     * errors. Exceptions escaping the flow prevent the callback from running.
+     *
+     * @param scanner the shared console input reader
+     * @param saveChanges the action used to persist current data
+     */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
         boolean back = false;
         while (!back) {
@@ -33,8 +46,12 @@ public class IncidentController {
                     break;
                 case 2:
                     java.util.List<Incident> incidents = incidentService.getAllIncidents();
-                    if (incidents.isEmpty()) view.ConsoleTheme.warning("No incidents.");
-                    for (Incident incident : incidents) System.out.println(incident);
+                    if (incidents.isEmpty()) {
+                        view.ConsoleTheme.warning("No incidents.");
+                    }
+                    for (Incident incident : incidents) {
+                        System.out.println(incident);
+                    }
                     break;
                 case 3:
                     assignIncidentFlow(scanner);
@@ -43,13 +60,17 @@ public class IncidentController {
                     resolveIncidentFlow(scanner);
                     break;
                 case 5:
-                    view.ConsoleTheme.success("Purged " + incidentService.purgeResolvedIncidents() + " resolved incidents.");
+                    view.ConsoleTheme.success(
+                            "Purged " + incidentService.purgeResolvedIncidents() + " resolved incidents."
+                    );
                     break;
                 case 0:
                     back = true;
                     break;
             }
-            if (choice == 1 || choice == 3 || choice == 4 || choice == 5) saveChanges.run();
+            if (choice == 1 || choice == 3 || choice == 4 || choice == 5) {
+                saveChanges.run();
+            }
         }
     }
 
@@ -58,23 +79,29 @@ public class IncidentController {
         String id = InputHelper.getString(scanner, "Enter Incident ID (e.g., INC001): ");
         String title = InputHelper.getString(scanner, "Enter Incident Title: ");
         String description = InputHelper.getString(scanner, "Enter Incident Description: ");
-
         System.out.println("Select Severity Level:");
         System.out.println("1. LOW");
         System.out.println("2. MEDIUM");
         System.out.println("3. HIGH");
         System.out.println("4. CRITICAL");
         int sevChoice = InputHelper.getInt(scanner, "Choose severity (1-4): ", 1, 4);
-
         Incident.IncidentSeverity severity = Incident.IncidentSeverity.LOW;
         switch (sevChoice) {
-            case 2: severity = Incident.IncidentSeverity.MEDIUM; break;
-            case 3: severity = Incident.IncidentSeverity.HIGH; break;
-            case 4: severity = Incident.IncidentSeverity.CRITICAL; break;
+            case 2:
+                severity = Incident.IncidentSeverity.MEDIUM;
+                break;
+            case 3:
+                severity = Incident.IncidentSeverity.HIGH;
+                break;
+            case 4:
+                severity = Incident.IncidentSeverity.CRITICAL;
+                break;
         }
-
-        if (incidentService.reportIncident(id, title, description, severity)) view.ConsoleTheme.success("Incident reported with status OPEN.");
-        else view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
+        if (incidentService.reportIncident(id, title, description, severity)) {
+            view.ConsoleTheme.success("Incident reported with status OPEN.");
+        } else {
+            view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
+        }
     }
 
     private void assignIncidentFlow(Scanner scanner) {
@@ -82,8 +109,11 @@ public class IncidentController {
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
         try {
-            if (incidentService.assignIncident(incidentId, assigneeCode)) view.ConsoleTheme.success("Incident assigned.");
-            else view.ConsoleTheme.warning("Assignee must be an existing person.");
+            if (incidentService.assignIncident(incidentId, assigneeCode)) {
+                view.ConsoleTheme.success("Incident assigned.");
+            } else {
+                view.ConsoleTheme.warning("Assignee must be an existing person.");
+            }
         } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
             view.ConsoleTheme.warning("Assignment Error: " + e.getMessage());
         }
@@ -92,7 +122,10 @@ public class IncidentController {
     private void resolveIncidentFlow(Scanner scanner) {
         System.out.println("\n--- RESOLVE INCIDENT ---");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
-        if (incidentService.resolveIncident(incidentId)) view.ConsoleTheme.success("Incident resolved.");
-        else view.ConsoleTheme.warning("Invalid incident ID.");
+        if (incidentService.resolveIncident(incidentId)) {
+            view.ConsoleTheme.success("Incident resolved.");
+        } else {
+            view.ConsoleTheme.warning("Invalid incident ID.");
+        }
     }
 }

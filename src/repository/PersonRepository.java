@@ -10,14 +10,23 @@ import java.util.Map;
 import java.util.Arrays;
 
 /**
- * TẦNG LƯU TRỮ (REPOSITORY LAYER)
- * PHỤ TRÁCH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
- * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp đối tượng Person trong bộ nhớ bằng LinkedHashMap O(1).
+ * Stores personnel by code in an insertion-ordered map and handles personnel CSV.
+ *
+ * <p>Code lookup is case-sensitive. CSV loading requires the canonical nine-column
+ * header and validates all rows before replacing the active map.
+ *
+ * <p>Responsibility: Tran Ngoc Anh Tuan (SE201513) - personnel storage.
  */
 public class PersonRepository {
     private final Map<String, Person> store = new LinkedHashMap<>();
 
-    /** Saves a person; throws DuplicatePersonCodeException if the code already exists. */
+    /**
+     * Registers a person under its trimmed, case-sensitive code.
+     *
+     * @param person the person to register
+     * @return false for missing input; true after registration
+     * @throws DuplicatePersonCodeException if the code is already registered
+     */
     public boolean save(Person person) throws DuplicatePersonCodeException {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
             return false;
@@ -30,7 +39,12 @@ public class PersonRepository {
         return true;
     }
 
-    /** Looks up a person by code; returns null if not found. */
+    /**
+     * Looks up a trimmed, case-sensitive personnel code without throwing for absence.
+     *
+     * @param code the personnel code, possibly null
+     * @return the matching person, or null when absent
+     */
     public Person findByCode(String code) {
         if (code == null) {
             return null;
@@ -38,7 +52,13 @@ public class PersonRepository {
         return store.get(code.trim());
     }
 
-    /** Looks up a person by code; throws PersonNotFoundException if not found. */
+    /**
+     * Looks up personnel when the caller requires an existing record.
+     *
+     * @param code the personnel code
+     * @return the matching person
+     * @throws PersonNotFoundException if no record matches
+     */
     public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
         Person person = findByCode(code);
         if (person == null) {
@@ -52,42 +72,83 @@ public class PersonRepository {
         return store.remove(p.getCode()) != null;
     }
 
+    /**
+     * Returns a separate list in storage order containing the stored model objects.
+     *
+     * <p>Changing the returned list does not change this repository's collection.
+     * The model objects themselves are shared and retain their validated operations.
+     *
+     * @return a new list containing the stored objects
+     */
     public List<Person> findAll() {
         return new ArrayList<>(store.values());
     }
 
+    /**
+     * Loads CSV into a temporary repository before replacing active data.
+     *
+     * @param filePath the CSV file to read
+     * @return true after all rows are accepted; false on read or validation
+     *         failure, leaving the current collection unchanged
+     */
     public boolean loadFromCsv(String filePath) {
         PersonRepository staged = new PersonRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !Arrays.equals(rows.get(0), new String[]{
-                    "type", "id", "code", "name", "phoneNumber", "role", "extra1", "extra2", "extra3"})) return false;
+            if (rows.isEmpty()
+                    || !Arrays.equals(
+                            rows.get(0),
+                            new String[] {
+                                    "type", "id", "code", "name", "phoneNumber",
+                                    "role", "extra1", "extra2", "extra3"
+                            }
+                    )) {
+                return false;
+            }
             for (int i = 1; i < rows.size(); i++) {
                 String[] p = rows.get(i);
-                if (util.CsvHelper.isBlankRow(p)) continue;
-                if (p.length != 9) return false;
+                if (util.CsvHelper.isBlankRow(p)) {
+                    continue;
+                }
+                if (p.length != 9) {
+                    return false;
+                }
                 Person person;
                 switch (p[0]) {
                     case "WORKER":
                         person = new model.Worker(p[1], p[2], p[3], p[4], p[7], p[6], p[8]);
                         break;
                     case "CONTRACTOR":
-                        if (!p[8].isEmpty()) return false;
+                        if (!p[8].isEmpty()) {
+                            return false;
+                        }
                         person = new model.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
                         break;
                     case "VISITOR":
                         person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
                         break;
-                    default: return false;
+                    default:
+                        return false;
                 }
-                if (!person.getRole().name().equals(p[5])) return false;
+                if (!person.getRole().name().equals(p[5])) {
+                    return false;
+                }
                 staged.save(person);
             }
-        } catch (RuntimeException e) { return false; }
-        store.clear(); store.putAll(staged.store);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        store.clear();
+        store.putAll(staged.store);
         return true;
     }
 
+    /**
+     * Serializes current data and requests an atomic replacement of one CSV file.
+     *
+     * @param filePath the destination CSV file
+     * @return whether the file was written successfully
+     */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
         lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3");

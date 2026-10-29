@@ -4,20 +4,20 @@ import exception.DataValidationException;
 import java.util.Scanner;
 
 /**
- * TASK: Member 1 (Huynh Nguyen Hoang Khang - SE201461)
- * DESCRIPTION:
- * - Utility class to handle safe input operations from Console.
- * - Prevents Scanner buffer issues and handles data type exceptions.
+ * Reads and validates console input one complete line at a time.
+ *
+ * <p>Interactive readers trim accepted input and retry after validation failures.
+ * End of input propagates to the application loop so it can attempt to save and exit.
+ *
+ * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - console input utilities.
  */
 public class InputHelper {
-
     public static void validateString(String input, String fieldName) throws DataValidationException {
         if (input == null || input.trim().isEmpty()) {
             throw new DataValidationException(fieldName, "Cannot be empty or whitespace.");
         }
     }
 
-    
     public static void validateInt(String input, String fieldName, int min, int max) throws DataValidationException {
         validateString(input, fieldName);
         try {
@@ -30,7 +30,6 @@ public class InputHelper {
         }
     }
 
-    
     public static void validateDate(String input, String fieldName) throws DataValidationException {
         validateString(input, fieldName);
         try {
@@ -40,7 +39,6 @@ public class InputHelper {
         }
     }
 
-   
     public static String getString(Scanner scanner, String prompt) {
         while (true) {
             view.ConsoleTheme.prompt(prompt);
@@ -54,7 +52,6 @@ public class InputHelper {
         }
     }
 
-    
     public static int getInt(Scanner scanner, String prompt, int min, int max) {
         while (true) {
             view.ConsoleTheme.prompt(prompt);
@@ -68,7 +65,6 @@ public class InputHelper {
         }
     }
 
-    
     public static String getDate(Scanner scanner, String prompt) {
         while (true) {
             view.ConsoleTheme.prompt(prompt);

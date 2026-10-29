@@ -3,12 +3,14 @@ package model;
 import static model.ModelValidation.*;
 
 /**
- * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
- * MỞ RỘNG ĐA HÌNH: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
- * MÔ TẢ:
- * - Lớp cha trừu tượng (abstract class) cơ sở đại diện cho mọi cá nhân trên công trường.
- * - Chịu trách nhiệm quản lý các thuộc tính chung (id, code, name, phoneNumber, role).
- * - Bảo vệ định danh, xác thực thông tin liên hệ và cung cấp hành vi đa hình cho lớp con.
+ * Defines identity, contact details and polymorphic behavior for site personnel.
+ *
+ * <p>Identity, personnel code and role are fixed after construction. Contact
+ * changes are validated by the model. Subclasses define their own safety
+ * credentials and CSV representation.
+ *
+ * <p>Responsibilities: Huynh Nguyen Hoang Khang (SE201461) - base personnel model;
+ * Tran Ngoc Anh Tuan (SE201513) - personnel subclass integration.
  */
 public abstract class Person {
     private final String id;
@@ -25,16 +27,43 @@ public abstract class Person {
         this.role = requiredValue(role, "role");
     }
 
-    public String getId() { return id; }
-    public String getCode() { return code; }
-    public Role getRole() { return role; }
-    public String getName() { return name; }
-    public String getPhoneNumber() { return phoneNumber; }
+    public String getId() {
+        return id;
+    }
 
-    public void setName(String name) { this.name = requiredText(name, "name"); }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber(phoneNumber); }
+    public String getCode() {
+        return code;
+    }
 
-    /** Validate both values before changing either field. */
+    public Role getRole() {
+        return role;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setName(String name) {
+        this.name = requiredText(name, "name");
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber(phoneNumber);
+    }
+
+    /**
+     * Validates both contact values before assigning either field.
+     *
+     * <p>If either value is invalid, both existing contact values are retained.
+     *
+     * @param name the new nonblank name
+     * @param phoneNumber the new phone number
+     * @throws exception.DataValidationException if either contact value is invalid
+     */
     public void updateContactDetails(String name, String phoneNumber) {
         String validName = requiredText(name, "name");
         String validPhone = phoneNumber(phoneNumber);
@@ -42,7 +71,18 @@ public abstract class Person {
         this.phoneNumber = validPhone;
     }
 
+    /**
+     * Evaluates the subtype-specific credential rule used by restricted zones.
+     *
+     * @return whether this person satisfies the current credential rule
+     */
     public abstract boolean hasValidSafetyCredential();
+
+    /**
+     * Serializes common personnel columns and the subtype's three extra columns.
+     *
+     * @return one escaped record matching the nine-column personnel CSV schema
+     */
     public abstract String toCsvLine();
 
     protected String baseCsv(String type) {
@@ -54,7 +94,8 @@ public abstract class Person {
         System.out.println("   Valid safety credential: " + hasValidSafetyCredential());
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return String.format("ID: %s | Code: %s | Name: %s | Phone: %s | Role: %s", id, code, name, phoneNumber, role);
     }
 }

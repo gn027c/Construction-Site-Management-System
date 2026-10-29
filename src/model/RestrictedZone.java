@@ -6,21 +6,31 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * NHIỆM VỤ: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ:
- * - Lớp đại diện cho khu vực nguy hiểm / hạn chế tiếp cận trên công trường.
- * - Kế thừa từ lớp cơ sở Zone.
- * - Quản lý cấp độ an toàn yêu cầu (requiredSafetyLevel) và danh sách mã nhân sự được cấp phép (allowedPersonCodes).
- * - Ghi đè phương thức checkAccess(Person person) để kiểm tra quyền truy cập nghiêm ngặt.
- * - Khai báo Enum SafetyLevel bên trong để định nghĩa cấp độ an toàn.
+ * Represents a zone requiring explicit permission and a safety credential.
+ *
+ * <p>Access requires both whitelist membership and a valid credential supplied
+ * by the person subtype. The safety level describes the zone hazard; personnel
+ * do not currently have a comparable credential level.
+ *
+ * <p>Responsibility: Le Tan Thien (SE201852) - restricted zones and access rules.
  */
 public class RestrictedZone extends Zone {
-    public enum SafetyLevel { LOW, MEDIUM, HIGH, CRITICAL }
+    public enum SafetyLevel {
+        LOW,
+        MEDIUM,
+        HIGH,
+        CRITICAL
+    }
 
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
-    public RestrictedZone(String zoneId, String zoneName, SafetyLevel requiredSafetyLevel, Set<String> allowedPersonCodes) {
+    public RestrictedZone(
+            String zoneId,
+            String zoneName,
+            SafetyLevel requiredSafetyLevel,
+            Set<String> allowedPersonCodes
+    ) {
         super(zoneId, zoneName);
         this.requiredSafetyLevel = requiredValue(requiredSafetyLevel, "requiredSafetyLevel");
         this.allowedPersonCodes = validatedCodes(allowedPersonCodes);
@@ -29,29 +39,74 @@ public class RestrictedZone extends Zone {
     private static Set<String> validatedCodes(Set<String> codes) {
         requiredValue(codes, "allowedPersonCodes");
         Set<String> normalized = new HashSet<>();
-        for (String code : codes) normalized.add(personCode(code, "allowedPersonCodes"));
+        for (String code : codes) {
+            normalized.add(personCode(code, "allowedPersonCodes"));
+        }
         return normalized;
     }
 
-    public SafetyLevel getRequiredSafetyLevel() { return requiredSafetyLevel; }
-    public void setRequiredSafetyLevel(SafetyLevel level) { requiredSafetyLevel = requiredValue(level, "requiredSafetyLevel"); }
-    public Set<String> getAllowedPersonCodes() { return new HashSet<>(allowedPersonCodes); }
-    public void setAllowedPersonCodes(Set<String> codes) { allowedPersonCodes = validatedCodes(codes); }
+    public SafetyLevel getRequiredSafetyLevel() {
+        return requiredSafetyLevel;
+    }
 
-    public boolean grantAccess(String code) { return allowedPersonCodes.add(personCode(code, "personCode")); }
-    public boolean revokeAccess(String code) { return allowedPersonCodes.remove(personCode(code, "personCode")); }
+    public void setRequiredSafetyLevel(SafetyLevel level) {
+        requiredSafetyLevel = requiredValue(level, "requiredSafetyLevel");
+    }
 
-    // Hazard level is metadata until personnel credentials have comparable levels.
-    @Override public boolean checkAccess(Person person) {
+    /**
+     * Copies the whitelist so callers cannot change it without validation.
+     *
+     * @return a separate set containing the allowed personnel codes
+     */
+    public Set<String> getAllowedPersonCodes() {
+        return new HashSet<>(allowedPersonCodes);
+    }
+
+    /**
+     * Validates every code before replacing the current whitelist.
+     *
+     * @param codes the complete replacement whitelist; an empty set is allowed
+     * @throws exception.DataValidationException if the set or any code is invalid
+     */
+    public void setAllowedPersonCodes(Set<String> codes) {
+        allowedPersonCodes = validatedCodes(codes);
+    }
+
+    public boolean grantAccess(String code) {
+        return allowedPersonCodes.add(personCode(code, "personCode"));
+    }
+
+    public boolean revokeAccess(String code) {
+        return allowedPersonCodes.remove(personCode(code, "personCode"));
+    }
+
+    /**
+     * Requires whitelist membership and the person's subtype-specific safety credential.
+     *
+     * <p>The hazard level is metadata and is not compared with personnel
+     * credentials because those credentials have no comparable level.
+     *
+     * @param person the person requesting access, possibly null
+     * @return whether both access requirements are satisfied
+     */
+    @Override
+    public boolean checkAccess(Person person) {
         return person != null && allowedPersonCodes.contains(person.getCode()) && person.hasValidSafetyCredential();
     }
 
-    @Override public String toCsvLine() {
+    @Override
+    public String toCsvLine() {
         String codes = allowedPersonCodes.isEmpty() ? "NONE" : String.join(";", new TreeSet<>(allowedPersonCodes));
         return util.CsvHelper.toCsvLine("RESTRICTED", getZoneId(), getZoneName(), requiredSafetyLevel.name(), codes);
     }
 
-    @Override public String toString() {
-        return String.format("RestrictedZone{%s, requiredSafetyLevel=%s, allowedCount=%d}", super.toString(), requiredSafetyLevel, allowedPersonCodes.size());
+    @Override
+    public String toString() {
+        return String.format(
+                "RestrictedZone{%s, requiredSafetyLevel=%s, allowedCount=%d}",
+                super.toString(),
+                requiredSafetyLevel,
+                allowedPersonCodes.size()
+        );
     }
 }

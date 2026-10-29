@@ -4,16 +4,21 @@ import static model.ModelValidation.*;
 import java.io.Serializable;
 
 /**
- * NHIỆM VỤ: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ:
- * - Lớp đại diện cho một bản ghi điểm danh vào/ra (Check-in / Check-out) tại công trường.
- * - Chịu trách nhiệm quản lý mã bản ghi (recordId), mã nhân sự (personCode), mã khu vực (zoneId),
- *   thời điểm quẹt thẻ (timestamp) và loại thao tác (CHECK_IN / CHECK_OUT).
- * - Giữ cố định định danh/loại thao tác và kiểm tra chu kỳ qua assertCanFollow().
+ * Represents one check-in or check-out for a person at a zone.
+ *
+ * <p>Record identity, person, zone and action are fixed after construction. The
+ * entity validates timestamps and checks whether a new swipe can follow the
+ * preceding swipe supplied by the service.
+ *
+ * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance records and swipe rules.
  */
 public class AttendanceRecord implements Serializable {
     private static final long serialVersionUID = 1L;
-    public enum CheckType { CHECK_IN, CHECK_OUT }
+
+    public enum CheckType {
+        CHECK_IN,
+        CHECK_OUT
+    }
 
     private final String recordId;
     private final String personCode;
@@ -29,26 +34,62 @@ public class AttendanceRecord implements Serializable {
         this.checkType = requiredValue(checkType, "checkType");
     }
 
-    public String getRecordId() { return recordId; }
-    public String getPersonCode() { return personCode; }
-    public String getZoneId() { return zoneId; }
-    public String getTimestamp() { return timestamp; }
-    public CheckType getCheckType() { return checkType; }
-    public void setTimestamp(String timestamp) { this.timestamp = timestamp(timestamp); }
+    public String getRecordId() {
+        return recordId;
+    }
 
-    /** Validate a new swipe against the preceding record of the same person. */
+    public String getPersonCode() {
+        return personCode;
+    }
+
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public CheckType getCheckType() {
+        return checkType;
+    }
+
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp(timestamp);
+    }
+
+    /**
+     * Checks whether this swipe can follow the supplied swipe for the same person.
+     *
+     * <p>A first swipe must be a check-in. A check-in requires the previous swipe
+     * to be a check-out; a check-out requires a check-in at the same zone. This
+     * checks action order, not timestamp chronology or a complete history.
+     *
+     * @param previous the preceding stored swipe, or null when there is none
+     * @throws exception.DataValidationException if the previous swipe belongs to another person
+     * @throws exception.AttendanceOrderException if the swipe sequence is invalid
+     */
     public void assertCanFollow(AttendanceRecord previous) {
-        if (previous != null && !personCode.equals(previous.personCode))
+        if (previous != null && !personCode.equals(previous.personCode)) {
             throw new exception.DataValidationException("previousRecord", "Must belong to the same person.");
+        }
         if (checkType == CheckType.CHECK_IN) {
-            if (previous != null && previous.checkType == CheckType.CHECK_IN)
-                throw invalidOrder("Already checked in at zone '" + previous.zoneId + "'. Check out before checking in again.");
+            if (previous != null && previous.checkType == CheckType.CHECK_IN) {
+                throw invalidOrder(
+                        "Already checked in at zone '" + previous.zoneId + "'. Check out before checking in again."
+                );
+            }
             return;
         }
-        if (previous == null) throw invalidOrder("Cannot check out without a prior check-in.");
-        if (previous.checkType == CheckType.CHECK_OUT) throw invalidOrder("Already checked out. Check in before checking out again.");
-        if (!previous.zoneId.equalsIgnoreCase(zoneId))
+        if (previous == null) {
+            throw invalidOrder("Cannot check out without a prior check-in.");
+        }
+        if (previous.checkType == CheckType.CHECK_OUT) {
+            throw invalidOrder("Already checked out. Check in before checking out again.");
+        }
+        if (!previous.zoneId.equalsIgnoreCase(zoneId)) {
             throw invalidOrder("Check-out zone must match the current zone '" + previous.zoneId + "'.");
+        }
     }
 
     private exception.AttendanceOrderException invalidOrder(String reason) {
@@ -59,8 +100,15 @@ public class AttendanceRecord implements Serializable {
         return util.CsvHelper.toCsvLine(recordId, personCode, zoneId, timestamp, checkType.name());
     }
 
-    @Override public String toString() {
-        return String.format("AttendanceRecord: recordId=%s, personCode=%s, zoneId=%s, timestamp=%s, checkType=%s",
-                recordId, personCode, zoneId, timestamp, checkType);
+    @Override
+    public String toString() {
+        return String.format(
+                "AttendanceRecord: recordId=%s, personCode=%s, zoneId=%s, timestamp=%s, checkType=%s",
+                recordId,
+                personCode,
+                zoneId,
+                timestamp,
+                checkType
+        );
     }
 }

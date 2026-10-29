@@ -1,10 +1,12 @@
 package model;
 
 /**
- * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461)
- * MÔ TẢ:
- * - Enum định nghĩa các vai trò phân quyền (Role-Based Access Control) trên công trường.
- * - Các vai trò: WORKER, CONTRACTOR, VISITOR, SAFETY_OFFICER, SITE_MANAGER.
+ * Lists personnel role labels stored in personnel records.
+ *
+ * <p>A role label alone grants no access. Zone access is decided by
+ * {@link Zone#checkAccess(Person)} and the person subtype's credential rule.
+ *
+ * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - shared personnel roles.
  */
 public enum Role {
     WORKER,

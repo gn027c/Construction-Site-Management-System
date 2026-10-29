@@ -7,9 +7,13 @@ import java.util.List;
 import util.DateTimeHelper;
 
 /**
- * TẦNG NGHIỆP VỤ (SERVICE LAYER)
- * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Tra cứu nhân sự/khu vực, gọi luật chuyển trạng thái của AttendanceRecord và lưu bản ghi.
+ * Coordinates personnel lookup, zone access and attendance storage.
+ *
+ * <p>The service supplies the previous swipe to the attendance model, which owns
+ * the ordering rule. New record identifiers are derived from existing numeric
+ * {@code REC} identifiers at construction and after successful CSV loading.
+ *
+ * <p>Responsibility: Nguyen Tan Loi (SE211059) - attendance operations.
  */
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
@@ -21,9 +25,11 @@ public class AttendanceService {
         this(new AttendanceRepository(), personnelService, zoneService);
     }
 
-    public AttendanceService(AttendanceRepository attendanceRepository,
-                             PersonnelService personnelService,
-                             ZoneService zoneService) {
+    public AttendanceService(
+            AttendanceRepository attendanceRepository,
+            PersonnelService personnelService,
+            ZoneService zoneService
+    ) {
         this.attendanceRepository = (attendanceRepository != null) ? attendanceRepository : new AttendanceRepository();
         this.personnelService = personnelService;
         this.zoneService = zoneService;
@@ -31,9 +37,11 @@ public class AttendanceService {
     }
 
     /**
-     * Đặt recordCounter = (số REC lớn nhất đang có trong repository) + 1.
-     * Không dùng size() + 1: nếu có bản ghi bị xóa thì size() có thể trùng mã đang tồn tại.
-     * Bản ghi có mã không theo dạng REC#### (ví dụ ATT-001 trong dữ liệu mẫu) được bỏ qua.
+     * Sets the next sequence above the highest existing numeric REC identifier.
+     *
+     * <p>Using the maximum avoids reusing an existing identifier after deletion.
+     * Identifiers outside {@code REC} followed by 1 to 18 digits, such as
+     * {@code ATT-001}, do not contribute to this sequence.
      */
     private void syncRecordCounter() {
         long maxNumber = 0;
@@ -46,28 +54,46 @@ public class AttendanceService {
         this.recordCounter = maxNumber + 1;
     }
 
+    /**
+     * Checks references and access, validates swipe order, then stores a new record.
+     *
+     * <p>Zone access is verified on check-in. The sequence advances only when
+     * the repository accepts the new record.
+     *
+     * @param personCode the registered personnel code
+     * @param zoneId the registered zone identifier
+     * @param type the check-in or check-out action
+     * @return false for missing input or rejected storage; true when recorded
+     * @throws exception.PersonNotFoundException if the person is absent
+     * @throws exception.ZoneNotFoundException if the zone is absent
+     * @throws exception.RestrictedZoneViolationException if check-in access is denied
+     * @throws exception.AttendanceOrderException if the swipe sequence is invalid
+     */
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
-        if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty()
+        if (personCode == null
+                || personCode.trim().isEmpty()
+                || zoneId == null
+                || zoneId.trim().isEmpty()
                 || type == null) {
             return false;
         }
-
         String cleanPersonCode = personCode.trim();
         String cleanZoneId = zoneId.trim();
         model.Person person = personnelService.findPersonByCode(cleanPersonCode);
         zoneService.findZoneById(cleanZoneId);
-        if (type == AttendanceRecord.CheckType.CHECK_IN) zoneService.verifyAccess(cleanZoneId, person);
-
-
+        if (type == AttendanceRecord.CheckType.CHECK_IN) {
+            zoneService.verifyAccess(cleanZoneId, person);
+        }
         AttendanceRecord lastRecord = attendanceRepository.findLastByPersonCode(cleanPersonCode);
-
         String recordId = String.format("REC%04d", recordCounter);
         String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         AttendanceRecord newRecord = new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
         newRecord.assertCanFollow(lastRecord);
         boolean saved = attendanceRepository.save(newRecord);
-        if (saved) recordCounter++;
+        if (saved) {
+            recordCounter++;
+        }
         return saved;
     }
 

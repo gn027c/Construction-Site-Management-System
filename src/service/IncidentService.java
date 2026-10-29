@@ -5,9 +5,12 @@ import repository.IncidentRepository;
 import java.util.List;
 
 /**
- * TẦNG NGHIỆP VỤ (SERVICE LAYER)
- * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Tra cứu sự cố/nhân sự và gọi hành vi assignTo/resolve do Incident kiểm soát.
+ * Coordinates incident storage and personnel lookup for incident operations.
+ *
+ * <p>The service confirms that an assignee exists before asking the incident to
+ * change its lifecycle status. The incident model owns transition validation.
+ *
+ * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident operations.
  */
 public class IncidentService {
     private final IncidentRepository incidentRepository;
@@ -23,13 +26,20 @@ public class IncidentService {
     }
 
     public boolean reportIncident(Incident incident) {
-        if (incident == null || incident.getStatus() != Incident.IncidentStatus.OPEN || !incident.getAssignedTo().isEmpty()) {
+        if (incident == null
+                || incident.getStatus() != Incident.IncidentStatus.OPEN
+                || !incident.getAssignedTo().isEmpty()) {
             return false;
         }
         return incidentRepository.save(incident);
     }
 
-    public boolean reportIncident(String incidentId, String title, String description, Incident.IncidentSeverity severity) {
+    public boolean reportIncident(
+            String incidentId,
+            String title,
+            String description,
+            Incident.IncidentSeverity severity
+    ) {
         return reportIncident(Incident.report(incidentId, title, description, severity));
     }
 
@@ -41,28 +51,37 @@ public class IncidentService {
         return incidentRepository.findById(incidentId);
     }
 
+    /**
+     * Confirms the assignee exists before invoking the incident's assignment operation.
+     *
+     * @param incidentId the existing incident identifier
+     * @param assigneeCode the personnel code to assign
+     * @return true after assignment; false for missing input, an unavailable
+     *         personnel service or an unknown assignee
+     * @throws exception.IncidentNotFoundException if the incident is absent
+     * @throws exception.InvalidIncidentStateException if the incident is not open
+     */
     public boolean assignIncident(String incidentId, String assigneeCode)
             throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
-        if (incidentId == null || incidentId.trim().isEmpty() || assigneeCode == null || assigneeCode.trim().isEmpty()) {
-
+        if (incidentId == null
+                || incidentId.trim().isEmpty()
+                || assigneeCode == null
+                || assigneeCode.trim().isEmpty()) {
             return false;
         }
-
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
             throw new exception.IncidentNotFoundException(incidentId.trim());
         }
-
-        // Xác thực nhân sự phụ trách tồn tại qua personnelService
-        if (personnelService == null) return false;
+        if (personnelService == null) {
+            return false;
+        }
         try {
             personnelService.findPersonByCode(assigneeCode.trim());
         } catch (exception.PersonNotFoundException e) {
             return false;
         }
-
         inc.assignTo(assigneeCode);
-
         return true;
     }
 
@@ -71,12 +90,10 @@ public class IncidentService {
         if (incidentId == null || incidentId.trim().isEmpty()) {
             return false;
         }
-
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
             throw new exception.IncidentNotFoundException(incidentId.trim());
         }
-
         inc.resolve();
         return true;
     }

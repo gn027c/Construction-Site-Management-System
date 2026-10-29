@@ -3,12 +3,13 @@ package model;
 import static model.ModelValidation.*;
 
 /**
- * NHIỆM VỤ: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
- * MÔ TẢ:
- * - Lớp đại diện cho đối tượng Nhà thầu phụ hoặc đối tác thi công.
- * - Kế thừa từ lớp trừu tượng Person.
- * - Quản lý thông tin công ty thầu (companyName), hợp đồng thi công (contractId).
- * - Cài đặt các hành vi displayDetails() và toCsvLine().
+ * Represents a contractor with a company name and a contract identifier.
+ *
+ * <p>Both contractor fields are required. A contract identifier beginning with
+ * {@code CTR-} satisfies the current safety credential rule.
+ *
+ * <p>Responsibilities: Tran Ngoc Anh Tuan (SE201513) - personnel subclasses;
+ * Nguyen Tan Loi (SE211059) - completion of the contractor subclass.
  */
 public class Contractor extends Person {
     private String companyName;
@@ -20,10 +21,21 @@ public class Contractor extends Person {
         this.contractId = requiredText(contractId, "contractId");
     }
 
-    public String getCompanyName() { return companyName; }
-    public void setCompanyName(String companyName) { this.companyName = requiredText(companyName, "companyName"); }
-    public String getContractId() { return contractId; }
-    public void setContractId(String contractId) { this.contractId = requiredText(contractId, "contractId"); }
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = requiredText(companyName, "companyName");
+    }
+
+    public String getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(String contractId) {
+        this.contractId = requiredText(contractId, "contractId");
+    }
 
     @Override
     public void displayDetails() {
@@ -38,13 +50,28 @@ public class Contractor extends Person {
         System.out.println("===========================================");
     }
 
-    @Override public boolean hasValidSafetyCredential() { return contractId.startsWith("CTR-"); }
+    /**
+     * Accepts contract identifiers beginning with the case-sensitive prefix {@code CTR-}.
+     *
+     * @return whether the contractor's contract matches the current rule
+     */
+    @Override
+    public boolean hasValidSafetyCredential() {
+        return contractId.startsWith("CTR-");
+    }
 
-    @Override public String toCsvLine() {
+    @Override
+    public String toCsvLine() {
         return baseCsv("CONTRACTOR") + "," + util.CsvHelper.toCsvLine(contractId, companyName, "");
     }
 
-    @Override public String toString() {
-        return String.format("Contractor{%s, companyName='%s', contractId='%s'}", super.toString(), companyName, contractId);
+    @Override
+    public String toString() {
+        return String.format(
+                "Contractor{%s, companyName='%s', contractId='%s'}",
+                super.toString(),
+                companyName,
+                contractId
+        );
     }
 }

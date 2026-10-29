@@ -5,30 +5,79 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/** UTF-8 CSV codec, including quoted multiline fields. Maintainer: Khang SE201461. */
+/**
+ * Encodes and decodes UTF-8 CSV, including quoted multiline fields.
+ *
+ * <p>The codec preserves empty fields, commas, escaped quotes and embedded line
+ * breaks. Writes use a sibling temporary file followed by atomic replacement.
+ *
+ * <p>Responsibility: Huynh Nguyen Hoang Khang (SE201461) - shared CSV utilities.
+ */
 public final class CsvHelper {
     public static final String UTF8_BOM = "\uFEFF";
-    private CsvHelper() { }
 
+    private CsvHelper() {
+    }
+
+    /**
+     * Reads physical UTF-8 lines and removes a leading byte order mark.
+     *
+     * <p>Use {@link #readRows(String)} when CSV fields may contain line breaks.
+     *
+     * @param filePath the input file
+     * @return the physical lines without a leading byte order mark
+     * @throws UncheckedIOException if the file cannot be read
+     */
     public static List<String> readAllLines(String filePath) {
         try {
             List<String> lines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
-            if (!lines.isEmpty() && lines.get(0).startsWith(UTF8_BOM)) lines.set(0, lines.get(0).substring(1));
+            if (!lines.isEmpty() && lines.get(0).startsWith(UTF8_BOM)) {
+                lines.set(0, lines.get(0).substring(1));
+            }
             return lines;
-        } catch (IOException e) { throw new UncheckedIOException("Cannot read " + filePath, e); }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + filePath, e);
+        }
     }
 
+    /**
+     * Reads logical CSV records, including fields containing quoted line breaks.
+     *
+     * @param path the input UTF-8 CSV file
+     * @return parsed rows with empty fields preserved
+     * @throws UncheckedIOException if the file cannot be read
+     * @throws IllegalArgumentException if CSV quoting is malformed
+     */
     public static List<String[]> readRows(String path) {
-        try { return parseRecords(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8)); }
-        catch (IOException e) { throw new UncheckedIOException("Cannot read " + path, e); }
+        try {
+            return parseRecords(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + path, e);
+        }
     }
 
+    /**
+     * Parses exactly one logical CSV record, including quoted line breaks.
+     *
+     * @param line the serialized CSV record
+     * @return the unescaped fields
+     * @throws IllegalArgumentException if record count or quoting is invalid
+     */
     public static String[] parseLine(String line) {
         List<String[]> rows = parseRecords(line);
-        if (rows.size() != 1) throw new IllegalArgumentException("Expected one CSV record");
+        if (rows.size() != 1) {
+            throw new IllegalArgumentException("Expected one CSV record");
+        }
         return rows.get(0);
     }
 
+    /**
+     * Decodes CSV using explicit quoted-field and closing-quote state.
+     *
+     * <p>A doubled quote inside a quoted field represents one literal quote.
+     * After a closing quote, only a separator or record boundary is valid.
+     * CRLF is one boundary; line breaks inside quotes remain field data.
+     */
     private static List<String[]> parseRecords(String text) {
         Objects.requireNonNull(text, "CSV text");
         List<String[]> rows = new ArrayList<>();
@@ -39,59 +88,126 @@ public final class CsvHelper {
             char ch = text.charAt(i);
             if (quoted) {
                 if (ch == '"') {
-                    if (i + 1 < text.length() && text.charAt(i + 1) == '"') { field.append('"'); i++; }
-                    else { quoted = false; closed = true; }
-                } else field.append(ch);
+                    if (i + 1 < text.length() && text.charAt(i + 1) == '"') {
+                        field.append('"');
+                        i++;
+                    } else {
+                        quoted = false;
+                        closed = true;
+                    }
+                } else {
+                    field.append(ch);
+                }
                 continue;
             }
             if (ch == ',' || ch == '\r' || ch == '\n') {
-                fields.add(field.toString()); field.setLength(0); closed = false;
-                if (ch == ',') started = true;
-                else {
-                    rows.add(fields.toArray(new String[0])); fields.clear(); started = false;
-                    if (ch == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') i++;
+                fields.add(field.toString());
+                field.setLength(0);
+                closed = false;
+                if (ch == ',') {
+                    started = true;
+                } else {
+                    rows.add(fields.toArray(new String[0]));
+                    fields.clear();
+                    started = false;
+                    if (ch == '\r' && i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                        i++;
+                    }
                 }
-            } else if (ch == '"' && field.length() == 0 && !closed) { quoted = true; started = true; }
-            else {
-                if (ch == '"' || closed) throw new IllegalArgumentException("Malformed CSV at character " + (i + 1));
-                field.append(ch); started = true;
+            } else if (ch == '"' && field.length() == 0 && !closed) {
+                quoted = true;
+                started = true;
+            } else {
+                if (ch == '"' || closed) {
+                    throw new IllegalArgumentException("Malformed CSV at character " + (i + 1));
+                }
+                field.append(ch);
+                started = true;
             }
         }
-        if (quoted) throw new IllegalArgumentException("Unclosed CSV quote");
-        if (started || !fields.isEmpty()) { fields.add(field.toString()); rows.add(fields.toArray(new String[0])); }
+        if (quoted) {
+            throw new IllegalArgumentException("Unclosed CSV quote");
+        }
+        if (started || !fields.isEmpty()) {
+            fields.add(field.toString());
+            rows.add(fields.toArray(new String[0]));
+        }
         return rows;
     }
 
-    public static boolean isBlankRow(String[] row) { return row.length == 1 && row[0].trim().isEmpty(); }
+    public static boolean isBlankRow(String[] row) {
+        return row.length == 1 && row[0].trim().isEmpty();
+    }
+
+    /**
+     * Escapes fields and joins them into one CSV record.
+     *
+     * @param fields the fields in schema order; null fields become empty strings
+     * @return one serialized record
+     */
     public static String toCsvLine(String... fields) {
         List<String> escaped = new ArrayList<>();
-        for (String field : fields) escaped.add(escapeSpecialCharacters(field));
+        for (String field : fields) {
+            escaped.add(escapeSpecialCharacters(field));
+        }
         return String.join(",", escaped);
     }
+
     public static String escapeSpecialCharacters(String field) {
-        if (field == null) return "";
-        if (field.contains(",") || field.contains("\"") || field.contains("\r") || field.contains("\n"))
+        if (field == null) {
+            return "";
+        }
+        if (field.contains(",") || field.contains("\"") || field.contains("\r") || field.contains("\n")) {
             return "\"" + field.replace("\"", "\"\"") + "\"";
+        }
         return field;
     }
 
-    /** Write a sibling temporary file, then atomically replace. No unsafe fallback. */
+    /**
+     * Writes UTF-8 with a byte order mark using a temporary file and atomic replacement.
+     *
+     * <p>The sibling temporary file is flushed before replacement. If the filesystem
+     * cannot perform an atomic move, the write fails rather than using a non-atomic
+     * fallback. Temporary-file cleanup is attempted on success and failure.
+     *
+     * @param filePath the destination file
+     * @param lines the serialized records; null records are rejected
+     * @return whether the destination was replaced successfully
+     */
     public static boolean writeAllLines(String filePath, List<String> lines) {
-        if (lines == null || lines.contains(null)) return false;
+        if (lines == null || lines.contains(null)) {
+            return false;
+        }
         Path temporary = null;
         try {
             Path target = Paths.get(filePath).toAbsolutePath();
             Files.createDirectories(target.getParent());
             temporary = Files.createTempFile(target.getParent(), ".smartsite-", ".tmp");
             byte[] bytes = (UTF8_BOM + String.join("\r\n", lines)).getBytes(StandardCharsets.UTF_8);
-            try (java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(temporary, StandardOpenOption.WRITE)) {
+            try (
+                    java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(
+                            temporary,
+                            StandardOpenOption.WRITE
+                    )
+            ) {
                 java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
-                while (buffer.hasRemaining()) channel.write(buffer);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
                 channel.force(true);
             }
             Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             return true;
-        } catch (IOException | RuntimeException e) { return false; }
-        finally { if (temporary != null) try { Files.deleteIfExists(temporary); } catch (IOException ignored) { } }
+        } catch (IOException | RuntimeException e) {
+            return false;
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException ignored) {
+                    // Cleanup is best-effort; preserve the write operation result.
+                }
+            }
+        }
     }
 }

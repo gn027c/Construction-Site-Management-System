@@ -5,9 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TẦNG LƯU TRỮ (REPOSITORY LAYER)
- * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp hồ sơ sự cố an toàn (Incident).
+ * Stores incidents and handles incident CSV.
+ *
+ * <p>Incident identifiers are compared without case. CSV loading validates a
+ * separate collection before replacing active data. Lifecycle rules remain
+ * in {@link model.Incident}.
+ *
+ * <p>Responsibility: Nguyen Tan Loi (SE211059) - incident storage.
  */
 public class IncidentRepository {
     private final List<Incident> incidentList = new ArrayList<>();
@@ -34,33 +38,74 @@ public class IncidentRepository {
         return null;
     }
 
+    /**
+     * Removes resolved incidents while retaining open and assigned incidents.
+     *
+     * @return the number of removed incidents
+     */
     public int deleteResolved() {
         int before = incidentList.size();
         incidentList.removeIf(Incident::isResolved);
         return before - incidentList.size();
     }
 
+    /**
+     * Returns a separate list in storage order containing the stored model objects.
+     *
+     * <p>Changing the returned list does not change this repository's collection.
+     * The model objects themselves are shared and retain their validated operations.
+     *
+     * @return a new list containing the stored objects
+     */
     public List<Incident> findAll() {
         return new ArrayList<>(incidentList);
     }
 
+    /**
+     * Loads CSV into a temporary repository before replacing active data.
+     *
+     * @param filePath the CSV file to read
+     * @return true after all rows are accepted; false on read or validation
+     *         failure, leaving the current collection unchanged
+     */
     public boolean loadFromCsv(String filePath) {
         IncidentRepository staged = new IncidentRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !rows.get(0)[0].equals("incidentId")) return false;
+            if (rows.isEmpty() || !rows.get(0)[0].equals("incidentId")) {
+                return false;
+            }
             for (int i = 1; i < rows.size(); i++) {
                 String[] p = rows.get(i);
-                if (util.CsvHelper.isBlankRow(p)) continue;
-                if (p.length != 6) return false;
+                if (util.CsvHelper.isBlankRow(p)) {
+                    continue;
+                }
+                if (p.length != 6) {
+                    return false;
+                }
                 Incident.IncidentStatus status = Incident.IncidentStatus.valueOf(p[4]);
-                if (!staged.save(new Incident(p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status, p[5]))) return false;
+                if (
+                        !staged.save(
+                                new Incident(p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status, p[5])
+                        )
+                ) {
+                    return false;
+                }
             }
-        } catch (RuntimeException e) { return false; }
-        incidentList.clear(); incidentList.addAll(staged.incidentList);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        incidentList.clear();
+        incidentList.addAll(staged.incidentList);
         return true;
     }
 
+    /**
+     * Serializes current data and requests an atomic replacement of one CSV file.
+     *
+     * @param filePath the destination CSV file
+     * @return whether the file was written successfully
+     */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
         lines.add("incidentId,title,description,severity,status,assignedTo");
