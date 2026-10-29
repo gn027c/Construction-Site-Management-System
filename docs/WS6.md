@@ -8,6 +8,8 @@ snapshot, manifest và CURRENT khỏi luồng chạy. Bốn CSV là nguồn dữ
 ## Các phần đã hoàn thành
 
 - CSV hỗ trợ dấu phẩy, dấu nháy kép, ô nhiều dòng, UTF-8 BOM và ghi qua file tạm.
+- Thời gian điểm danh chỉ nhận `yyyy-MM-dd HH:mm:ss`; không chuyển đổi định
+  dạng cũ. DateTimeHelper dùng chung khi tạo bản ghi và kiểm tra lúc đọc/ghi.
 - Worker lưu đủ chứng chỉ, nghề, tổ đội; Visitor lưu đủ ngày đến.
   Dữ liệu cũ thiếu thông tin được ghi rõ `Unknown (legacy)`.
 - Service kiểm tra chu kỳ CHECK_IN → CHECK_OUT và khu vực khi ra.
@@ -78,12 +80,13 @@ java '-Dfile.encoding=UTF-8' -cp bin Main
 
 ## Kết quả kiểm thử sau khi gỡ state
 
-Ngày 29/10/2026, Java 8: **76/76 ca qua**.
+Ngày 29/10/2026, Java 8: **84/84 ca qua** sau khi thống nhất định dạng thời gian.
 
 | Bộ kiểm thử | Số ca |
 | --- | ---: |
 | HistoricalMatrixTest — đúng 25 kịch bản WS6 gốc | 25 |
 | AttendanceIncidentTest | 14 |
+| AttendanceTimestampTest — định dạng duy nhất, ngày/giờ hợp lệ và từ chối CSV cũ | 8 |
 | PersonnelTest | 9 |
 | ZoneTest | 7 |
 | CsvHelperTest | 4 |
@@ -91,7 +94,7 @@ Ngày 29/10/2026, Java 8: **76/76 ca qua**.
 | ConsoleTest — EOF, menu, ngày hợp lệ, màu và kill sau khi đã lưu CSV | 7 |
 
 Test đọc fixture gốc nhưng mọi file ghi đều nằm trong thư mục tạm riêng.
-Log lần chạy mới: `output/remove-state-tests.txt`. Thư mục build test mới:
+Log lần chạy mới: `output/attendance-timestamp-tests.txt`. Thư mục build test:
 `bin/csv-tests`. Các kết quả snapshot của phiên bản trước không được dùng
 làm bằng chứng cho phiên bản hiện tại.
 
@@ -104,6 +107,11 @@ Thay đổi gỡ state nằm trên **codex/remove-state-layer**, commit **8408ec
 `refactor(csv): remove state snapshots and restore direct repository persistence`.
 Commit giữ nguyên các sửa lỗi CSV, màu console, xuất file và kiểm soát nghiệp vụ.
 Chưa push hoặc merge vào main.
+
+Nhánh `loint-attendance-timestamp-format` tiếp tục từ bản đã gỡ state:
+thống nhất thời gian điểm danh qua DateTimeHelper và loại bỏ chuyển đổi
+CSV thời gian cũ. 15 timestamp trong fixture đã đúng định dạng nên giữ
+nguyên giá trị; 8 ca kiểm thử mới bảo vệ hợp đồng định dạng này.
 
 ## Phần còn lại của workflow
 

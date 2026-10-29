@@ -3,8 +3,8 @@ package service;
 import model.AttendanceRecord;
 import repository.AttendanceRepository;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import util.DateTimeHelper;
 
 /**
  * TẦNG NGHIỆP VỤ (SERVICE LAYER)
@@ -84,7 +84,7 @@ public class AttendanceService {
         }
 
         String recordId = String.format("REC%04d", recordCounter++);
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         AttendanceRecord newRecord = new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
         return attendanceRepository.save(newRecord);
     }

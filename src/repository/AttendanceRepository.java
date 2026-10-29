@@ -3,6 +3,8 @@ package repository;
 import model.AttendanceRecord;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.format.DateTimeParseException;
+import util.DateTimeHelper;
 
 /**
  * TẦNG LƯU TRỮ (REPOSITORY LAYER)
@@ -14,6 +16,11 @@ public class AttendanceRepository {
 
     public boolean save(AttendanceRecord record) {
         if (record == null) {
+            return false;
+        }
+        try {
+            DateTimeHelper.parseTimestamp(record.getTimestamp());
+        } catch (DateTimeParseException e) {
             return false;
         }
         for (AttendanceRecord existing : attendanceList) {
@@ -40,22 +47,6 @@ public class AttendanceRepository {
         return new ArrayList<>(attendanceList);
     }
 
-    /**
-     * Chuẩn hóa thời gian điểm danh về yyyy-MM-dd HH:mm:ss (cùng định dạng code đang ghi).
-     * Chấp nhận dữ liệu cũ dd/MM/yyyy HH:mm (dữ liệu mẫu). Giá trị không nhận ra thì giữ nguyên.
-     */
-    static String normalizeTimestamp(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        java.util.regex.Matcher m = java.util.regex.Pattern
-                .compile("(\\d{2})/(\\d{2})/(\\d{4}) (\\d{2}):(\\d{2})").matcher(raw);
-        if (m.matches()) {
-            return m.group(3) + "-" + m.group(2) + "-" + m.group(1) + " " + m.group(4) + ":" + m.group(5) + ":00";
-        }
-        return raw;
-    }
-
     public boolean loadFromCsv(String filePath) {
         AttendanceRepository staged = new AttendanceRepository();
         try {
@@ -65,9 +56,7 @@ public class AttendanceRepository {
                 String[] p = rows.get(i);
                 if (util.CsvHelper.isBlankRow(p)) continue;
                 if (p.length != 5 || p[0].trim().isEmpty() || p[1].trim().isEmpty() || p[2].trim().isEmpty()) return false;
-                String stamp = normalizeTimestamp(p[3]);
-                java.time.LocalDateTime.parse(stamp, java.time.format.DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss").withResolverStyle(java.time.format.ResolverStyle.STRICT));
-                if (!staged.save(new AttendanceRecord(p[0], p[1], p[2], stamp, AttendanceRecord.CheckType.valueOf(p[4])))) return false;
+                if (!staged.save(new AttendanceRecord(p[0], p[1], p[2], p[3], AttendanceRecord.CheckType.valueOf(p[4])))) return false;
             }
         } catch (RuntimeException e) { return false; }
         attendanceList.clear(); attendanceList.addAll(staged.attendanceList);
@@ -78,6 +67,11 @@ public class AttendanceRepository {
         List<String> lines = new ArrayList<>();
         lines.add("recordId,personCode,zoneId,timestamp,checkType");
         for (AttendanceRecord rec : attendanceList) {
+            try {
+                DateTimeHelper.parseTimestamp(rec.getTimestamp());
+            } catch (DateTimeParseException e) {
+                return false;
+            }
             lines.add(rec.toCsvLine());
         }
         return util.CsvHelper.writeAllLines(filePath, lines);
