@@ -279,14 +279,12 @@ public final class AuthenticationService {
         String operationId = activityLog.getLastOperationId();
         if (!saved) {
             String warning = "Activity log could not be saved; the business result is unchanged.";
-            if (repository.find(actor) != null) {
-                notifications.notifyUser(actor, operationId, warning);
-            }
             notifyAdmins(operationId, warning);
         }
         if (status.equals("FAILED")) {
-            if (repository.find(actor) != null) {
-                notifications.notifyUser(actor, operationId, action + ": " + reason);
+            Account actorAccount = repository.find(actor);
+            if (actorAccount != null && actorAccount.getRole() != Account.Role.ADMIN) {
+                notifications.notifyUser(actor, operationId, action + ": Operation could not be completed.");
             }
             notifyAdmins(operationId, actor + " / " + action + ": " + reason);
         }

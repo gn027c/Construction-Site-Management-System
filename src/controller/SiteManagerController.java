@@ -274,7 +274,9 @@ public class SiteManagerController {
 
     private void requireReady() {
         if (!dataReady) {
-            throw new exception.DataValidationException("data", "Administrator must resolve CSV issues first.");
+            throw new exception.DataValidationException(
+                    "data", "Service temporarily unavailable. Contact an administrator."
+            );
         }
     }
 

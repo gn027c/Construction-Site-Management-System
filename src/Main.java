@@ -2,6 +2,7 @@ import controller.SiteManagerController;
 import controller.AccountController;
 import controller.WorkspaceController;
 import model.Permission;
+import model.Account;
 import service.AuthenticationService;
 import util.DataDirectoryLock;
 import util.InputHelper;
@@ -23,23 +24,30 @@ public class Main {
         try (DataDirectoryLock lock = new DataDirectoryLock(directory);
             Scanner scanner = new Scanner(System.in)) {
             SiteManagerController controller = new SiteManagerController(directory);
+            String startupFailure = "";
             try {
                 controller.loadAllData();
             } catch (java.io.IOException e) {
-                ConsoleTheme.error(e.getMessage());
-                ConsoleTheme.warning("Sign in as admin to review data. Business actions are blocked.");
+                startupFailure = e.getMessage();
             }
             AuthenticationService authentication = controller.getAuthentication();
             AccountController accounts = new AccountController(authentication);
             WorkspaceController workspace = new WorkspaceController(controller);
-            if (controller.isDataReady()) {
-                ConsoleTheme.success("CSV data loaded.");
-            }
             boolean exit = false;
             while (!exit) {
                 try {
-                    if (!authentication.isLoggedIn() && !accounts.signIn(scanner)) {
-                        break;
+                    if (!authentication.isLoggedIn()) {
+                        if (!accounts.signIn(scanner)) {
+                            break;
+                        }
+                        if (!controller.isDataReady()) {
+                            if (isAdministrator(authentication)) {
+                                ConsoleTheme.error(startupFailure);
+                                ConsoleTheme.warning("Open menu 11 - Data review. Business actions are blocked.");
+                            } else {
+                                ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
+                            }
+                        }
                     }
                     MenuView.showMainMenu(authentication);
                     int choice = InputHelper.getInt(scanner, "Choice (0-12): ", 0, 12);
@@ -110,7 +118,7 @@ public class Main {
                                 controller.saveAllData();
                                 ConsoleTheme.success("CSV data saved. Goodbye.");
                             } else {
-                                ConsoleTheme.warning("Business CSV was not changed. Goodbye.");
+                                ConsoleTheme.success("Goodbye.");
                             }
                             exit = true;
                             break;
@@ -119,24 +127,38 @@ public class Main {
                     if (authentication.isLoggedIn() && controller.isDataReady()) {
                         controller.saveAllData();
                         ConsoleTheme.success("Input closed. CSV data saved.");
-                    } else {
+                    } else if (!authentication.isLoggedIn()) {
                         ConsoleTheme.success("Input closed before sign-in.");
+                    } else {
+                        ConsoleTheme.success("Session closed.");
                     }
                     exit = true;
                 } catch (Exception e) {
                     authentication.audit("CONSOLE_OPERATION", "MENU", "", "FAILED", e.getMessage());
-                    ConsoleTheme.error(e.getMessage());
+                    if (!isAdministrator(authentication) && (!controller.isDataReady()
+                            || e instanceof java.io.IOException
+                            || e.getClass() == exception.SiteManagementException.class)) {
+                        ConsoleTheme.error("Operation unavailable. Contact an administrator.");
+                    } else {
+                        ConsoleTheme.error(e.getMessage());
+                    }
                 }
-                if (!authentication.getActivityLog().getLastWriteError().isEmpty()) {
+                if (isAdministrator(authentication)
+                        && !authentication.getActivityLog().getLastWriteError().isEmpty()) {
                     ConsoleTheme.warning("Activity log was not saved; the business result is unchanged.");
                 }
-                if (!authentication.getNotifications().getLastWriteError().isEmpty()) {
+                if (isAdministrator(authentication)
+                        && !authentication.getNotifications().getLastWriteError().isEmpty()) {
                     ConsoleTheme.warning("Notification storage failed; the business result is unchanged.");
                 }
             }
         } catch (Exception e) {
-            ConsoleTheme.error("Session stopped: " + e.getMessage());
+            ConsoleTheme.error("Session unavailable. Contact an administrator.");
             System.exit(1);
         }
+    }
+
+    private static boolean isAdministrator(AuthenticationService authentication) {
+        return authentication.isLoggedIn() && authentication.currentAccount().getRole() == Account.Role.ADMIN;
     }
 }

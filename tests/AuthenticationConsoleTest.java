@@ -80,7 +80,9 @@ public class AuthenticationConsoleTest {
             Files.write(file, Arrays.asList("bad"), StandardCharsets.UTF_8);
             byte[] before = Files.readAllBytes(file);
             String output = ConsoleTest.launchRaw(root, "admin\nadmin\n0\n", 1, false);
-            require(output.contains("credentials were not reset"));
+            require(output.contains("Session unavailable. Contact an administrator."));
+            require(!output.contains("accounts.csv"));
+            require(!output.contains("credentials were not reset"));
             require(Arrays.equals(before, Files.readAllBytes(file)));
         });
         test("Account lists show account details without password hashes", () -> {
