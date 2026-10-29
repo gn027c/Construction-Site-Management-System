@@ -1,7 +1,6 @@
 package model;
 
 import static model.ModelValidation.*;
-import java.io.Serializable;
 
 /**
  * Represents one check-in or check-out for a person at a zone.
@@ -10,9 +9,7 @@ import java.io.Serializable;
  * entity validates timestamps and checks whether a new swipe can follow the
  * preceding swipe supplied by the service.
  */
-public class AttendanceRecord implements Serializable {
-    private static final long serialVersionUID = 1L;
-
+public class AttendanceRecord {
     public enum CheckType {
         CHECK_IN,
         CHECK_OUT
