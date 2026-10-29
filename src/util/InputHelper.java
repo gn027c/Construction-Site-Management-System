@@ -1,8 +1,6 @@
 package util;
 
 import exception.DataValidationException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Scanner;
 
 /**
@@ -36,9 +34,9 @@ public class InputHelper {
     public static void validateDate(String input, String fieldName) throws DataValidationException {
         validateString(input, fieldName);
         try {
-            java.time.LocalDate.parse(input.trim(), java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(java.time.format.ResolverStyle.STRICT));
+            DateTimeHelper.parseDate(input.trim());
         } catch (java.time.format.DateTimeParseException e) {
-            throw new DataValidationException(fieldName, "Expected a valid dd/MM/yyyy date.");
+            throw new DataValidationException(fieldName, "Expected a valid " + DateTimeHelper.DATE_FORMAT + " date.");
         }
     }
 

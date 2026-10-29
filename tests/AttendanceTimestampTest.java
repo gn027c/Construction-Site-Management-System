@@ -46,12 +46,10 @@ public class AttendanceTimestampTest {
                 equal("REC0001", repo.findAll().get(0).getRecordId());
             } finally { Files.deleteIfExists(csv); }
         });
-        test("Repository rejects newly added records with legacy timestamps", () -> {
-            AttendanceRepository repo = new AttendanceRepository();
-            require(!repo.save(record("REC0001", "29/10/2026 07:05")));
-            equal(0, repo.findAll().size());
+        test("Attendance model rejects legacy timestamps at construction", () -> {
+            throwsType(DateTimeParseException.class, () -> record("REC0001", "29/10/2026 07:05"));
         });
-        test("Invalid edited timestamp cannot overwrite a valid CSV", () -> {
+        test("Invalid timestamp update preserves the model and its valid CSV", () -> {
             AttendanceRepository repo = new AttendanceRepository();
             AttendanceRecord record = record("REC0001", "2026-10-29 07:05:00");
             require(repo.save(record));
@@ -59,8 +57,9 @@ public class AttendanceTimestampTest {
             try {
                 require(repo.saveToCsv(csv.toString()));
                 byte[] before = Files.readAllBytes(csv);
-                record.setTimestamp("29/10/2026 07:05");
-                require(!repo.saveToCsv(csv.toString()));
+                throwsType(DateTimeParseException.class, () -> record.setTimestamp("29/10/2026 07:05"));
+                equal("2026-10-29 07:05:00", record.getTimestamp());
+                require(repo.saveToCsv(csv.toString()));
                 require(Arrays.equals(before, Files.readAllBytes(csv)));
             } finally { Files.deleteIfExists(csv); }
         });

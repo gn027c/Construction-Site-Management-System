@@ -25,7 +25,7 @@ public class AttendanceRecord implements Serializable {
         this.recordId = recordId;
         this.personCode = personCode;
         this.zoneId = zoneId;
-        this.timestamp = timestamp;
+        setTimestamp(timestamp);
         this.checkType = checkType;
     }
 
@@ -58,6 +58,7 @@ public class AttendanceRecord implements Serializable {
     }
 
     public void setTimestamp(String timestamp) {
+        util.DateTimeHelper.parseTimestamp(timestamp);
         this.timestamp = timestamp;
     }
 
