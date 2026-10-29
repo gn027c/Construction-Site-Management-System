@@ -1,6 +1,6 @@
-﻿type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes
-REGULAR,Z01,Cong Chinh & Nha Dieu Hanh,NONE,NONE
-REGULAR,Z02,Khu Vuc Tap Ket Vat Tu,NONE,NONE
-RESTRICTED,Z03,Ham Mong & Tram Dien Cao The,HIGH,C01;W02;W01
-RESTRICTED,Z04,Khu Vuc Cau Thap Dang Thi Cong,CRITICAL,W01;W03
-RESTRICTED,Z05,Kho Hoa Chat & Nhien Lieu,HIGH,C02;W02;V02
+type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes
+REGULAR,Z1,Cong Chinh & Nha Dieu Hanh,NONE,NONE
+REGULAR,Z2,Khu Vuc Tap Ket Vat Tu,NONE,NONE
+RESTRICTED,Z3,Ham Mong & Tram Dien Cao The,HIGH,C1;W2;W1
+RESTRICTED,Z4,Khu Vuc Cau Thap Dang Thi Cong,CRITICAL,W1;W3
+RESTRICTED,Z5,Kho Hoa Chat & Nhien Lieu,HIGH,C2;W2;V2

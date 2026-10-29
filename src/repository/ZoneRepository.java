@@ -33,11 +33,12 @@ public class ZoneRepository {
     }
 
     public Zone findById(String zoneId) {
-        if (zoneId == null || zoneId.trim().isEmpty()) {
+        String normalized = util.IdentifierHelper.normalizeForLookup(zoneId);
+        if (normalized == null) {
             return null;
         }
         for (Zone z : zoneList) {
-            if (z.getZoneId().equalsIgnoreCase(zoneId.trim())) {
+            if (z.getZoneId().equals(normalized)) {
                 return z;
             }
         }
@@ -70,7 +71,9 @@ public class ZoneRepository {
         ZoneRepository staged = new ZoneRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !rows.get(0)[0].equals("type")) {
+            if (rows.isEmpty() || !Arrays.equals(rows.get(0), new String[] {
+                    "type", "zoneId", "zoneName", "requiredSafetyLevel", "allowedPersonCodes"
+            })) {
                 return false;
             }
             for (int i = 1; i < rows.size(); i++) {

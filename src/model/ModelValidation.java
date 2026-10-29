@@ -65,11 +65,11 @@ final class ModelValidation {
      * an empty permission list, so neither is allowed as a personnel code.
      */
     static String personCode(String value, String field) {
-        String normalized = requiredText(value, field);
-        if (normalized.contains(";") || normalized.equalsIgnoreCase("NONE")) {
-            throw new DataValidationException(field, "Must not contain ';' or use the reserved code NONE.");
-        }
-        return normalized;
+        return util.IdentifierHelper.normalize(value, field);
+    }
+
+    static String identifier(String value, String field) {
+        return util.IdentifierHelper.normalize(value, field);
     }
 
     /**

@@ -36,15 +36,15 @@ public class AttendanceRepository {
     }
 
     /**
-     * Finds the most recently inserted swipe for a trimmed, case-sensitive code.
+     * Finds the most recently inserted swipe for a normalized personnel code.
      *
      * <p>Insertion order defines the preceding swipe. Records are not sorted by timestamp.
      */
     public AttendanceRecord findLastByPersonCode(String personCode) {
-        if (personCode == null || personCode.trim().isEmpty()) {
+        String cleanCode = util.IdentifierHelper.normalizeForLookup(personCode);
+        if (cleanCode == null) {
             return null;
         }
-        String cleanCode = personCode.trim();
         for (int i = attendanceList.size() - 1; i >= 0; i--) {
             AttendanceRecord rec = attendanceList.get(i);
             if (rec.getPersonCode().equals(cleanCode)) {
@@ -72,7 +72,9 @@ public class AttendanceRepository {
         AttendanceRepository staged = new AttendanceRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !rows.get(0)[0].equals("recordId")) {
+            if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), new String[] {
+                    "recordId", "personCode", "zoneId", "timestamp", "checkType"
+            })) {
                 return false;
             }
             for (int i = 1; i < rows.size(); i++) {

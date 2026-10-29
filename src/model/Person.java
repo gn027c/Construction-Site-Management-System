@@ -15,9 +15,10 @@ public abstract class Person {
     private final Role role;
     private String name;
     private String phoneNumber;
+    private boolean active = true;
 
     protected Person(String id, String code, String name, String phoneNumber, Role role) {
-        this.id = requiredText(id, "id");
+        this.id = identifier(id, "id");
         this.code = personCode(code, "code");
         this.name = requiredText(name, "name");
         this.phoneNumber = phoneNumber(phoneNumber);
@@ -42,6 +43,14 @@ public abstract class Person {
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public void setName(String name) {
@@ -70,12 +79,16 @@ public abstract class Person {
     public abstract boolean hasValidSafetyCredential();
 
     /**
-     * Serializes common personnel columns and the subtype's three extra columns.
+     * Serializes common personnel columns, subtype data and active status.
      */
     public abstract String toCsvLine();
 
     protected String baseCsv(String type) {
         return util.CsvHelper.toCsvLine(type, id, code, name, phoneNumber, role.name());
+    }
+
+    protected String csvStatus() {
+        return "," + Boolean.toString(active);
     }
 
     public void displayDetails() {

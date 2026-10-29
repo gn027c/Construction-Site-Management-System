@@ -195,13 +195,14 @@ public class HistoricalMatrixTest {
                is.resolveIncident("INC-201");
                return "Second resolve accepted (unexpected)";
            }, false);
-        tc("TC-INC-04", "Incident Lifecycle", "Normal", "purgeResolvedIncidents() with INC-102, INC-105, INC-201 RESOLVED",
-           "3 incidents removed with removeIf(); OPEN/ASSIGNED incidents kept",
+        tc("TC-INC-04", "Incident Lifecycle", "Normal", "archiveResolvedIncidents() with INC102, INC105, INC201 RESOLVED",
+           "3 incidents archived; all historical records retained",
            () -> {
                int removed = is.purgeResolvedIncidents();
                int left = is.getAllIncidents().size();
                check(removed == 3, "removed " + removed);
-               return "Removed " + removed + "; " + left + " incidents remain";
+               check(left == 6, "historical incidents must remain");
+               return "Archived " + removed + "; " + left + " incidents retained";
            }, true);
 
         // ---------------- FILE I/O ----------------

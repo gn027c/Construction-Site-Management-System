@@ -48,9 +48,9 @@ public class DomainBehaviorTest {
             IncidentRepository repo = new IncidentRepository(); repo.save(report());
             Path csv = Files.createTempFile("smartsite-domain-incident-", ".csv");
             try {
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo", "BROKEN,Title,Description,LOW,ASSIGNED,"));
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "BROKEN,Title,Description,LOW,ASSIGNED,,,,false"));
                 require(!repo.loadFromCsv(csv.toString())); require(repo.findById("I").isOpen());
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo", "RESTORED,Title,Description,LOW,RESOLVED,W1"));
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "RESTORED,Title,Description,LOW,RESOLVED,W1,,,false"));
                 require(repo.loadFromCsv(csv.toString())); require(repo.findById("RESTORED").isResolved());
                 throwsType(InvalidIncidentStateException.class, () -> repo.findById("RESTORED").resolve());
             } finally { Files.deleteIfExists(csv); }
@@ -93,7 +93,7 @@ public class DomainBehaviorTest {
             require(!service.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
             equal(0, repo.findAll().size());
             require(service.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
-            equal("REC0001", repo.findAll().get(0).getRecordId());
+            equal("REC1", repo.findAll().get(0).getRecordId());
         });
         finish();
     }

@@ -1,6 +1,6 @@
-﻿incidentId,title,description,severity,status,assignedTo
-INC-101,Ro ri nuoc ham mong,"""Nuoc tran tai khu vuc ham B2 can xu ly hut nuoc""",HIGH,ASSIGNED,W01
-INC-102,Khong deo quai mu bao ho,"""Phat hien 2 cong nhan khong cai quai mu""",LOW,RESOLVED,W02
-INC-103,Dut cap phu can cau,"""Cap phu so 2 bi tuoc soi thep can thay the ngay""",CRITICAL,OPEN,
-INC-104,Chao dien nhe tu hop cap,"""Hop dau noi khu vuc Z03 phat tia lua dien""",MEDIUM,ASSIGNED,C01
-INC-105,Mui hoa chat kho vat tu,"""Canh bao nong do mui dung moi son vuot nguong""",LOW,RESOLVED,C02
+incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived
+INC101,Ro ri nuoc ham mong,"""Nuoc tran tai khu vuc ham B2 can xu ly hut nuoc""",HIGH,ASSIGNED,W1,,,false
+INC102,Khong deo quai mu bao ho,"""Phat hien 2 cong nhan khong cai quai mu""",LOW,RESOLVED,W2,,,false
+INC103,Dut cap phu can cau,"""Cap phu so 2 bi tuoc soi thep can thay the ngay""",CRITICAL,OPEN,,,,false
+INC104,Chao dien nhe tu hop cap,"""Hop dau noi khu vuc Z03 phat tia lua dien""",MEDIUM,ASSIGNED,C1,,,false
+INC105,Mui hoa chat kho vat tu,"""Canh bao nong do mui dung moi son vuot nguong""",LOW,RESOLVED,C2,,,false

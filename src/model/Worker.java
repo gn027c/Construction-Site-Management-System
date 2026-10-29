@@ -76,7 +76,7 @@ public class Worker extends Person {
 
     @Override
     public String toCsvLine() {
-        return baseCsv("WORKER") + "," + util.CsvHelper.toCsvLine(safetyCertId, trade, assignedTeam);
+        return baseCsv("WORKER") + "," + util.CsvHelper.toCsvLine(safetyCertId, trade, assignedTeam) + csvStatus();
     }
 
     @Override

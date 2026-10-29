@@ -8,7 +8,7 @@ import java.util.*;
 public class AttendanceIncidentTest {
  public static void main(String[] args) throws Exception {
   PersonnelService ps=new PersonnelService(); ZoneService zs=new ZoneService();
-  ps.addPerson(new Worker("1","W","A","0901234567","T","X_SAFE","B")); zs.addZone(new Zone("Z","Regular")); zs.addZone(new Zone("Z2","Other"));
+  ps.addPerson(new Worker("P1","W","A","0901234567","T","X_SAFE","B")); zs.addZone(new Zone("Z","Regular")); zs.addZone(new Zone("Z2","Other"));
   AttendanceService as=new AttendanceService(ps,zs); IncidentService is=new IncidentService(ps);
   test("TC-ATT-01 checkout before checkin", () -> throwsType(AttendanceOrderException.class, () -> as.processAttendance("W","Z",AttendanceRecord.CheckType.CHECK_OUT)));
   test("TC-ATT-02 checkin", () -> require(as.recordAttendance("W","Z",AttendanceRecord.CheckType.CHECK_IN)));
@@ -22,7 +22,7 @@ public class AttendanceIncidentTest {
     as.processAttendance("W","Z",AttendanceRecord.CheckType.CHECK_IN); require(as.saveToCsv(f.toString()));
     AttendanceService loaded=new AttendanceService(ps,zs); require(loaded.loadFromCsv(f.toString()));
     throwsType(AttendanceOrderException.class, () -> loaded.recordAttendance("W","Z",AttendanceRecord.CheckType.CHECK_IN));
-    require(loaded.recordAttendance("W","Z",AttendanceRecord.CheckType.CHECK_OUT)); equal("REC0004",loaded.getAllAttendanceRecords().get(3).getRecordId());
+    require(loaded.recordAttendance("W","Z",AttendanceRecord.CheckType.CHECK_OUT)); equal("REC4",loaded.getAllAttendanceRecords().get(3).getRecordId());
    } finally { Files.deleteIfExists(f); }
   });
   test("Attendance invalid enum does not default to checkin", () -> {
@@ -32,7 +32,7 @@ public class AttendanceIncidentTest {
   test("TC-INC-02 assign existing person", () -> { require(!is.assignIncident("I","missing")); require(is.assignIncident("I","W")); equal(Incident.IncidentStatus.ASSIGNED,is.findIncidentById("I").getStatus()); });
   test("TC-INC-03 resolve only assigned", () -> { require(is.reportIncident("J","Other","Text",Incident.IncidentSeverity.LOW)); throwsType(InvalidIncidentStateException.class, () -> is.resolveIncident("J")); require(is.resolveIncident("I")); throwsType(InvalidIncidentStateException.class, () -> is.assignIncident("I","W")); });
   test("TC-IO-04 incident multiline complete round trip", () -> { Path f=Files.createTempFile("inc", ".csv"); try { require(is.saveToCsv(f.toString())); IncidentService loaded=new IncidentService(ps); require(loaded.loadFromCsv(f.toString())); equal(is.findIncidentById("I").getDescription(),loaded.findIncidentById("I").getDescription()); equal(Incident.IncidentStatus.RESOLVED,loaded.findIncidentById("I").getStatus()); equal("W",loaded.findIncidentById("I").getAssignedTo()); } finally { Files.deleteIfExists(f); } });
-  test("TC-INC-04 purge resolved only", () -> { equal(1,is.purgeResolvedIncidents()); equal(1,is.getAllIncidents().size()); });
+  test("TC-INC-04 archive resolved while retaining history", () -> { equal(1,is.purgeResolvedIncidents()); equal(2,is.getAllIncidents().size()); require(is.findIncidentById("I").isArchived()); });
   finish();
  }
 }

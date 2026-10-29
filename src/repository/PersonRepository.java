@@ -12,14 +12,14 @@ import java.util.Arrays;
 /**
  * Stores personnel by code in an insertion-ordered map and handles personnel CSV.
  *
- * <p>Code lookup is case-sensitive. CSV loading requires the canonical nine-column
+ * <p>Code lookup normalizes identifiers. CSV loading requires the canonical ten-column
  * header and validates all rows before replacing the active map.
  */
 public class PersonRepository {
     private final Map<String, Person> store = new LinkedHashMap<>();
 
     /**
-     * Registers a person under its trimmed, case-sensitive code.
+     * Registers a person under its canonical code and unique internal identifier.
      */
     public boolean save(Person person) throws DuplicatePersonCodeException {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
@@ -29,18 +29,23 @@ public class PersonRepository {
         if (store.containsKey(code)) {
             throw new DuplicatePersonCodeException(code);
         }
+        for (Person existing : store.values()) {
+            if (existing.getId().equals(person.getId())) {
+                throw new exception.DataValidationException("id", "Already belongs to another personnel record.");
+            }
+        }
         store.put(code, person);
         return true;
     }
 
     /**
-     * Looks up a trimmed, case-sensitive personnel code without throwing for absence.
+     * Looks up equivalent case, separator and zero-padded forms of a personnel code.
      */
     public Person findByCode(String code) {
         if (code == null) {
             return null;
         }
-        return store.get(code.trim());
+        return store.get(util.IdentifierHelper.normalizeForLookup(code));
     }
 
     /**
@@ -82,7 +87,7 @@ public class PersonRepository {
                             rows.get(0),
                             new String[] {
                                     "type", "id", "code", "name", "phoneNumber",
-                                    "role", "extra1", "extra2", "extra3"
+                                    "role", "extra1", "extra2", "extra3", "active"
                             }
                     )) {
                 return false;
@@ -92,7 +97,7 @@ public class PersonRepository {
                 if (util.CsvHelper.isBlankRow(p)) {
                     continue;
                 }
-                if (p.length != 9) {
+                if (p.length != 10 || !(p[9].equals("true") || p[9].equals("false"))) {
                     return false;
                 }
                 Person person;
@@ -109,12 +114,19 @@ public class PersonRepository {
                     case "VISITOR":
                         person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
                         break;
+                    case "STAFF":
+                        if (!p[8].isEmpty()) {
+                            return false;
+                        }
+                        person = new model.Staff(p[1], p[2], p[3], p[4], p[7], p[6]);
+                        break;
                     default:
                         return false;
                 }
                 if (!person.getRole().name().equals(p[5])) {
                     return false;
                 }
+                person.setActive(Boolean.parseBoolean(p[9]));
                 staged.save(person);
             }
         } catch (RuntimeException e) {
@@ -130,7 +142,7 @@ public class PersonRepository {
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3");
+        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active");
         for (Person p : store.values()) {
             lines.add(p.toCsvLine());
         }

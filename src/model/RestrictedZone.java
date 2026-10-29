@@ -86,7 +86,9 @@ public class RestrictedZone extends Zone {
 
     @Override
     public String toCsvLine() {
-        String codes = allowedPersonCodes.isEmpty() ? "NONE" : String.join(";", new TreeSet<>(allowedPersonCodes));
+        Set<String> orderedCodes = new TreeSet<>(util.IdentifierHelper.NATURAL_ORDER);
+        orderedCodes.addAll(allowedPersonCodes);
+        String codes = orderedCodes.isEmpty() ? "NONE" : String.join(";", orderedCodes);
         return util.CsvHelper.toCsvLine("RESTRICTED", getZoneId(), getZoneName(), requiredSafetyLevel.name(), codes);
     }
 

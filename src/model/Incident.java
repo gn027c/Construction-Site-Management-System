@@ -1,6 +1,10 @@
 package model;
 
 import static model.ModelValidation.*;
+import exception.DataValidationException;
+import java.time.LocalDateTime;
+import util.DateTimeHelper;
+import util.IdentifierHelper;
 
 /**
  * Represents a safety incident and controls its assignment and resolution.
@@ -29,6 +33,9 @@ public class Incident {
     private IncidentSeverity severity;
     private IncidentStatus status;
     private String assignedTo;
+    private final String reportedAt;
+    private String resolvedAt;
+    private boolean archived;
 
     /**
      * Reconstitutes an incident while validating status and assignment together.
@@ -44,7 +51,25 @@ public class Incident {
             IncidentStatus status,
             String assignedTo
     ) {
-        this.incidentId = requiredText(incidentId, "incidentId");
+        this(incidentId, title, description, severity, status, assignedTo, "", "", false);
+    }
+
+    /**
+     * Restores persisted timestamps without inventing missing historical dates.
+     * Archived incidents remain resolved and retain their original assignment.
+     */
+    public Incident(
+            String incidentId,
+            String title,
+            String description,
+            IncidentSeverity severity,
+            IncidentStatus status,
+            String assignedTo,
+            String reportedAt,
+            String resolvedAt,
+            boolean archived
+    ) {
+        this.incidentId = IdentifierHelper.normalize(requiredText(incidentId, "incidentId"));
         this.title = requiredText(title, "title");
         this.description = requiredText(description, "description");
         this.severity = requiredValue(severity, "severity");
@@ -58,13 +83,36 @@ public class Incident {
         } else {
             this.assignedTo = personCode(assignee, "assignedTo");
         }
+        this.reportedAt = optionalTimestamp(reportedAt, "reportedAt");
+        this.resolvedAt = optionalTimestamp(resolvedAt, "resolvedAt");
+        if (status != IncidentStatus.RESOLVED && (!this.resolvedAt.isEmpty() || archived)) {
+            throw new DataValidationException("incident", "Only resolved incidents can have a resolution date or archive.");
+        }
+        if (!this.reportedAt.isEmpty() && !this.resolvedAt.isEmpty()
+                && DateTimeHelper.parseTimestamp(this.resolvedAt).isBefore(
+                        DateTimeHelper.parseTimestamp(this.reportedAt)
+                )) {
+            throw new DataValidationException("resolvedAt", "Must not precede the reported time.");
+        }
+        this.archived = archived;
+    }
+
+    private static String optionalTimestamp(String value, String field) {
+        requiredValue(value, field);
+        if (value.isEmpty()) {
+            return "";
+        }
+        return timestamp(value);
     }
 
     /**
      * Creates a new open incident without an assignee.
      */
     public static Incident report(String id, String title, String description, IncidentSeverity severity) {
-        return new Incident(id, title, description, severity, IncidentStatus.OPEN, "");
+        return new Incident(
+                id, title, description, severity, IncidentStatus.OPEN, "",
+                DateTimeHelper.formatTimestamp(LocalDateTime.now()), "", false
+        );
     }
 
     public String getIncidentId() {
@@ -89,6 +137,18 @@ public class Incident {
 
     public String getAssignedTo() {
         return assignedTo;
+    }
+
+    public String getReportedAt() {
+        return reportedAt;
+    }
+
+    public String getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public boolean isArchived() {
+        return archived;
     }
 
     public boolean isOpen() {
@@ -138,22 +198,48 @@ public class Incident {
                     "Only ASSIGNED incidents can be resolved."
             );
         }
+        String resolutionTime = DateTimeHelper.formatTimestamp(LocalDateTime.now());
+        if (!reportedAt.isEmpty()
+                && DateTimeHelper.parseTimestamp(resolutionTime).isBefore(DateTimeHelper.parseTimestamp(reportedAt))) {
+            throw new DataValidationException("resolvedAt", "System time precedes the incident reporting time.");
+        }
+        resolvedAt = resolutionTime;
         status = IncidentStatus.RESOLVED;
     }
 
+    /**
+     * Archives a resolved incident without deleting it from history or reports.
+     */
+    public boolean archive() {
+        if (!isResolved()) {
+            throw new exception.InvalidIncidentStateException(
+                    incidentId, status.name(), "Only RESOLVED incidents can be archived."
+            );
+        }
+        if (archived) {
+            return false;
+        }
+        archived = true;
+        return true;
+    }
+
     public String toCsvLine() {
-        return util.CsvHelper.toCsvLine(incidentId, title, description, severity.name(), status.name(), assignedTo);
+        return util.CsvHelper.toCsvLine(
+                incidentId, title, description, severity.name(), status.name(), assignedTo,
+                reportedAt, resolvedAt, Boolean.toString(archived)
+        );
     }
 
     @Override
     public String toString() {
         return String.format(
-                "Incident{incidentId='%s', title='%s', severity=%s, status=%s, assignedTo='%s'}",
+                "Incident{incidentId='%s', title='%s', severity=%s, status=%s, assignedTo='%s', archived=%s}",
                 incidentId,
                 title,
                 severity,
                 status,
-                assignedTo.isEmpty() ? "None" : assignedTo
+                assignedTo.isEmpty() ? "None" : assignedTo,
+                archived
         );
     }
 }

@@ -36,7 +36,7 @@ public class AttendanceTimestampTest {
         });
         test("Legacy timestamp reload fails without replacing loaded records", () -> {
             AttendanceRepository repo = new AttendanceRepository();
-            require(repo.save(record("REC0001", "2026-10-29 07:05:00")));
+            require(repo.save(record("REC1", "2026-10-29 07:05:00")));
             Path csv = Files.createTempFile("smartsite-old-time-", ".csv");
             try {
                 require(CsvHelper.writeAllLines(csv.toString(), Arrays.asList(
@@ -44,15 +44,15 @@ public class AttendanceTimestampTest {
                     "REC0002,W,Z,29/10/2026 07:06,CHECK_OUT")));
                 require(!repo.loadFromCsv(csv.toString()));
                 equal(1, repo.findAll().size());
-                equal("REC0001", repo.findAll().get(0).getRecordId());
+                equal("REC1", repo.findAll().get(0).getRecordId());
             } finally { Files.deleteIfExists(csv); }
         });
         test("Attendance model rejects legacy timestamps at construction", () -> {
-            throwsType(DataValidationException.class, () -> record("REC0001", "29/10/2026 07:05"));
+            throwsType(DataValidationException.class, () -> record("REC1", "29/10/2026 07:05"));
         });
         test("Invalid timestamp update preserves the model and its valid CSV", () -> {
             AttendanceRepository repo = new AttendanceRepository();
-            AttendanceRecord record = record("REC0001", "2026-10-29 07:05:00");
+            AttendanceRecord record = record("REC1", "2026-10-29 07:05:00");
             require(repo.save(record));
             Path csv = Files.createTempFile("smartsite-time-write-", ".csv");
             try {

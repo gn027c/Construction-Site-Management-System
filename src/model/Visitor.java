@@ -76,7 +76,7 @@ public class Visitor extends Person {
 
     @Override
     public String toCsvLine() {
-        return baseCsv("VISITOR") + "," + util.CsvHelper.toCsvLine(purpose, hostPersonName, entryDate);
+        return baseCsv("VISITOR") + "," + util.CsvHelper.toCsvLine(purpose, hostPersonName, entryDate) + csvStatus();
     }
 
     @Override

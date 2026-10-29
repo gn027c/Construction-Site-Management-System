@@ -22,9 +22,9 @@ public class AttendanceRecord {
     private String timestamp;
 
     public AttendanceRecord(String recordId, String personCode, String zoneId, String timestamp, CheckType checkType) {
-        this.recordId = requiredText(recordId, "recordId");
+        this.recordId = identifier(recordId, "recordId");
         this.personCode = personCode(personCode, "personCode");
-        this.zoneId = requiredText(zoneId, "zoneId");
+        this.zoneId = identifier(zoneId, "zoneId");
         this.timestamp = timestamp(timestamp);
         this.checkType = requiredValue(checkType, "checkType");
     }
@@ -58,11 +58,16 @@ public class AttendanceRecord {
      *
      * <p>A first swipe must be a check-in. A check-in requires the previous swipe
      * to be a check-out; a check-out requires a check-in at the same zone. This
-     * checks action order, not timestamp chronology or a complete history.
+     * checks action order and chronology against the supplied preceding record.
      */
     public void assertCanFollow(AttendanceRecord previous) {
         if (previous != null && !personCode.equals(previous.personCode)) {
             throw new exception.DataValidationException("previousRecord", "Must belong to the same person.");
+        }
+        if (previous != null && util.DateTimeHelper.parseTimestamp(timestamp).isBefore(
+                util.DateTimeHelper.parseTimestamp(previous.timestamp)
+        )) {
+            throw invalidOrder("Timestamp must not precede the previous attendance record.");
         }
         if (checkType == CheckType.CHECK_IN) {
             if (previous != null && previous.checkType == CheckType.CHECK_IN) {

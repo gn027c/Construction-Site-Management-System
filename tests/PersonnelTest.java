@@ -9,12 +9,12 @@ public class PersonnelTest {
  public static void main(String[] args) throws Exception {
   PersonnelService ps = new PersonnelService();
   test("TC-PERS-01 add all personnel types", () -> {
-   require(ps.addPerson(new Worker("1","W","An, Test","0901234567","Welder","X_SAFE","Team B")));
-   require(ps.addPerson(new Contractor("2","C","B","0901234567","Company, Inc","CTR-1")));
-   require(ps.addPerson(new Visitor("3","V","C","0901234567","Survey","W","28/10/2026")));
+   require(ps.addPerson(new Worker("P1","W","An, Test","0901234567","Welder","X_SAFE","Team B")));
+   require(ps.addPerson(new Contractor("P2","C","B","0901234567","Company, Inc","CTR-1")));
+   require(ps.addPerson(new Visitor("P3","V","C","0901234567","Survey","W","28/10/2026")));
   });
-  test("TC-PERS-02 duplicate rejected", () -> throwsType(DuplicatePersonCodeException.class, () -> ps.addPerson(new Worker("4","W","Other","0901234567","T","X_SAFE","B"))));
-  test("TC-PERS-03 invalid phone rejected", () -> throwsType(InvalidPhoneNumberException.class, () -> ps.addPerson(new Visitor("5","X","X","123","Survey","W","28/10/2026"))));
+  test("TC-PERS-02 duplicate rejected", () -> throwsType(DuplicatePersonCodeException.class, () -> ps.addPerson(new Worker("P4","W","Other","0901234567","T","X_SAFE","B"))));
+  test("TC-PERS-03 invalid phone rejected", () -> throwsType(InvalidPhoneNumberException.class, () -> ps.addPerson(new Visitor("P5","X","X","123","Survey","W","28/10/2026"))));
   test("TC-PERS-04 lookup", () -> equal("An, Test", ps.findPersonByCode("W").getName()));
   test("TC-PERS-05 unknown rejected", () -> throwsType(PersonNotFoundException.class, () -> ps.findPersonByCode("missing")));
   test("TC-PERS-06 update failure preserves data", () -> {

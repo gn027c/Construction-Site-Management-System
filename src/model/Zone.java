@@ -13,7 +13,7 @@ public class Zone {
     private String zoneName;
 
     public Zone(String zoneId, String zoneName) {
-        this.zoneId = requiredText(zoneId, "zoneId");
+        this.zoneId = identifier(zoneId, "zoneId");
         this.zoneName = requiredText(zoneName, "zoneName");
     }
 

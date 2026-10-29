@@ -25,11 +25,12 @@ public class IncidentRepository {
     }
 
     public Incident findById(String incidentId) {
-        if (incidentId == null || incidentId.trim().isEmpty()) {
+        String normalized = util.IdentifierHelper.normalizeForLookup(incidentId);
+        if (normalized == null) {
             return null;
         }
         for (Incident inc : incidentList) {
-            if (inc.getIncidentId().equalsIgnoreCase(incidentId.trim())) {
+            if (inc.getIncidentId().equals(normalized)) {
                 return inc;
             }
         }
@@ -37,12 +38,20 @@ public class IncidentRepository {
     }
 
     /**
-     * Removes resolved incidents while retaining open and assigned incidents.
+     * Archives resolved incidents while preserving every historical record.
      */
     public int deleteResolved() {
-        int before = incidentList.size();
-        incidentList.removeIf(Incident::isResolved);
-        return before - incidentList.size();
+        return archiveResolved();
+    }
+
+    public int archiveResolved() {
+        int count = 0;
+        for (Incident incident : incidentList) {
+            if (incident.isResolved() && incident.archive()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
@@ -63,7 +72,10 @@ public class IncidentRepository {
         IncidentRepository staged = new IncidentRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !rows.get(0)[0].equals("incidentId")) {
+            if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), new String[] {
+                    "incidentId", "title", "description", "severity", "status", "assignedTo",
+                    "reportedAt", "resolvedAt", "archived"
+            })) {
                 return false;
             }
             for (int i = 1; i < rows.size(); i++) {
@@ -71,13 +83,16 @@ public class IncidentRepository {
                 if (util.CsvHelper.isBlankRow(p)) {
                     continue;
                 }
-                if (p.length != 6) {
+                if (p.length != 9 || !(p[8].equals("true") || p[8].equals("false"))) {
                     return false;
                 }
                 Incident.IncidentStatus status = Incident.IncidentStatus.valueOf(p[4]);
                 if (
                         !staged.save(
-                                new Incident(p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status, p[5])
+                                new Incident(
+                                        p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status,
+                                        p[5], p[6], p[7], Boolean.parseBoolean(p[8])
+                                )
                         )
                 ) {
                     return false;
@@ -96,7 +111,7 @@ public class IncidentRepository {
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("incidentId,title,description,severity,status,assignedTo");
+        lines.add("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived");
         for (Incident inc : incidentList) {
             lines.add(inc.toCsvLine());
         }

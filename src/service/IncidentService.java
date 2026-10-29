@@ -3,6 +3,7 @@ package service;
 import model.Incident;
 import repository.IncidentRepository;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Coordinates incident storage and personnel lookup for incident operations.
@@ -90,7 +91,30 @@ public class IncidentService {
     }
 
     public int purgeResolvedIncidents() {
-        return incidentRepository.deleteResolved();
+        return archiveResolvedIncidents();
+    }
+
+    /**
+     * Archives resolved incidents while preserving their records for reporting.
+     */
+    public int archiveResolvedIncidents() {
+        int archived = 0;
+        for (Incident incident : incidentRepository.findAll()) {
+            if (incident.isResolved() && incident.archive()) {
+                archived++;
+            }
+        }
+        return archived;
+    }
+
+    public List<Incident> getActiveIncidents() {
+        List<Incident> active = new ArrayList<>();
+        for (Incident incident : incidentRepository.findAll()) {
+            if (!incident.isArchived()) {
+                active.add(incident);
+            }
+        }
+        return active;
     }
 
     public List<Incident> getAllIncidents() {

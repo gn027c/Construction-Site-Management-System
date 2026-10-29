@@ -17,7 +17,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final PersonnelService personnelService;
     private final ZoneService zoneService;
-    private long recordCounter = 1;
+    private java.math.BigInteger recordCounter = java.math.BigInteger.ONE;
 
     public AttendanceService(PersonnelService personnelService, ZoneService zoneService) {
         this(new AttendanceRepository(), personnelService, zoneService);
@@ -38,18 +38,17 @@ public class AttendanceService {
      * Sets the next sequence above the highest existing numeric REC identifier.
      *
      * <p>Using the maximum avoids reusing an existing identifier after deletion.
-     * Identifiers outside {@code REC} followed by 1 to 18 digits, such as
-     * {@code ATT-001}, do not contribute to this sequence.
+     * Identifiers outside {@code REC} followed by positive digits do not contribute to this sequence.
      */
     private void syncRecordCounter() {
-        long maxNumber = 0;
+        java.math.BigInteger maxNumber = java.math.BigInteger.ZERO;
         for (AttendanceRecord record : attendanceRepository.findAll()) {
             String id = record.getRecordId();
-            if (id != null && id.matches("REC\\d{1,18}")) {
-                maxNumber = Math.max(maxNumber, Long.parseLong(id.substring(3)));
+            if (id != null && id.matches("REC[1-9]\\d*")) {
+                maxNumber = maxNumber.max(new java.math.BigInteger(id.substring(3)));
             }
         }
-        this.recordCounter = maxNumber + 1;
+        this.recordCounter = maxNumber.add(java.math.BigInteger.ONE);
     }
 
     /**
@@ -58,7 +57,7 @@ public class AttendanceService {
      * <p>Zone access is verified on check-in. The sequence advances only when
      * the repository accepts the new record.
      */
-    public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
+    public synchronized boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
         if (personCode == null
                 || personCode.trim().isEmpty()
@@ -67,21 +66,24 @@ public class AttendanceService {
                 || type == null) {
             return false;
         }
-        String cleanPersonCode = personCode.trim();
-        String cleanZoneId = zoneId.trim();
+        String cleanPersonCode = util.IdentifierHelper.normalize(personCode, "personCode");
+        String cleanZoneId = util.IdentifierHelper.normalize(zoneId, "zoneId");
         model.Person person = personnelService.findPersonByCode(cleanPersonCode);
         zoneService.findZoneById(cleanZoneId);
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
+            if (!person.isActive()) {
+                throw new exception.DataValidationException("person", "Inactive personnel cannot check in.");
+            }
             zoneService.verifyAccess(cleanZoneId, person);
         }
         AttendanceRecord lastRecord = attendanceRepository.findLastByPersonCode(cleanPersonCode);
-        String recordId = String.format("REC%04d", recordCounter);
+        String recordId = "REC" + recordCounter;
         String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         AttendanceRecord newRecord = new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
         newRecord.assertCanFollow(lastRecord);
         boolean saved = attendanceRepository.save(newRecord);
         if (saved) {
-            recordCounter++;
+            recordCounter = recordCounter.add(java.math.BigInteger.ONE);
         }
         return saved;
     }

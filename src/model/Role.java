@@ -8,6 +8,7 @@ package model;
  */
 public enum Role {
     WORKER,
+    STAFF,
     CONTRACTOR,
     VISITOR
 }
