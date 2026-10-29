@@ -19,10 +19,6 @@ public class AttendanceRepository {
 
     /**
      * Stores a record after checking its timestamp and unique record identifier.
-     *
-     * @param record the attendance record to add
-     * @return true after insertion; false for null input, an invalid timestamp
-     *         or a duplicate identifier
      */
     public boolean save(AttendanceRecord record) {
         if (record == null) {
@@ -45,9 +41,6 @@ public class AttendanceRepository {
      * Finds the most recently inserted swipe for a trimmed, case-sensitive code.
      *
      * <p>Insertion order defines the preceding swipe. Records are not sorted by timestamp.
-     *
-     * @param personCode the personnel code
-     * @return the last matching record, or null when absent
      */
     public AttendanceRecord findLastByPersonCode(String personCode) {
         if (personCode == null || personCode.trim().isEmpty()) {
@@ -68,8 +61,6 @@ public class AttendanceRepository {
      *
      * <p>Changing the returned list does not change this repository's collection.
      * The model objects themselves are shared and retain their validated operations.
-     *
-     * @return a new list containing the stored objects
      */
     public List<AttendanceRecord> findAll() {
         return new ArrayList<>(attendanceList);
@@ -77,10 +68,7 @@ public class AttendanceRepository {
 
     /**
      * Loads CSV into a temporary repository before replacing active data.
-     *
-     * @param filePath the CSV file to read
-     * @return true after all rows are accepted; false on read or validation
-     *         failure, leaving the current collection unchanged
+     * A read or validation failure returns false and retains the current collection.
      */
     public boolean loadFromCsv(String filePath) {
         AttendanceRepository staged = new AttendanceRepository();
@@ -115,9 +103,6 @@ public class AttendanceRepository {
 
     /**
      * Serializes current data and requests an atomic replacement of one CSV file.
-     *
-     * @param filePath the destination CSV file
-     * @return whether the file was written successfully
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();

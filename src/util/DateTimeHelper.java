@@ -35,11 +35,6 @@ public final class DateTimeHelper {
 
     /**
      * Formats a date using the shared date pattern.
-     *
-     * @param value a non-null date with a year from 0001 through 9999
-     * @return the formatted date
-     * @throws IllegalArgumentException if the year is outside the supported range
-     * @throws NullPointerException if the value is null
      */
     public static String formatDate(LocalDate value) {
         Objects.requireNonNull(value, "date");
@@ -49,10 +44,6 @@ public final class DateTimeHelper {
 
     /**
      * Parses an exact date and rejects impossible calendar dates.
-     *
-     * @param value a date in {@code dd/MM/yyyy} format without surrounding whitespace
-     * @return the parsed date
-     * @throws DateTimeParseException if the value or year is invalid
      */
     public static LocalDate parseDate(String value) {
         if (value == null || value.length() != DATE_FORMAT.length()) {
@@ -73,11 +64,6 @@ public final class DateTimeHelper {
 
     /**
      * Formats local date and time to second precision using the shared timestamp pattern.
-     *
-     * @param value a non-null timestamp with a year from 0001 through 9999
-     * @return the formatted timestamp; fractional seconds are omitted
-     * @throws IllegalArgumentException if the year is outside the supported range
-     * @throws NullPointerException if the value is null
      */
     public static String formatTimestamp(LocalDateTime value) {
         Objects.requireNonNull(value, "timestamp");
@@ -87,10 +73,6 @@ public final class DateTimeHelper {
 
     /**
      * Parses an exact timestamp and rejects impossible dates or times.
-     *
-     * @param value a timestamp in {@code yyyy-MM-dd HH:mm:ss} format
-     * @return the parsed local date and time, without a time zone
-     * @throws DateTimeParseException if the value or year is invalid
      */
     public static LocalDateTime parseTimestamp(String value) {
         if (value == null || value.length() != TIMESTAMP_FORMAT.length()) {

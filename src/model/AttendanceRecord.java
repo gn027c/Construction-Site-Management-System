@@ -64,10 +64,6 @@ public class AttendanceRecord implements Serializable {
      * <p>A first swipe must be a check-in. A check-in requires the previous swipe
      * to be a check-out; a check-out requires a check-in at the same zone. This
      * checks action order, not timestamp chronology or a complete history.
-     *
-     * @param previous the preceding stored swipe, or null when there is none
-     * @throws exception.DataValidationException if the previous swipe belongs to another person
-     * @throws exception.AttendanceOrderException if the swipe sequence is invalid
      */
     public void assertCanFollow(AttendanceRecord previous) {
         if (previous != null && !personCode.equals(previous.personCode)) {

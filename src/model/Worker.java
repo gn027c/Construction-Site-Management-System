@@ -71,8 +71,6 @@ public class Worker extends Person {
 
     /**
      * Accepts certificate identifiers ending with the case-sensitive suffix {@code _SAFE}.
-     *
-     * @return whether the worker's certificate matches the current rule
      */
     @Override
     public boolean hasValidSafetyCredential() {

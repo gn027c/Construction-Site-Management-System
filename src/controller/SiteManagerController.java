@@ -66,8 +66,6 @@ public class SiteManagerController {
      *
      * <p>No existing files means an empty data set. A partial file set is rejected.
      * Active services are replaced only after all loading and reference checks succeed.
-     *
-     * @throws IOException if the file set, CSV data or references are invalid
      */
     public void loadAllData() throws IOException {
         int existing = 0;
@@ -135,8 +133,6 @@ public class SiteManagerController {
      *
      * <p>Each file replacement is atomic, but the complete set is not a transaction.
      * A failure may leave some files saved; the exception names the failed files.
-     *
-     * @throws IOException if reference validation or any file write fails
      */
     public void saveAllData() throws IOException {
         validateReferences(personnelService, zoneService, attendanceService, incidentService);
@@ -173,10 +169,6 @@ public class SiteManagerController {
 
     /**
      * Collects current service data for a separate spreadsheet-oriented export.
-     *
-     * @param destination the parent directory for the new export directory
-     * @return the absolute path of the export directory
-     * @throws IOException if references are invalid or the export cannot be completed
      */
     public Path exportCsv(Path destination) throws IOException {
         validateReferences(personnelService, zoneService, attendanceService, incidentService);

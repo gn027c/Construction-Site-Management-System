@@ -40,8 +40,6 @@ public class IncidentRepository {
 
     /**
      * Removes resolved incidents while retaining open and assigned incidents.
-     *
-     * @return the number of removed incidents
      */
     public int deleteResolved() {
         int before = incidentList.size();
@@ -54,8 +52,6 @@ public class IncidentRepository {
      *
      * <p>Changing the returned list does not change this repository's collection.
      * The model objects themselves are shared and retain their validated operations.
-     *
-     * @return a new list containing the stored objects
      */
     public List<Incident> findAll() {
         return new ArrayList<>(incidentList);
@@ -63,10 +59,7 @@ public class IncidentRepository {
 
     /**
      * Loads CSV into a temporary repository before replacing active data.
-     *
-     * @param filePath the CSV file to read
-     * @return true after all rows are accepted; false on read or validation
-     *         failure, leaving the current collection unchanged
+     * A read or validation failure returns false and retains the current collection.
      */
     public boolean loadFromCsv(String filePath) {
         IncidentRepository staged = new IncidentRepository();
@@ -102,9 +95,6 @@ public class IncidentRepository {
 
     /**
      * Serializes current data and requests an atomic replacement of one CSV file.
-     *
-     * @param filePath the destination CSV file
-     * @return whether the file was written successfully
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();

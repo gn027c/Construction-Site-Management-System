@@ -23,10 +23,6 @@ public final class CsvHelper {
      * Reads physical UTF-8 lines and removes a leading byte order mark.
      *
      * <p>Use {@link #readRows(String)} when CSV fields may contain line breaks.
-     *
-     * @param filePath the input file
-     * @return the physical lines without a leading byte order mark
-     * @throws UncheckedIOException if the file cannot be read
      */
     public static List<String> readAllLines(String filePath) {
         try {
@@ -42,11 +38,6 @@ public final class CsvHelper {
 
     /**
      * Reads logical CSV records, including fields containing quoted line breaks.
-     *
-     * @param path the input UTF-8 CSV file
-     * @return parsed rows with empty fields preserved
-     * @throws UncheckedIOException if the file cannot be read
-     * @throws IllegalArgumentException if CSV quoting is malformed
      */
     public static List<String[]> readRows(String path) {
         try {
@@ -58,10 +49,6 @@ public final class CsvHelper {
 
     /**
      * Parses exactly one logical CSV record, including quoted line breaks.
-     *
-     * @param line the serialized CSV record
-     * @return the unescaped fields
-     * @throws IllegalArgumentException if record count or quoting is invalid
      */
     public static String[] parseLine(String line) {
         List<String[]> rows = parseRecords(line);
@@ -141,9 +128,6 @@ public final class CsvHelper {
 
     /**
      * Escapes fields and joins them into one CSV record.
-     *
-     * @param fields the fields in schema order; null fields become empty strings
-     * @return one serialized record
      */
     public static String toCsvLine(String... fields) {
         List<String> escaped = new ArrayList<>();
@@ -169,10 +153,6 @@ public final class CsvHelper {
      * <p>The sibling temporary file is flushed before replacement. If the filesystem
      * cannot perform an atomic move, the write fails rather than using a non-atomic
      * fallback. Temporary-file cleanup is attempted on success and failure.
-     *
-     * @param filePath the destination file
-     * @param lines the serialized records; null records are rejected
-     * @return whether the destination was replaced successfully
      */
     public static boolean writeAllLines(String filePath, List<String> lines) {
         if (lines == null || lines.contains(null)) {

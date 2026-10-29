@@ -47,9 +47,7 @@ public class Visitor extends Person {
     }
 
     /**
-     * Returns the visit date using the shared date format.
-     *
-     * @return {@code dd/MM/yyyy}, or an empty string when the date is unknown
+     * Returns the visit date as {@code dd/MM/yyyy}, or an empty string when unknown.
      */
     public String getEntryDate() {
         return entryDate;

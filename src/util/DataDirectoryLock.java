@@ -17,9 +17,6 @@ public final class DataDirectoryLock implements AutoCloseable {
 
     /**
      * Attempts to acquire the data directory lock without waiting.
-     *
-     * @param directory the directory containing application CSV files
-     * @throws IOException if the directory or its lock is unavailable
      */
     public DataDirectoryLock(Path directory) throws IOException {
         Files.createDirectories(directory);

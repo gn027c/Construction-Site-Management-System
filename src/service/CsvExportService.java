@@ -16,11 +16,6 @@ import util.CsvHelper;
 public final class CsvExportService {
     /**
      * Creates a new directory and writes formula-protected CSV reports.
-     *
-     * @param tables file names mapped to CSV records from trusted application schemas
-     * @param destination the parent directory for a uniquely named export directory
-     * @return the absolute path of the completed export directory
-     * @throws IOException if output cannot be completed; partial output may remain
      */
     public Path export(Map<String, List<String>> tables, Path destination) throws IOException {
         Files.createDirectories(destination);

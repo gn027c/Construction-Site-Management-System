@@ -22,10 +22,6 @@ public class PersonRepository {
 
     /**
      * Registers a person under its trimmed, case-sensitive code.
-     *
-     * @param person the person to register
-     * @return false for missing input; true after registration
-     * @throws DuplicatePersonCodeException if the code is already registered
      */
     public boolean save(Person person) throws DuplicatePersonCodeException {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
@@ -41,9 +37,6 @@ public class PersonRepository {
 
     /**
      * Looks up a trimmed, case-sensitive personnel code without throwing for absence.
-     *
-     * @param code the personnel code, possibly null
-     * @return the matching person, or null when absent
      */
     public Person findByCode(String code) {
         if (code == null) {
@@ -54,10 +47,6 @@ public class PersonRepository {
 
     /**
      * Looks up personnel when the caller requires an existing record.
-     *
-     * @param code the personnel code
-     * @return the matching person
-     * @throws PersonNotFoundException if no record matches
      */
     public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
         Person person = findByCode(code);
@@ -77,8 +66,6 @@ public class PersonRepository {
      *
      * <p>Changing the returned list does not change this repository's collection.
      * The model objects themselves are shared and retain their validated operations.
-     *
-     * @return a new list containing the stored objects
      */
     public List<Person> findAll() {
         return new ArrayList<>(store.values());
@@ -86,10 +73,7 @@ public class PersonRepository {
 
     /**
      * Loads CSV into a temporary repository before replacing active data.
-     *
-     * @param filePath the CSV file to read
-     * @return true after all rows are accepted; false on read or validation
-     *         failure, leaving the current collection unchanged
+     * A read or validation failure returns false and retains the current collection.
      */
     public boolean loadFromCsv(String filePath) {
         PersonRepository staged = new PersonRepository();
@@ -145,9 +129,6 @@ public class PersonRepository {
 
     /**
      * Serializes current data and requests an atomic replacement of one CSV file.
-     *
-     * @param filePath the destination CSV file
-     * @return whether the file was written successfully
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();

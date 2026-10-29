@@ -59,8 +59,6 @@ public class ZoneRepository {
      *
      * <p>Changing the returned list does not change this repository's collection.
      * The model objects themselves are shared and retain their validated operations.
-     *
-     * @return a new list containing the stored objects
      */
     public List<Zone> findAll() {
         return new ArrayList<>(zoneList);
@@ -68,10 +66,7 @@ public class ZoneRepository {
 
     /**
      * Loads CSV into a temporary repository before replacing active data.
-     *
-     * @param filePath the CSV file to read
-     * @return true after all rows are accepted; false on read or validation
-     *         failure, leaving the current collection unchanged
+     * A read or validation failure returns false and retains the current collection.
      */
     public boolean loadFromCsv(String filePath) {
         ZoneRepository staged = new ZoneRepository();
@@ -115,9 +110,6 @@ public class ZoneRepository {
 
     /**
      * Serializes current data and requests an atomic replacement of one CSV file.
-     *
-     * @param filePath the destination CSV file
-     * @return whether the file was written successfully
      */
     public boolean saveToCsv(String filePath) {
         List<String> rows = new ArrayList<>();

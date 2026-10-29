@@ -59,10 +59,6 @@ public abstract class Person {
      * Validates both contact values before assigning either field.
      *
      * <p>If either value is invalid, both existing contact values are retained.
-     *
-     * @param name the new nonblank name
-     * @param phoneNumber the new phone number
-     * @throws exception.DataValidationException if either contact value is invalid
      */
     public void updateContactDetails(String name, String phoneNumber) {
         String validName = requiredText(name, "name");
@@ -73,15 +69,11 @@ public abstract class Person {
 
     /**
      * Evaluates the subtype-specific credential rule used by restricted zones.
-     *
-     * @return whether this person satisfies the current credential rule
      */
     public abstract boolean hasValidSafetyCredential();
 
     /**
      * Serializes common personnel columns and the subtype's three extra columns.
-     *
-     * @return one escaped record matching the nine-column personnel CSV schema
      */
     public abstract String toCsvLine();
 

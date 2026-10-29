@@ -59,15 +59,6 @@ public class AttendanceService {
      *
      * <p>Zone access is verified on check-in. The sequence advances only when
      * the repository accepts the new record.
-     *
-     * @param personCode the registered personnel code
-     * @param zoneId the registered zone identifier
-     * @param type the check-in or check-out action
-     * @return false for missing input or rejected storage; true when recorded
-     * @throws exception.PersonNotFoundException if the person is absent
-     * @throws exception.ZoneNotFoundException if the zone is absent
-     * @throws exception.RestrictedZoneViolationException if check-in access is denied
-     * @throws exception.AttendanceOrderException if the swipe sequence is invalid
      */
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {

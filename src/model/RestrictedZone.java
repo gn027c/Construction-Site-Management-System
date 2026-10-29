@@ -55,8 +55,6 @@ public class RestrictedZone extends Zone {
 
     /**
      * Copies the whitelist so callers cannot change it without validation.
-     *
-     * @return a separate set containing the allowed personnel codes
      */
     public Set<String> getAllowedPersonCodes() {
         return new HashSet<>(allowedPersonCodes);
@@ -64,9 +62,6 @@ public class RestrictedZone extends Zone {
 
     /**
      * Validates every code before replacing the current whitelist.
-     *
-     * @param codes the complete replacement whitelist; an empty set is allowed
-     * @throws exception.DataValidationException if the set or any code is invalid
      */
     public void setAllowedPersonCodes(Set<String> codes) {
         allowedPersonCodes = validatedCodes(codes);
@@ -85,9 +80,6 @@ public class RestrictedZone extends Zone {
      *
      * <p>The hazard level is metadata and is not compared with personnel
      * credentials because those credentials have no comparable level.
-     *
-     * @param person the person requesting access, possibly null
-     * @return whether both access requirements are satisfied
      */
     @Override
     public boolean checkAccess(Person person) {

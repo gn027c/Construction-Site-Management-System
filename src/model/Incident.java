@@ -37,14 +37,6 @@ public class Incident {
      *
      * <p>An open incident must have no assignee. Assigned and resolved incidents
      * must have a valid code; registry membership is checked by the service.
-     *
-     * @param incidentId the nonblank incident identifier
-     * @param title the nonblank incident title
-     * @param description the nonblank incident description
-     * @param severity the incident severity
-     * @param status the saved lifecycle status
-     * @param assignedTo the assignee code, or blank for an open incident
-     * @throws exception.DataValidationException if a field or status-assignment pair is invalid
      */
     public Incident(
             String incidentId,
@@ -72,12 +64,6 @@ public class Incident {
 
     /**
      * Creates a new open incident without an assignee.
-     *
-     * @param id the nonblank incident identifier
-     * @param title the nonblank incident title
-     * @param description the nonblank incident description
-     * @param severity the incident severity
-     * @return a validated incident ready for registration
      */
     public static Incident report(String id, String title, String description, IncidentSeverity severity) {
         return new Incident(id, title, description, severity, IncidentStatus.OPEN, "");
@@ -129,10 +115,6 @@ public class Incident {
 
     /**
      * Assigns an open incident after validating the supplied code.
-     *
-     * @param code the assignee code already checked against the personnel registry
-     * @throws exception.InvalidIncidentStateException if the incident is not open
-     * @throws exception.DataValidationException if the code is invalid
      */
     public void assignTo(String code) {
         if (!isOpen()) {
@@ -149,8 +131,6 @@ public class Incident {
 
     /**
      * Marks an assigned incident as resolved while retaining its assignee.
-     *
-     * @throws exception.InvalidIncidentStateException if the incident is not assigned
      */
     public void resolve() {
         if (status != IncidentStatus.ASSIGNED) {

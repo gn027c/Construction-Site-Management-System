@@ -33,9 +33,6 @@ public class Zone {
 
     /**
      * Applies the access policy for a regular zone.
-     *
-     * @param person the person requesting access, possibly null
-     * @return true when a person is supplied
      */
     public boolean checkAccess(Person person) {
         return person != null;

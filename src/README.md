@@ -53,19 +53,23 @@ and claims about behavior that the implementation does not provide.
 
 ## Method Javadoc
 
-Document contracts that a caller cannot safely infer from the method name.
-Use this order:
-
-1. Describe the operation and its result.
-2. Explain important rules, side effects and failure behavior in a paragraph.
-3. Use `@param` for argument meanings, required formats and null/blank handling.
-4. Use `@return` for successful results and meaningful `false` or `null` results.
-5. Use `@throws` for failures relevant to the caller.
+Write a plain description of the method's purpose. Add a short paragraph only
+when an important rule, side effect or failure behavior needs explanation.
+Keep argument requirements and result meanings in natural sentences when they
+are necessary to understand the operation; do not add separate documentation
+tags or parameter, return-value and exception sections.
 
 Use `{@code ...}` for identifiers, formats and literal values, and `{@link ...}`
-when a related type or method helps explain the contract. Describe whether a
-returned collection is a copy and whether its model objects remain shared.
-Trivial getters do not need comments that merely repeat their names.
+when a related type or method helps explain the description. Explain collection
+copies and shared model objects where relevant. Trivial getters do not need
+comments that merely repeat their names.
+
+```java
+/**
+ * Loads CSV into a temporary repository before replacing active data.
+ * Invalid data leaves the current collection unchanged.
+ */
+```
 
 ## Inline comments
 

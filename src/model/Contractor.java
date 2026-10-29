@@ -52,8 +52,6 @@ public class Contractor extends Person {
 
     /**
      * Accepts contract identifiers beginning with the case-sensitive prefix {@code CTR-}.
-     *
-     * @return whether the contractor's contract matches the current rule
      */
     @Override
     public boolean hasValidSafetyCredential() {

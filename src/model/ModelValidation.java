@@ -21,11 +21,6 @@ final class ModelValidation {
 
     /**
      * Trims required text and rejects null, empty or whitespace-only values.
-     *
-     * @param value the supplied text
-     * @param field the field name used in validation errors
-     * @return the trimmed, nonempty text
-     * @throws DataValidationException if the normalized text is empty
      */
     static String requiredText(String value, String field) {
         String normalized = optionalText(value);
@@ -36,26 +31,14 @@ final class ModelValidation {
     }
 
     /**
-     * Normalizes optional text without treating absence as a validation failure.
-     *
-     * @param value the supplied text, possibly null
-     * @return an empty string for null; otherwise the trimmed text
+     * Converts null to an empty string and trims any supplied text.
      */
     static String optionalText(String value) {
         return value == null ? "" : value.trim();
     }
 
     /**
-     * Rejects a missing value while preserving the caller's static type.
-     *
-     * <p>The declaration {@code <T>} introduces the type used by both the
-     * parameter and return value. No cast is needed at the call site.
-     *
-     * @param <T> the type of the supplied value
-     * @param value the value to check
-     * @param field the field name used in validation errors
-     * @return the original non-null value
-     * @throws DataValidationException if the value is null
+     * Rejects null and returns the original value while preserving its type.
      */
     static <T> T requiredValue(T value, String field) {
         if (value == null) {
@@ -66,10 +49,6 @@ final class ModelValidation {
 
     /**
      * Trims a phone number and applies the ten-digit, leading-zero rule.
-     *
-     * @param value the supplied phone number
-     * @return the validated and trimmed number
-     * @throws InvalidPhoneNumberException if the number does not match the rule
      */
     static String phoneNumber(String value) {
         String normalized = optionalText(value);
@@ -84,11 +63,6 @@ final class ModelValidation {
      *
      * <p>Semicolons delimit codes in zone CSV. The token {@code NONE} represents
      * an empty permission list, so neither is allowed as a personnel code.
-     *
-     * @param value the supplied code
-     * @param field the field name used in validation errors
-     * @return the trimmed code
-     * @throws DataValidationException if the code is blank or conflicts with CSV encoding
      */
     static String personCode(String value, String field) {
         String normalized = requiredText(value, field);
@@ -99,11 +73,7 @@ final class ModelValidation {
     }
 
     /**
-     * Validates the exact shared timestamp format without rewriting the value.
-     *
-     * @param value the timestamp in {@code yyyy-MM-dd HH:mm:ss} format
-     * @return the original valid timestamp
-     * @throws DataValidationException if the timestamp is missing or invalid
+     * Validates {@code yyyy-MM-dd HH:mm:ss} without rewriting the value.
      */
     static String timestamp(String value) {
         try {
@@ -118,12 +88,8 @@ final class ModelValidation {
     }
 
     /**
-     * Accepts an unknown date as an empty string or validates an exact date.
-     *
-     * @param value an empty string or a date in {@code dd/MM/yyyy} format
-     * @param field the field name used in validation errors
-     * @return an empty string or the formatted valid date
-     * @throws DataValidationException if the value is null or the date is invalid
+     * Accepts an empty string for an unknown date or validates {@code dd/MM/yyyy}.
+     * Null and invalid calendar dates are rejected.
      */
     static String optionalDate(String value, String field) {
         requiredValue(value, field);

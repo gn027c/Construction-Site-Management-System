@@ -39,13 +39,7 @@ public class PersonnelService {
 
     /**
      * Updates contact details through the model's validated operation.
-     *
-     * @param code the existing personnel code
-     * @param newName the new name; null or blank retains the current name
-     * @param newPhone the new phone number, which must satisfy the model's rule
-     * @return true after both contact values are accepted
-     * @throws PersonNotFoundException if the person is absent
-     * @throws InvalidPhoneNumberException if the new phone number is invalid
+     * A null or blank name retains the existing name; the new phone must be valid.
      */
     public boolean updatePerson(String code, String newName, String newPhone)
             throws PersonNotFoundException, InvalidPhoneNumberException {

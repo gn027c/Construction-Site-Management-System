@@ -53,13 +53,6 @@ public class IncidentService {
 
     /**
      * Confirms the assignee exists before invoking the incident's assignment operation.
-     *
-     * @param incidentId the existing incident identifier
-     * @param assigneeCode the personnel code to assign
-     * @return true after assignment; false for missing input, an unavailable
-     *         personnel service or an unknown assignee
-     * @throws exception.IncidentNotFoundException if the incident is absent
-     * @throws exception.InvalidIncidentStateException if the incident is not open
      */
     public boolean assignIncident(String incidentId, String assigneeCode)
             throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {

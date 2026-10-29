@@ -70,12 +70,6 @@ public class ZoneService {
 
     /**
      * Looks up the zone and evaluates its polymorphic access policy.
-     *
-     * @param zoneId the existing zone identifier
-     * @param person the person requesting entry
-     * @return false for a null person; true when the zone permits access
-     * @throws ZoneNotFoundException if the zone is absent
-     * @throws RestrictedZoneViolationException if the zone denies access
      */
     public boolean verifyAccess(String zoneId, Person person)
             throws ZoneNotFoundException, RestrictedZoneViolationException {

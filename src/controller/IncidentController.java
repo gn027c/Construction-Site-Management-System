@@ -31,9 +31,6 @@ public class IncidentController {
      *
      * <p>The callback runs after the flow returns, including cancellation or handled
      * errors. Exceptions escaping the flow prevent the callback from running.
-     *
-     * @param scanner the shared console input reader
-     * @param saveChanges the action used to persist current data
      */
     public void handleMenu(Scanner scanner, Runnable saveChanges) {
         boolean back = false;
