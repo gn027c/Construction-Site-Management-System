@@ -32,6 +32,7 @@ public class ZoneController {
         while (true) {
             MenuView.showZoneMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-4): ", 0, 4);
+            view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
                     addZoneFlow(scanner);
@@ -53,11 +54,15 @@ public class ZoneController {
         String zoneId = InputHelper.getString(scanner, "Zone ID: ");
         String personCode = InputHelper.getString(scanner, "Person code: ");
         boolean changed = site.changeAccess(zoneId, personCode, grant);
-        System.out.println(changed ? "Access list updated." : "Choose a restricted zone.");
+        if (changed) {
+            view.ConsoleTheme.success("Access list updated.");
+        } else {
+            view.ConsoleTheme.warning("Choose a restricted zone.");
+        }
     }
 
     private void addZoneFlow(Scanner scanner) {
-        System.out.println("\n--- ADD NEW ZONE ---");
+        view.ConsoleTheme.title("ADD NEW ZONE");
         int type = InputHelper.getInt(
                 scanner,
                 "Select zone type: 1. Normal Zone | 2. Restricted Zone (0-Cancel): ",

@@ -59,6 +59,7 @@ public final class ListView {
             List<T> matching = filterAndSort(records, query, searchText, order);
             int pages = pageCount(matching.size());
             currentPage = Math.min(currentPage, Math.max(1, pages));
+            ConsoleScreen.begin();
             ConsoleTheme.title(title);
             System.out.println("Page " + (pages == 0 ? 0 : currentPage) + "/" + pages
                     + " | Results: " + matching.size() + " | Filter: " + (query.isEmpty() ? "All" : query));

@@ -1,6 +1,8 @@
 param(
     [switch]$BuildOnly,
-    [string]$DataDirectory = 'data'
+    [string]$DataDirectory = 'data',
+    [ValidateSet('auto', 'always', 'never')]
+    [string]$ScreenMode = 'auto'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +25,7 @@ try {
     try {
         [Console]::InputEncoding = New-Object System.Text.UTF8Encoding($false)
         [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
-        & java '-Dfile.encoding=UTF-8' "-Dsmartsite.dataDir=$DataDirectory" -cp $buildPath Main
+        & java '-Dfile.encoding=UTF-8' "-Dsmartsite.dataDir=$DataDirectory" "-Dsmartsite.screen=$ScreenMode" -cp $buildPath Main
         if ($LASTEXITCODE -ne 0) {
             throw "Application exited with code $LASTEXITCODE."
         }

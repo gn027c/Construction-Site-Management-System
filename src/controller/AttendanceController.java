@@ -26,6 +26,7 @@ public class AttendanceController {
         while (true) {
             MenuView.showAttendanceMenu(authentication);
             int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
+            view.ConsoleScreen.begin();
             if (choice == 0) {
                 return;
             }

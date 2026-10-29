@@ -7,6 +7,7 @@ import service.AuthenticationService;
 import util.DataDirectoryLock;
 import util.InputHelper;
 import view.ConsoleTheme;
+import view.ConsoleScreen;
 import view.MenuView;
 import java.nio.file.*;
 import java.util.*;
@@ -23,6 +24,7 @@ public class Main {
         Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));
         try (DataDirectoryLock lock = new DataDirectoryLock(directory);
             Scanner scanner = new Scanner(System.in)) {
+            ConsoleScreen.attach(scanner);
             SiteManagerController controller = new SiteManagerController(directory);
             String startupFailure = "";
             try {
@@ -51,6 +53,7 @@ public class Main {
                     }
                     MenuView.showMainMenu(authentication);
                     int choice = InputHelper.getInt(scanner, "Choice (0-12): ", 0, 12);
+                    ConsoleScreen.begin();
                     switch (choice) {
                         case 1:
                             controller.handlePersonMenu(scanner);
@@ -99,6 +102,7 @@ public class Main {
                                 controller.saveAllData();
                             }
                             authentication.logout();
+                            ConsoleScreen.identityBoundary();
                             ConsoleTheme.success("Signed out.");
                             break;
                         case 9:

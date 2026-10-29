@@ -34,7 +34,11 @@ public final class MenuView {
         options.put(10, "My notifications");
         add(options, 11, "Data review", authentication, Permission.REVIEW_ATTENDANCE);
         add(options, 12, "Period reports", authentication, Permission.EXPORT_REPORTS);
-        ConsoleTheme.menuOptions("HOME / " + authentication.currentAccount().getUsername(), options, "Save and exit");
+        ConsoleTheme.menuOptions(
+                "HOME / " + authentication.currentAccount().getUsername() + " / "
+                        + authentication.currentAccount().getRole(),
+                options, "Save and exit"
+        );
     }
 
     public static void showPersonMenu() {

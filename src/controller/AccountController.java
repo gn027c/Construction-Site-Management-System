@@ -12,6 +12,7 @@ import model.Permission;
 import service.AuthenticationService;
 import util.InputHelper;
 import view.ConsoleTheme;
+import view.ConsoleScreen;
 
 /**
  * Handles staff sign-in, password changes and administrator account management.
@@ -25,6 +26,7 @@ public final class AccountController {
     }
 
     public boolean signIn(Scanner scanner) {
+        ConsoleScreen.identityBoundary();
         ConsoleTheme.title("STAFF SIGN IN");
         for (int attempt = 0; attempt < 3; attempt++) {
             String username = InputHelper.getString(scanner, "Username (0-Exit): ");
@@ -60,6 +62,7 @@ public final class AccountController {
                     "Edit permissions", "Enable or disable account", "Reset password", "Link personnel record"
             );
             int choice = InputHelper.getInt(scanner, "Choice (0-7): ", 0, 7);
+            ConsoleScreen.begin();
             if (choice == 0) {
                 return;
             }

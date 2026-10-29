@@ -11,8 +11,12 @@ public class ConsoleTest {
   return launchRaw(root, "admin\nadmin\n" + input, exit, colors);
  }
  static String launchRaw(Path root, String input, int exit, boolean colors) throws Exception {
+  return launchScreen(root, input, exit, colors, "never");
+ }
+ static String launchScreen(Path root, String input, int exit, boolean colors, String screenMode) throws Exception {
   Process process = new ProcessBuilder(
       javaExecutable(), "-Dsmartsite.dataDir=" + root,
+      "-Dsmartsite.screen=" + screenMode,
       "-Dsmartsite.color=" + (colors ? "always" : "never"), "-Dfile.encoding=UTF-8",
       "-cp", System.getProperty("java.class.path"), "Main"
   ).redirectErrorStream(true).start();

@@ -27,6 +27,7 @@ public class IncidentController {
         while (true) {
             MenuView.showIncidentMenu(authentication);
             int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
+            view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
                     authentication.require(Permission.REPORT_INCIDENTS);
@@ -59,7 +60,7 @@ public class IncidentController {
     }
 
     private void reportIncidentFlow(Scanner scanner) {
-        System.out.println("\n--- REPORT NEW INCIDENT ---");
+        view.ConsoleTheme.title("REPORT NEW INCIDENT");
         String id = InputHelper.getString(scanner, "Enter Incident ID (e.g., INC001): ");
         String title = InputHelper.getString(scanner, "Enter Incident Title: ");
         String description = InputHelper.getString(scanner, "Enter Incident Description: ");

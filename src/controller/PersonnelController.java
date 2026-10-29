@@ -34,6 +34,7 @@ public class PersonnelController {
         while (true) {
             MenuView.showPersonMenu();
             int choice = InputHelper.getInt(scanner, "Enter option (0-5): ", 0, 5);
+            view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
                     addPersonFlow(scanner);
@@ -71,7 +72,7 @@ public class PersonnelController {
     }
 
     private void addPersonFlow(Scanner scanner) {
-        System.out.println("\n--- ADD NEW PERSON ---");
+        view.ConsoleTheme.title("ADD NEW PERSON");
         System.out.println("Select Person Type:");
         System.out.println("1. Worker");
         System.out.println("2. Contractor");
@@ -120,7 +121,7 @@ public class PersonnelController {
             if (site.addPerson(newPerson)) {
                 view.ConsoleTheme.success("Success: Person '" + name + "' (" + code + ") has been added.");
             } else {
-                System.out.println("Could not add the person. Please check the entered data.");
+                view.ConsoleTheme.warning("Could not add the person. Please check the entered data.");
             }
         } catch (DuplicatePersonCodeException e) {
             view.ConsoleTheme.error("Error: Person code '" + code + "' already exists. " + e.getMessage());
@@ -137,7 +138,7 @@ public class PersonnelController {
      * Finds personnel and accepts contact changes, retaining fields left blank by the user.
      */
     private void searchAndUpdatePersonFlow(Scanner scanner) {
-        System.out.println("\n--- SEARCH & UPDATE PERSON ---");
+        view.ConsoleTheme.title("SEARCH AND UPDATE PERSON");
         String code = InputHelper.getString(scanner, "Enter Person Code to search: ");
         try {
             Person p = site.person(code);
