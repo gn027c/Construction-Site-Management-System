@@ -78,9 +78,9 @@ menu 3, option 1:
 
 The shipped `data/` files were not changed by the walkthrough.
 
-## Not yet updated
+## Deliverables
 
-The Workshop 6 and Final reports and both AI Audit Log workbooks still describe
-an earlier checkpoint (213 checks in 22 suites, PBKDF2 passwords, atomic file
-replacement, activity log, notifications and CSV migration). They must be
-regenerated from this version before submission.
+On 31 October 2026 the Workshop 6 and Final reports (17 pages each) and both AI Audit
+Log workbooks were regenerated from this version: 267 checks in 26 suites, safety
+levels, visit dates, the 0-10 home menu and the removed features. Figures 2.1 and 3.1
+were redrawn and Figure 4.1 was added.
