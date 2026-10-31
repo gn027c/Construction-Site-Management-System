@@ -52,7 +52,7 @@ public class ConsoleTest {
  }
  public static void main(String[] args) throws Exception {
   test("Console EOF exits and commits without looping", () -> { Path root=Files.createTempDirectory("smartsite-eof"); String out=launch(root,"",0,false); require(out.contains("Input closed. CSV data saved.")); require(!out.contains("\u001b[")); PersonnelService ps=new PersonnelService(); require(ps.loadFromCsv(root.resolve("persons.csv").toString())); equal(0,ps.getAllPersons().size()); });
-  test("Console EOF inside submenu retains completed edits", () -> { Path root=Files.createTempDirectory("smartsite-edit"); launch(root,"1\n1\n1\nWorker A\n0901234567\nWelder\nX_SAFE\nTeam B\n",0,false); PersonnelService ps=new PersonnelService(); require(ps.loadFromCsv(root.resolve("persons.csv").toString())); equal("Worker A",ps.findPersonByCode("W1").getName()); });
+  test("Console EOF inside submenu retains completed edits", () -> { Path root=Files.createTempDirectory("smartsite-edit"); launch(root,"1\n1\n1\nWorker A\n0901234567\nWelder\nX_SAFE\nTeam B\n\n",0,false); PersonnelService ps=new PersonnelService(); require(ps.loadFromCsv(root.resolve("persons.csv").toString())); equal("Worker A",ps.findPersonByCode("W1").getName()); });
   test("Console startup allows admin review without overwriting malformed data", () -> { Path root=Files.createTempDirectory("smartsite-bad"); Files.write(root.resolve("persons.csv"),Arrays.asList("bad")); String out=launch(root,"0\n",0,false); require(out.contains("Incomplete CSV set")); require(!Files.exists(root.resolve("zones.csv"))); });
   test("Console export menu writes separate report", () -> { Path root=Files.createTempDirectory("smartsite-export-ui"); Path dest=root.resolve("exports"); String out=launch(root,"5\n3\n"+dest+"\n0\n",0,false); require(out.contains("Export completed:")); try(java.util.stream.Stream<Path> files=Files.list(dest)) { equal(1L,files.count()); } });
   test("Console explicitly enabled colors", () -> { String out=launch(Files.createTempDirectory("smartsite-color"),"0\n",0,true); if(System.getenv("NO_COLOR")==null) { require(out.contains("\u001b[1;36m")); require(out.contains("\u001b[90m  › " + view.ConsoleTheme.toSmallCaps("Site operations, reporting and workspace administration.") + "\u001b[0m")); } });
@@ -61,7 +61,7 @@ public class ConsoleTest {
    Path root=Files.createTempDirectory("smartsite-kill"); Path log=root.resolve("console.txt");
    Process p=new ProcessBuilder(javaExecutable(),"-Dsmartsite.dataDir="+root,"-Dsmartsite.color=never","-cp",System.getProperty("java.class.path"),"Main").redirectErrorStream(true).redirectOutput(log.toFile()).start();
    try {
-    String input="admin\nadmin\n1\n1\n1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n";
+    String input="admin\nadmin\n1\n1\n1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n\n";
     p.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8)); p.getOutputStream().flush();
     long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10); boolean saved=false;
     while(System.nanoTime()<deadline && p.isAlive()) {

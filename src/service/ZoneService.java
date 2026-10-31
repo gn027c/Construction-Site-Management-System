@@ -75,15 +75,11 @@ public class ZoneService {
         if (person == null) {
             return false;
         }
-        boolean hasAccess = zone.checkAccess(person);
-        if (!hasAccess) {
-            throw new RestrictedZoneViolationException(
-                    person.getCode(),
-                    zoneId,
-                    "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ."
-            );
+        String reason = zone.accessDenialReason(person);
+        if (!reason.isEmpty()) {
+            throw new RestrictedZoneViolationException(person.getCode(), zoneId, reason);
         }
-        return hasAccess;
+        return true;
     }
 
     public boolean loadFromCsv() {

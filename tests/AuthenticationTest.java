@@ -315,7 +315,7 @@ public class AuthenticationTest {
             authentication.login("admin", "admin");
             authentication.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
             authentication.login("manager", "secret");
-            controller.handlePersonMenu(new Scanner("2\ne\nW01\nUpdated Worker\n\n0\n0\n"));
+            controller.handlePersonMenu(new Scanner("2\ne\nW01\nUpdated Worker\n\n\n0\n0\n"));
             controller.handleZoneMenu(new Scanner("1\n1\nZ100\nStaff zone\n0\n"));
             service.PersonnelService personnel = new service.PersonnelService();
             service.ZoneService zones = new service.ZoneService();

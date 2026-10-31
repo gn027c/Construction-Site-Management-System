@@ -206,7 +206,7 @@ public class SiteManagerController {
         validateReferences(personnelService, zoneService, attendanceService, incidentService);
         Map<String, List<String>> tables = new LinkedHashMap<>();
         List<String> persons = new ArrayList<>(
-                Arrays.asList("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active")
+                Arrays.asList("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel")
         );
         for (Person person : personnelService.getAllPersons()) {
             persons.add(person.toCsvLine());
@@ -411,6 +411,13 @@ public class SiteManagerController {
     public boolean updatePerson(String code, String name, String phone) {
         return operation(Permission.MANAGE_PERSONNEL,
                 () -> personnelService.updatePerson(code, name, phone), true);
+    }
+
+    public void setPersonSafetyLevel(String code, model.common.SafetyLevel level) {
+        operation(Permission.MANAGE_PERSONNEL, () -> {
+            personnelService.findPersonByCode(code).setSafetyLevel(level);
+            return true;
+        }, true);
     }
 
     public void setPersonActive(String code, boolean active) {

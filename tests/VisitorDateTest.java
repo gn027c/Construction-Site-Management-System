@@ -13,7 +13,7 @@ import repository.PersonRepository;
 import util.CsvHelper;
 
 public class VisitorDateTest {
-    private static final String HEADER = "type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active";
+    private static final String HEADER = "type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel";
     private static Visitor visitor(String date) {
         return new Visitor("P1", "V1", "Visitor", "0901234567", "Survey", "W1", date);
     }
@@ -68,10 +68,10 @@ public class VisitorDateTest {
                 require(!repo.loadFromCsv(csv.toString()));
             } finally { Files.deleteIfExists(csv); }
         });
-        test("All personnel fixture rows use ten columns and preserve unknown dates", () -> {
+        test("All personnel fixture rows use eleven columns and preserve unknown dates", () -> {
             List<String[]> rows = CsvHelper.readRows("data/persons.csv");
             require(rows.size() >= 11);
-            for (String[] row : rows) equal(10, row.length);
+            for (String[] row : rows) equal(11, row.length);
             PersonRepository repo = new PersonRepository();
             require(repo.loadFromCsv("data/persons.csv"));
             equal("", ((Visitor) repo.findByCode("V01")).getEntryDate());

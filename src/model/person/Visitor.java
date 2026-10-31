@@ -2,6 +2,8 @@ package model.person;
 
 import static model.common.ModelValidation.*;
 
+import model.common.SafetyLevel;
+
 /**
  * Represents a visitor with a required visit purpose and host name.
  *
@@ -58,6 +60,17 @@ public class Visitor extends Person {
     @Override
     public boolean hasValidSafetyCredential() {
         return false;
+    }
+
+    /**
+     * Visitors cannot hold a safety level, so only {@code NONE} is accepted.
+     */
+    @Override
+    public void setSafetyLevel(SafetyLevel safetyLevel) {
+        if (safetyLevel != SafetyLevel.NONE) {
+            throw new exception.DataValidationException("safetyLevel", "Visitors cannot hold a safety level.");
+        }
+        super.setSafetyLevel(safetyLevel);
     }
 
     @Override

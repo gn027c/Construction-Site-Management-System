@@ -77,14 +77,17 @@ public class IdentifierStaffTest {
             staff.setSafetyCertId(" STAFF_SAFE ");
             require(staff.hasValidSafetyCredential());
             RestrictedZone zone = new RestrictedZone(
-                    "z001", "Restricted", RestrictedZone.SafetyLevel.HIGH, new HashSet<>(Arrays.asList("s0001"))
+                    "z001", "Restricted", model.common.SafetyLevel.HIGH, new HashSet<>(Arrays.asList("s0001"))
             );
+            require(!zone.checkAccess(staff));
+            staff.setSafetyLevel(model.common.SafetyLevel.HIGH);
             require(zone.checkAccess(staff));
         });
         test("Staff fields and inactive status survive strict CSV round trips", () -> {
             PersonRepository source = new PersonRepository();
             Staff staff = new Staff("P1", "S1", "Staff", "0901234567", "Safety officer", "STAFF_SAFE");
             staff.setActive(false);
+            staff.setSafetyLevel(model.common.SafetyLevel.MEDIUM);
             source.save(staff);
             Path file = Files.createTempFile("staff-roundtrip-", ".csv");
             try {
@@ -95,7 +98,8 @@ public class IdentifierStaffTest {
                 equal("Safety officer", restored.getPosition());
                 equal("STAFF_SAFE", restored.getSafetyCertId());
                 require(!restored.isActive());
-                equal(10, util.CsvHelper.readRows(file.toString()).get(1).length);
+                equal(model.common.SafetyLevel.MEDIUM, restored.getSafetyLevel());
+                equal(11, util.CsvHelper.readRows(file.toString()).get(1).length);
             } finally {
                 Files.deleteIfExists(file);
             }

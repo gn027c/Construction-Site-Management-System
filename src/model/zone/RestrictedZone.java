@@ -4,23 +4,18 @@ import static model.common.ModelValidation.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+import model.common.SafetyLevel;
 import model.person.Person;
 
 /**
- * Represents a zone requiring explicit permission and a safety credential.
+ * Represents a hazardous zone that only listed, sufficiently qualified people may enter.
  *
- * <p>Access requires both whitelist membership and a valid credential supplied
- * by the person subtype. The safety level describes the zone hazard; personnel
- * do not currently have a comparable credential level.
+ * <p>Entry requires all three of: the person's code is on the zone's allowed list,
+ * the person holds a valid safety credential for their type, and the person's
+ * safety level is at least the zone's required level. The required level is
+ * {@code LOW}, {@code MEDIUM}, {@code HIGH} or {@code CRITICAL}.
  */
 public class RestrictedZone extends Zone {
-    public enum SafetyLevel {
-        LOW,
-        MEDIUM,
-        HIGH,
-        CRITICAL
-    }
-
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
@@ -31,8 +26,18 @@ public class RestrictedZone extends Zone {
             Set<String> allowedPersonCodes
     ) {
         super(zoneId, zoneName);
-        this.requiredSafetyLevel = requiredValue(requiredSafetyLevel, "requiredSafetyLevel");
+        this.requiredSafetyLevel = zoneLevel(requiredSafetyLevel);
         this.allowedPersonCodes = validatedCodes(allowedPersonCodes);
+    }
+
+    private static SafetyLevel zoneLevel(SafetyLevel level) {
+        requiredValue(level, "requiredSafetyLevel");
+        if (level == SafetyLevel.NONE) {
+            throw new exception.DataValidationException(
+                    "requiredSafetyLevel", "A restricted zone requires LOW, MEDIUM, HIGH or CRITICAL."
+            );
+        }
+        return level;
     }
 
     private static Set<String> validatedCodes(Set<String> codes) {
@@ -49,7 +54,7 @@ public class RestrictedZone extends Zone {
     }
 
     public void setRequiredSafetyLevel(SafetyLevel level) {
-        requiredSafetyLevel = requiredValue(level, "requiredSafetyLevel");
+        requiredSafetyLevel = zoneLevel(level);
     }
 
     /**
@@ -75,14 +80,24 @@ public class RestrictedZone extends Zone {
     }
 
     /**
-     * Requires whitelist membership and the person's subtype-specific safety credential.
-     *
-     * <p>The hazard level is metadata and is not compared with personnel
-     * credentials because those credentials have no comparable level.
+     * Checks the allowed list, the credential and the safety level, in that order,
+     * and reports the first rule the person fails.
      */
     @Override
-    public boolean checkAccess(Person person) {
-        return person != null && allowedPersonCodes.contains(person.getCode()) && person.hasValidSafetyCredential();
+    public String accessDenialReason(Person person) {
+        if (person == null) {
+            return "No person was given.";
+        }
+        if (!allowedPersonCodes.contains(person.getCode())) {
+            return "Not on the allowed list for this zone.";
+        }
+        if (!person.hasValidSafetyCredential()) {
+            return "No valid safety credential.";
+        }
+        if (!person.getSafetyLevel().covers(requiredSafetyLevel)) {
+            return "Safety level " + person.getSafetyLevel() + " is below the required " + requiredSafetyLevel + ".";
+        }
+        return "";
     }
 
     @Override

@@ -96,7 +96,7 @@ public class ZoneRepository {
                             codes.add(code.trim());
                         }
                     }
-                    staged.save(new RestrictedZone(p[1], p[2], RestrictedZone.SafetyLevel.valueOf(p[3]), codes));
+                    staged.save(new RestrictedZone(p[1], p[2], model.common.SafetyLevel.valueOf(p[3]), codes));
                 } else {
                     return false;
                 }

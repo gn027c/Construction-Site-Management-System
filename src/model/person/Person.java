@@ -2,6 +2,8 @@ package model.person;
 
 import static model.common.ModelValidation.*;
 
+import model.common.SafetyLevel;
+
 /**
  * Defines identity, contact details and polymorphic behavior for site personnel.
  *
@@ -16,6 +18,7 @@ public abstract class Person {
     private String name;
     private String phoneNumber;
     private boolean active = true;
+    private SafetyLevel safetyLevel = SafetyLevel.NONE;
 
     protected Person(String id, String code, String name, String phoneNumber, Role role) {
         this.id = identifier(id, "id");
@@ -79,6 +82,18 @@ public abstract class Person {
     public abstract boolean hasValidSafetyCredential();
 
     /**
+     * Returns the highest restricted-zone level this person is cleared for.
+     * New personnel start at {@code NONE}.
+     */
+    public SafetyLevel getSafetyLevel() {
+        return safetyLevel;
+    }
+
+    public void setSafetyLevel(SafetyLevel safetyLevel) {
+        this.safetyLevel = requiredValue(safetyLevel, "safetyLevel");
+    }
+
+    /**
      * Determines whether an authentication account should be provisioned for this person.
      * By default, returns true for workforce personnel and false for temporary visitors.
      */
@@ -87,7 +102,7 @@ public abstract class Person {
     }
 
     /**
-     * Serializes common personnel columns, subtype data and active status.
+     * Serializes common personnel columns, subtype data, active status and safety level.
      */
     public abstract String toCsvLine();
 
@@ -96,7 +111,7 @@ public abstract class Person {
     }
 
     protected String csvStatus() {
-        return "," + Boolean.toString(active);
+        return "," + Boolean.toString(active) + "," + safetyLevel.name();
     }
 
     @Override

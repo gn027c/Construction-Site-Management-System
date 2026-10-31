@@ -87,7 +87,7 @@ public class PersonRepository {
                             rows.get(0),
                             new String[] {
                                     "type", "id", "code", "name", "phoneNumber",
-                                    "role", "extra1", "extra2", "extra3", "active"
+                                    "role", "extra1", "extra2", "extra3", "active", "safetyLevel"
                             }
                     )) {
                 return false;
@@ -97,7 +97,7 @@ public class PersonRepository {
                 if (util.CsvHelper.isBlankRow(p)) {
                     continue;
                 }
-                if (p.length != 10 || !(p[9].equals("true") || p[9].equals("false"))) {
+                if (p.length != 11 || !(p[9].equals("true") || p[9].equals("false"))) {
                     return false;
                 }
                 Person person;
@@ -127,6 +127,7 @@ public class PersonRepository {
                     return false;
                 }
                 person.setActive(Boolean.parseBoolean(p[9]));
+                person.setSafetyLevel(model.common.SafetyLevel.valueOf(p[10]));
                 staged.save(person);
             }
         } catch (RuntimeException e) {
@@ -142,7 +143,7 @@ public class PersonRepository {
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active");
+        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel");
         for (Person p : store.values()) {
             lines.add(p.toCsvLine());
         }

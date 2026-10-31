@@ -49,7 +49,7 @@ public final class PersonnelView {
                 person.getPhoneNumber(),
                 person.getRole().name(),
                 person.isActive() ? "Active" : "Inactive",
-                person.hasValidSafetyCredential() ? "Yes" : "No",
+                person.hasValidSafetyCredential() ? person.getSafetyLevel().name() : "No",
                 details
         );
     }
@@ -100,6 +100,7 @@ public final class PersonnelView {
             fields.put("Entry date", displayOptional(visitor.getEntryDate()));
         }
         fields.put("Valid safety credential", person.hasValidSafetyCredential() ? "Yes" : "No");
+        fields.put("Safety level", person.getSafetyLevel().name());
         return fields;
     }
 

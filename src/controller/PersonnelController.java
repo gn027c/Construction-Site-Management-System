@@ -125,6 +125,9 @@ public class PersonnelController {
                 default:
                     return;
             }
+            if (newPerson.hasValidSafetyCredential()) {
+                newPerson.setSafetyLevel(selectSafetyLevel(scanner, model.common.SafetyLevel.NONE));
+            }
             if (site.addPerson(newPerson)) {
                 view.ConsoleTheme.success("Success: Person '" + name + "' (" + code + ") has been added.");
                 if (newPerson.shouldProvisionAccount()) {
@@ -170,8 +173,14 @@ public class PersonnelController {
         System.out.println("Enter new details for " + p.getName() + " (" + p.getCode() + ") [press Enter to keep current value]:");
         String newName = getUpdatedPersonName(scanner, p.getName());
         String newPhone = getUpdatedPhoneNumber(scanner, p.getPhoneNumber());
+        model.common.SafetyLevel newLevel = p.hasValidSafetyCredential()
+                ? selectSafetyLevel(scanner, p.getSafetyLevel())
+                : model.common.SafetyLevel.NONE;
         try {
             site.updatePerson(p.getCode(), newName, newPhone);
+            if (newLevel != p.getSafetyLevel()) {
+                site.setPersonSafetyLevel(p.getCode(), newLevel);
+            }
             view.ConsoleTheme.success("Success: Person '" + p.getCode() + "' has been updated.");
         } catch (PersonNotFoundException e) {
             view.ConsoleTheme.error("Error: Person not found. " + e.getMessage());
@@ -262,6 +271,24 @@ public class PersonnelController {
             default:
                 if (!input.isEmpty()) return input;
                 return InputHelper.getString(scanner, "Enter Position: ");
+        }
+    }
+
+    /**
+     * Asks for the restricted-zone safety level; Enter keeps the given current level.
+     */
+    private model.common.SafetyLevel selectSafetyLevel(Scanner scanner, model.common.SafetyLevel current) {
+        model.common.SafetyLevel[] levels = model.common.SafetyLevel.values();
+        System.out.println("Safety level for restricted zones: 0. NONE │ 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");
+        while (true) {
+            String input = InputHelper.readLine(scanner, "Choice (0-4) [" + current + "]: ").trim();
+            if (input.isEmpty()) {
+                return current;
+            }
+            if (input.matches("[0-4]")) {
+                return levels[Integer.parseInt(input)];
+            }
+            view.ConsoleTheme.warning("Choose a number from 0 to 4, or press Enter to keep " + current + ".");
         }
     }
 

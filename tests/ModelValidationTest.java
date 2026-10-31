@@ -50,8 +50,10 @@ public class ModelValidationTest {
                 throwsType(DataValidationException.class, () -> new Worker("P1", code, "Worker", "0901234567", "Trade", "X_SAFE", "A"));
         });
         test("Whitelist validates and normalizes every code before replacing it", () -> {
-            RestrictedZone z = new RestrictedZone(" Z1 ", " Zone ", RestrictedZone.SafetyLevel.HIGH, new HashSet<>(Arrays.asList(" W1 ")));
-            require(z.checkAccess(worker()));
+            RestrictedZone z = new RestrictedZone(" Z1 ", " Zone ", model.common.SafetyLevel.HIGH, new HashSet<>(Arrays.asList(" W1 ")));
+            Worker cleared = worker();
+            cleared.setSafetyLevel(model.common.SafetyLevel.HIGH);
+            require(z.checkAccess(cleared));
             throwsType(DataValidationException.class, () -> z.setAllowedPersonCodes(new HashSet<>(Arrays.asList("W2", " "))));
             equal(new HashSet<>(Arrays.asList("W1")), z.getAllowedPersonCodes());
             throwsType(DataValidationException.class, () -> z.grantAccess("NONE"));

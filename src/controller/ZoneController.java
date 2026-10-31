@@ -117,19 +117,19 @@ public class ZoneController {
             } else {
                 System.out.println("Select Safety Level: 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");
                 int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
-                RestrictedZone.SafetyLevel level;
+                model.common.SafetyLevel level;
                 switch (levelOpt) {
                     case 1:
-                        level = RestrictedZone.SafetyLevel.LOW;
+                        level = model.common.SafetyLevel.LOW;
                         break;
                     case 3:
-                        level = RestrictedZone.SafetyLevel.HIGH;
+                        level = model.common.SafetyLevel.HIGH;
                         break;
                     case 4:
-                        level = RestrictedZone.SafetyLevel.CRITICAL;
+                        level = model.common.SafetyLevel.CRITICAL;
                         break;
                     default:
-                        level = RestrictedZone.SafetyLevel.MEDIUM;
+                        level = model.common.SafetyLevel.MEDIUM;
                         break;
                 }
                 RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());

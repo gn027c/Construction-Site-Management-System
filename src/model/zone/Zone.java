@@ -34,7 +34,15 @@ public class Zone {
      * Applies the access policy for a regular zone.
      */
     public boolean checkAccess(Person person) {
-        return person != null;
+        return accessDenialReason(person).isEmpty();
+    }
+
+    /**
+     * Explains why a person may not enter, or returns an empty string when entry is allowed.
+     * A regular zone accepts any person.
+     */
+    public String accessDenialReason(Person person) {
+        return person == null ? "No person was given." : "";
     }
 
     public String toCsvLine() {

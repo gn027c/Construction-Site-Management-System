@@ -58,8 +58,9 @@ public class StaffBusinessValidationTest {
             // 0987654321: Phone
             // 2: Position (Site Engineer)
             // 1: Safety Certification (CERT_S1_SAFE)
+            // 3: Safety level HIGH
             // 0: Exit personnel menu
-            String input = "1\n4\ntran van sang\n0987654321\n2\n1\n0\n";
+            String input = "1\n4\ntran van sang\n0987654321\n2\n1\n3\n0\n";
             controller.handlePersonMenu(new Scanner(input));
 
             Person created = controller.person("S1");
@@ -70,6 +71,7 @@ public class StaffBusinessValidationTest {
             equal("Tran Van Sang", staff.getName());
             equal("0987654321", staff.getPhoneNumber());
             equal("Site Engineer", staff.getPosition());
+            equal(model.common.SafetyLevel.HIGH, staff.getSafetyLevel());
             equal("CERT_S1_SAFE", staff.getSafetyCertId());
             require(staff.hasValidSafetyCredential());
         });
@@ -109,7 +111,7 @@ public class StaffBusinessValidationTest {
             AuthenticationService auth = controller.getAuthentication();
             auth.login("admin", "admin");
 
-            String input = "1\n1\nNguyen Van K\n0987654321\n1\n1\nTeam 1\n0\n";
+            String input = "1\n1\nNguyen Van K\n0987654321\n1\n1\nTeam 1\n\n0\n";
             controller.handlePersonMenu(new Scanner(input));
 
             int maxW = 0;

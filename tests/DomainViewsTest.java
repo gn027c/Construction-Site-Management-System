@@ -21,7 +21,7 @@ public class DomainViewsTest {
             equal("Zone ID: Z1 | Name: Site Office | Type: REGULAR", regularSummary);
 
             RestrictedZone restricted = new RestrictedZone(
-                    "Z2", "Tunnel Excavation", RestrictedZone.SafetyLevel.HIGH,
+                    "Z2", "Tunnel Excavation", model.common.SafetyLevel.HIGH,
                     new HashSet<>(Arrays.asList("W1", "W2"))
             );
             String restrictedSummary = ZoneView.formatSummary(restricted);
