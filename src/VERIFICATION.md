@@ -80,7 +80,9 @@ The shipped `data/` files were not changed by the walkthrough.
 
 ## Deliverables
 
-On 31 October 2026 the Workshop 6 and Final reports (17 pages each) and both AI Audit
-Log workbooks were regenerated from this version: 267 checks in 26 suites, safety
-levels, visit dates, the 0-10 home menu and the removed features. Figures 2.1 and 3.1
-were redrawn and Figure 4.1 was added.
+On 31 October 2026 the Workshop 6 and Final reports were rebuilt from the Workshop 5
+report (same nine chapters, 37 pages each) and matched to this version: 267 checks in
+26 suites, the 25-case test matrix, safety levels, visit dates, the 0-10 home menu and
+the removed features. Code listings were taken from `src/`, Figures 3.1-3.6 and 5.1
+were redrawn, and Chapter 7 shows real console runs. Both AI Audit Log workbooks were
+updated to match.
