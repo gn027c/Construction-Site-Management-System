@@ -28,7 +28,22 @@ public class IdentifierStaffTest {
             equal("ATT1", IdentifierHelper.normalize("att-001"));
             equal("INC101", IdentifierHelper.normalize("inc-0101"));
             equal("REC100", IdentifierHelper.normalize("rec00100"));
-            equal("P999999999999999999999999", IdentifierHelper.normalize("p999999999999999999999999"));
+            equal("P999999999", IdentifierHelper.normalize("p999999999"));
+            equal("W1", IdentifierHelper.normalize("W0000000000001"));
+        });
+        test("Identifier numbers are limited to nine digits", () -> {
+            throwsType(DataValidationException.class, () -> IdentifierHelper.normalize("W1000000000"));
+            throwsType(DataValidationException.class, () -> IdentifierHelper.normalize("p999999999999999999999999"));
+            equal(null, IdentifierHelper.normalizeForLookup("W1000000000"));
+        });
+        test("Next identifiers follow the largest number for the same prefix", () -> {
+            equal("REC1", IdentifierHelper.next("REC", new ArrayList<String>(), 0));
+            equal("INC101", IdentifierHelper.next("INC", new ArrayList<String>(), 100));
+            equal("W11", IdentifierHelper.next("W", Arrays.asList("W2", "w010", "V99", "WX5", "bad"), 0));
+            equal("INC120", IdentifierHelper.next("INC", Arrays.asList("INC119", "INC7"), 100));
+            throwsType(DataValidationException.class, () -> IdentifierHelper.next(
+                    "REC", Arrays.asList("REC999999999"), 0
+            ));
         });
         test("Zero, negative, fractional and malformed identifiers are rejected", () -> {
             for (String value : Arrays.asList("S", "s", "P", "S0", "S000", "S--1", "S-", "1S", "S1.0",

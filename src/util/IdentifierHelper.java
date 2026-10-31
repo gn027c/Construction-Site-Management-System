@@ -1,7 +1,6 @@
 package util;
 
 import exception.DataValidationException;
-import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -9,9 +8,16 @@ import java.util.regex.Pattern;
 
 /**
  * Normalizes business identifiers before storage and lookup.
- * Numeric suffixes are positive and unpadded; input may contain one separator hyphen.
+ *
+ * <p>An identifier is a letter prefix and a positive number, for example {@code W1} or
+ * {@code INC101}; input may contain one separator hyphen and leading zeros. The number
+ * is limited to {@link #MAX_NUMBER} (nine digits). That limit fits in an {@code int}
+ * and covers far more records than a site produces in ten years: 2,000 people swiping
+ * four times a day for ten years create about 29 million attendance records.
  */
 public final class IdentifierHelper {
+    public static final int MAX_NUMBER = 999_999_999;
+    private static final int MAX_DIGITS = 9;
     private static final Pattern CODE = Pattern.compile("([A-Za-z]+)-?([0-9]+)");
     public static final Comparator<String> NATURAL_ORDER = IdentifierHelper::compare;
 
@@ -25,16 +31,11 @@ public final class IdentifierHelper {
     public static String normalize(String value, String field) {
         String clean = value == null ? "" : value.trim();
         Matcher matcher = CODE.matcher(clean);
-        if (!matcher.matches() || clean.endsWith("-") || clean.equalsIgnoreCase("NONE")) {
+        if (!matcher.matches() || clean.equalsIgnoreCase("NONE")) {
             throw new DataValidationException(field, "Use a letter prefix followed by a positive numeric suffix.");
         }
         String prefix = matcher.group(1).toUpperCase(Locale.ROOT);
-        String suffix = matcher.group(2);
-        BigInteger number = new BigInteger(suffix);
-        if (number.signum() <= 0) {
-            throw new DataValidationException(field, "The numeric suffix must be greater than zero.");
-        }
-        return prefix + number;
+        return prefix + number(matcher.group(2), field);
     }
 
     public static String normalizeForLookup(String value) {
@@ -43,6 +44,44 @@ public final class IdentifierHelper {
         } catch (DataValidationException e) {
             return null;
         }
+    }
+
+    /**
+     * Builds the identifier after the largest existing one with the same prefix.
+     * Identifiers with another prefix or an invalid form are ignored. The first
+     * identifier is {@code prefix + (floor + 1)}, so a floor of 100 starts at {@code INC101}.
+     * Fails with a clear message once the nine-digit limit is reached.
+     */
+    public static String next(String prefix, Iterable<String> existing, int floor) {
+        int largest = floor;
+        for (String identifier : existing) {
+            String normalized = normalizeForLookup(identifier);
+            if (normalized != null) {
+                Matcher matcher = CODE.matcher(normalized);
+                matcher.matches();
+                if (matcher.group(1).equals(prefix)) {
+                    largest = Math.max(largest, Integer.parseInt(matcher.group(2)));
+                }
+            }
+        }
+        if (largest >= MAX_NUMBER) {
+            throw new DataValidationException(
+                    "identifier",
+                    "No " + prefix + " identifiers remain; the limit is " + prefix + MAX_NUMBER + "."
+            );
+        }
+        return prefix + (largest + 1);
+    }
+
+    private static int number(String digits, String field) {
+        String significant = digits.replaceFirst("^0+", "");
+        if (significant.isEmpty()) {
+            throw new DataValidationException(field, "The numeric suffix must be greater than zero.");
+        }
+        if (significant.length() > MAX_DIGITS) {
+            throw new DataValidationException(field, "The numeric suffix must not exceed " + MAX_NUMBER + ".");
+        }
+        return Integer.parseInt(significant);
     }
 
     private static int compare(String first, String second) {
@@ -54,8 +93,6 @@ public final class IdentifierHelper {
         if (prefix != 0) {
             return prefix;
         }
-        BigInteger leftNumber = new BigInteger(left.group(2));
-        BigInteger rightNumber = new BigInteger(right.group(2));
-        return leftNumber.compareTo(rightNumber);
+        return Integer.compare(Integer.parseInt(left.group(2)), Integer.parseInt(right.group(2)));
     }
 }

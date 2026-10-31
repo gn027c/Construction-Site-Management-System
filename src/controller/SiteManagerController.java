@@ -19,6 +19,7 @@ import java.util.*;
  * the four-file set is not a single transaction.
  */
 public class SiteManagerController {
+    private static final int PERSON_ID_CAPACITY = 90000;
     private final Path directory;
     private final AuthenticationService authentication;
     private PersonnelService personnelService;
@@ -637,18 +638,25 @@ public class SiteManagerController {
         return generateRandomPersonId();
     }
 
+    /**
+     * Picks an unused internal ID from {@code P10000} to {@code P99999} at random, so the ID
+     * does not reveal how many people were registered before. The range holds 90,000 people;
+     * once it is full the method fails instead of searching forever.
+     */
     public String generateRandomPersonId() {
         Set<String> existingIds = new HashSet<>();
         for (Person p : personnelService.getAllPersons()) {
-            if (p.getId() != null) {
+            if (p.getId() != null && p.getId().toUpperCase().matches("P[1-9][0-9]{4}")) {
                 existingIds.add(p.getId().toUpperCase());
             }
+        }
+        if (existingIds.size() >= PERSON_ID_CAPACITY) {
+            throw new exception.DataValidationException("id", "All internal person IDs P10000-P99999 are in use.");
         }
         Random random = new Random();
         String candidate;
         do {
-            int num = 10000 + random.nextInt(90000);
-            candidate = "P" + num;
+            candidate = "P" + (10000 + random.nextInt(PERSON_ID_CAPACITY));
         } while (existingIds.contains(candidate));
         return candidate;
     }
@@ -672,50 +680,26 @@ public class SiteManagerController {
                 prefix = "P";
                 break;
         }
-        int max = 0;
+        List<String> codes = new ArrayList<>();
         for (Person p : personnelService.getAllPersons()) {
-            String code = p.getCode();
-            if (code != null && code.toUpperCase().startsWith(prefix)) {
-                String digits = code.substring(prefix.length()).trim();
-                if (digits.matches("[0-9]+")) {
-                    try {
-                        int val = Integer.parseInt(digits);
-                        max = Math.max(max, val);
-                    } catch (NumberFormatException ignored) {
-                    }
-                }
-            }
+            codes.add(p.getCode());
         }
-        return prefix + (max + 1);
+        return util.IdentifierHelper.next(prefix, codes, 0);
     }
 
     public String suggestNextZoneId() {
-        int max = 0;
+        List<String> ids = new ArrayList<>();
         for (Zone z : zoneService.getAllZones()) {
-            String id = z.getZoneId();
-            if (id != null && id.matches("(?i)Z[0-9]+")) {
-                try {
-                    int val = Integer.parseInt(id.replaceAll("[^0-9]", ""));
-                    max = Math.max(max, val);
-                } catch (NumberFormatException ignored) {
-                }
-            }
+            ids.add(z.getZoneId());
         }
-        return "Z" + (max + 1);
+        return util.IdentifierHelper.next("Z", ids, 0);
     }
 
     public String suggestNextIncidentId() {
-        int max = 100;
+        List<String> ids = new ArrayList<>();
         for (Incident inc : incidentService.getAllIncidents()) {
-            String id = inc.getIncidentId();
-            if (id != null && id.matches("(?i)INC[0-9]+")) {
-                try {
-                    int val = Integer.parseInt(id.replaceAll("[^0-9]", ""));
-                    max = Math.max(max, val);
-                } catch (NumberFormatException ignored) {
-                }
-            }
+            ids.add(inc.getIncidentId());
         }
-        return "INC" + (max + 1);
+        return util.IdentifierHelper.next("INC", ids, 100);
     }
 }

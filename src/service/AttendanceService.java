@@ -3,6 +3,7 @@ package service;
 import model.attendance.AttendanceRecord;
 import repository.AttendanceRepository;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import util.DateTimeHelper;
 
@@ -10,14 +11,13 @@ import util.DateTimeHelper;
  * Coordinates personnel lookup, zone access and attendance storage.
  *
  * <p>The repository supplies the previous swipe to the attendance model, which owns
- * the ordering rule. New record identifiers are derived from existing numeric
- * {@code REC} identifiers at construction and after successful CSV loading.
+ * the ordering rule. A new record takes the identifier after the highest existing
+ * {@code REC} number, so a rejected swipe never uses up an identifier.
  */
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final PersonnelService personnelService;
     private final ZoneService zoneService;
-    private java.math.BigInteger recordCounter = java.math.BigInteger.ONE;
 
     public AttendanceService(PersonnelService personnelService, ZoneService zoneService) {
         this(new AttendanceRepository(), personnelService, zoneService);
@@ -31,40 +31,17 @@ public class AttendanceService {
         this.attendanceRepository = (attendanceRepository != null) ? attendanceRepository : new AttendanceRepository();
         this.personnelService = personnelService;
         this.zoneService = zoneService;
-        syncRecordCounter();
-    }
-
-    /**
-     * Sets the next sequence above the highest existing numeric REC identifier.
-     *
-     * <p>Using the maximum avoids reusing an existing identifier after deletion.
-     * Identifiers outside {@code REC} followed by positive digits do not contribute to this sequence.
-     */
-    private void syncRecordCounter() {
-        java.math.BigInteger maxNumber = java.math.BigInteger.ZERO;
-        for (AttendanceRecord record : attendanceRepository.findAll()) {
-            String id = record.getRecordId();
-            if (id != null && id.matches("REC[1-9]\\d*")) {
-                maxNumber = maxNumber.max(new java.math.BigInteger(id.substring(3)));
-            }
-        }
-        this.recordCounter = maxNumber.add(java.math.BigInteger.ONE);
     }
 
     /**
      * Checks references and access, validates swipe order, then stores a new record.
      *
-     * <p>Zone access is verified on check-in. The sequence advances only when
-     * the repository accepts the new record.
+     * <p>Zone access is verified on check-in.
      */
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
         AttendanceRecord record = createRecord(personCode, zoneId, type);
-        if (record == null || !attendanceRepository.save(record)) {
-            return false;
-        }
-        recordCounter = recordCounter.add(java.math.BigInteger.ONE);
-        return true;
+        return record != null && attendanceRepository.save(record);
     }
 
     private AttendanceRecord createRecord(String personCode, String zoneId, AttendanceRecord.CheckType type) {
@@ -85,9 +62,17 @@ public class AttendanceService {
             }
             zoneService.verifyAccess(cleanZoneId, person);
         }
-        String recordId = "REC" + recordCounter;
+        String recordId = util.IdentifierHelper.next("REC", recordIds(), 0);
         String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         return new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
+    }
+
+    private List<String> recordIds() {
+        List<String> ids = new ArrayList<>();
+        for (AttendanceRecord record : attendanceRepository.findAll()) {
+            ids.add(record.getRecordId());
+        }
+        return ids;
     }
 
     public PersonnelService getPersonnelService() {
@@ -104,8 +89,8 @@ public class AttendanceService {
     }
 
     /**
-     * Commits one validated swipe to CSV before publishing it or consuming its identifier.
-     * A failed validation or file replacement leaves the collection and sequence unchanged.
+     * Saves one validated swipe to CSV before adding it to memory.
+     * A failed validation or file write leaves the collection unchanged.
      */
     public boolean recordAttendanceAndSave(
             String personCode, String zoneId, AttendanceRecord.CheckType type, String file
@@ -119,7 +104,6 @@ public class AttendanceService {
                     "Attendance was not saved; no swipe was recorded. Retry after fixing storage."
             );
         }
-        recordCounter = recordCounter.add(java.math.BigInteger.ONE);
         return true;
     }
 
@@ -132,11 +116,7 @@ public class AttendanceService {
     }
 
     public boolean loadFromCsv(String filePath) {
-        boolean loaded = attendanceRepository.loadFromCsv(filePath);
-        if (loaded) {
-            syncRecordCounter();
-        }
-        return loaded;
+        return attendanceRepository.loadFromCsv(filePath);
     }
 
     public boolean saveToCsv() {
