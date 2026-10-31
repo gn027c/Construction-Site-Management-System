@@ -56,14 +56,19 @@ public class AttendanceService {
         String cleanZoneId = util.IdentifierHelper.normalize(zoneId, "zoneId");
         model.person.Person person = personnelService.findPersonByCode(cleanPersonCode);
         zoneService.findZoneById(cleanZoneId);
+        LocalDateTime now = LocalDateTime.now();
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
             if (!person.isActive()) {
                 throw new exception.DataValidationException("person", "Inactive personnel cannot check in.");
             }
+            String dateProblem = person.checkInDenialReason(now.toLocalDate());
+            if (!dateProblem.isEmpty()) {
+                throw new exception.DataValidationException("visitDate", dateProblem);
+            }
             zoneService.verifyAccess(cleanZoneId, person);
         }
         String recordId = util.IdentifierHelper.next("REC", recordIds(), 0);
-        String timestamp = DateTimeHelper.formatTimestamp(LocalDateTime.now());
+        String timestamp = DateTimeHelper.formatTimestamp(now);
         return new AttendanceRecord(recordId, cleanPersonCode, cleanZoneId, timestamp, type);
     }
 

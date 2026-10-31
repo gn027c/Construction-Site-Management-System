@@ -420,6 +420,17 @@ public class SiteManagerController {
         }, true);
     }
 
+    public void setVisitDate(String code, String visitDate) {
+        operation(Permission.MANAGE_PERSONNEL, () -> {
+            Person person = personnelService.findPersonByCode(code);
+            if (!(person instanceof Visitor)) {
+                throw new exception.DataValidationException("visitDate", "Only visitors have a visit date.");
+            }
+            ((Visitor) person).setEntryDate(visitDate);
+            return true;
+        }, true);
+    }
+
     public void setPersonActive(String code, boolean active) {
         operation(Permission.MANAGE_PERSONNEL, () -> {
             personnelService.findPersonByCode(code).setActive(active);

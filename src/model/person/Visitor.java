@@ -63,6 +63,21 @@ public class Visitor extends Person {
     }
 
     /**
+     * Allows check-in only on the booked visit date. A visitor without a date
+     * must have one recorded first. Check-out is not restricted by date.
+     */
+    @Override
+    public String checkInDenialReason(java.time.LocalDate day) {
+        if (entryDate.isEmpty()) {
+            return "Visit date is not set; record the visit date before check-in.";
+        }
+        if (!util.DateTimeHelper.parseDate(entryDate).equals(day)) {
+            return "Visit is booked for " + entryDate + ", not " + util.DateTimeHelper.formatDate(day) + ".";
+        }
+        return "";
+    }
+
+    /**
      * Visitors cannot hold a safety level, so only {@code NONE} is accepted.
      */
     @Override

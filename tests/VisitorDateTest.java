@@ -95,6 +95,56 @@ public class VisitorDateTest {
                 if (row[2].equals("V3")) equal("29/10/2026", row[8]);
             equal(initialCount + 2, CsvHelper.readRows(report.resolve("persons.csv").toString()).size());
         });
+        test("Visitors check in only on the booked visit date", () -> {
+            String today = util.DateTimeHelper.formatDate(java.time.LocalDate.now());
+            String yesterday = util.DateTimeHelper.formatDate(java.time.LocalDate.now().minusDays(1));
+            service.PersonnelService people = new service.PersonnelService();
+            service.ZoneService zones = new service.ZoneService();
+            zones.addZone(new Zone("Z1", "Gate"));
+            Visitor booked = new Visitor("P1", "V1", "Booked", "0901234567", "Survey", "W1", today);
+            Visitor late = new Visitor("P2", "V2", "Late", "0901234567", "Survey", "W1", yesterday);
+            Visitor unknown = new Visitor("P3", "V3", "Unknown", "0901234567", "Survey", "W1", "");
+            people.addPerson(booked);
+            people.addPerson(late);
+            people.addPerson(unknown);
+            service.AttendanceService attendance = new service.AttendanceService(people, zones);
+            require(attendance.recordAttendance("V1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
+            DataValidationException wrongDay = null;
+            try {
+                attendance.recordAttendance("V2", "Z1", AttendanceRecord.CheckType.CHECK_IN);
+            } catch (DataValidationException e) {
+                wrongDay = e;
+            }
+            require(wrongDay != null && wrongDay.getMessage().contains("Visit is booked for " + yesterday));
+            throwsType(DataValidationException.class, () -> attendance.recordAttendance(
+                    "V3", "Z1", AttendanceRecord.CheckType.CHECK_IN
+            ));
+            equal(1, attendance.getAllAttendanceRecords().size());
+        });
+        test("A visitor can always check out, even after the visit date changes", () -> {
+            String today = util.DateTimeHelper.formatDate(java.time.LocalDate.now());
+            service.PersonnelService people = new service.PersonnelService();
+            service.ZoneService zones = new service.ZoneService();
+            zones.addZone(new Zone("Z1", "Gate"));
+            Visitor guest = new Visitor("P1", "V1", "Guest", "0901234567", "Survey", "W1", today);
+            people.addPerson(guest);
+            service.AttendanceService attendance = new service.AttendanceService(people, zones);
+            require(attendance.recordAttendance("V1", "Z1", AttendanceRecord.CheckType.CHECK_IN));
+            guest.setEntryDate("01/01/2020");
+            require(attendance.recordAttendance("V1", "Z1", AttendanceRecord.CheckType.CHECK_OUT));
+        });
+        test("Editing a visitor records a new visit date in CSV", () -> {
+            Path root = Files.createTempDirectory("smartsite-visit-edit-");
+            for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv"))
+                Files.copy(Paths.get("data", file), root.resolve(file));
+            SiteManagerController site = new SiteManagerController(root);
+            site.loadAllData();
+            site.getAuthentication().login("admin", "admin");
+            site.handlePersonMenu(new Scanner("2\ne\nV1\n\n\n31/02/2026\n15/11/2026\n0\n0\n"));
+            PersonRepository repo = new PersonRepository();
+            require(repo.loadFromCsv(root.resolve("persons.csv").toString()));
+            equal("15/11/2026", ((Visitor) repo.findByCode("V1")).getEntryDate());
+        });
         finish();
     }
 }

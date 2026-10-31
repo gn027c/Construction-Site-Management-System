@@ -176,10 +176,14 @@ public class PersonnelController {
         model.common.SafetyLevel newLevel = p.hasValidSafetyCredential()
                 ? selectSafetyLevel(scanner, p.getSafetyLevel())
                 : model.common.SafetyLevel.NONE;
+        String newVisitDate = p instanceof Visitor ? getUpdatedVisitDate(scanner, ((Visitor) p).getEntryDate()) : "";
         try {
             site.updatePerson(p.getCode(), newName, newPhone);
             if (newLevel != p.getSafetyLevel()) {
                 site.setPersonSafetyLevel(p.getCode(), newLevel);
+            }
+            if (p instanceof Visitor && !newVisitDate.equals(((Visitor) p).getEntryDate())) {
+                site.setVisitDate(p.getCode(), newVisitDate);
             }
             view.ConsoleTheme.success("Success: Person '" + p.getCode() + "' has been updated.");
         } catch (PersonNotFoundException e) {
@@ -221,6 +225,24 @@ public class PersonnelController {
                 continue;
             }
             return input;
+        }
+    }
+
+    private String getUpdatedVisitDate(Scanner scanner, String currentDate) {
+        String shown = currentDate.isEmpty() ? "not set" : currentDate;
+        while (true) {
+            String input = InputHelper.readLine(
+                    scanner, "New visit date (" + util.DateTimeHelper.DATE_FORMAT + ") [" + shown + "]: "
+            ).trim();
+            if (input.isEmpty()) {
+                return currentDate;
+            }
+            try {
+                InputHelper.validateDate(input, "visitDate");
+                return input;
+            } catch (exception.DataValidationException e) {
+                view.ConsoleTheme.warning(e.getMessage());
+            }
         }
     }
 

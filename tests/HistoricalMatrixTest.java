@@ -165,6 +165,9 @@ public class HistoricalMatrixTest {
         tc("TC-ATT-06", "Attendance FSM", "Exceptional", "Visitor V02 (whitelisted for Z05, no safety credential) CHECK_IN at Z05",
            "RestrictedZoneViolationException; no attendance record created",
            () -> {
+               // Book the visit for today so only the zone rule decides the outcome.
+               ((model.person.Visitor) ps.findPersonByCode("V02"))
+                       .setEntryDate(util.DateTimeHelper.formatDate(java.time.LocalDate.now()));
                int before = as.getAllAttendanceRecords().size();
                try {
                    as.recordAttendance("V02", "Z05", AttendanceRecord.CheckType.CHECK_IN);

@@ -94,6 +94,14 @@ public abstract class Person {
     }
 
     /**
+     * Explains why this person may not check in on the given day, or returns an
+     * empty string when check-in is allowed. Site personnel may check in on any day.
+     */
+    public String checkInDenialReason(java.time.LocalDate day) {
+        return "";
+    }
+
+    /**
      * Determines whether an authentication account should be provisioned for this person.
      * By default, returns true for workforce personnel and false for temporary visitors.
      */
