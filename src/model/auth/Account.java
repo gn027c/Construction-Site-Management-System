@@ -78,7 +78,7 @@ public final class Account {
             Set<Permission> permissions, String personCode, boolean mustChangePassword
     ) {
         this.username = normalizeUsername(username);
-        if (!PasswordHelper.isValidHash(password)) {
+        if (!PasswordHelper.isValid(password)) {
             throw new DataValidationException("password", "Must contain between 1 and 128 characters.");
         }
         if (role == null || permissions == null || permissions.contains(null)) {
@@ -122,10 +122,6 @@ public final class Account {
     }
 
     public String getPassword() {
-        return password;
-    }
-
-    public String getPasswordHash() {
         return password;
     }
 
@@ -183,11 +179,11 @@ public final class Account {
     }
 
     public Account withPassword(String password) {
-        return new Account(username, PasswordHelper.hash(password), role, enabled, permissions, personCode, false);
+        return new Account(username, PasswordHelper.validate(password), role, enabled, permissions, personCode, false);
     }
 
     public Account withResetPassword(String password) {
-        return new Account(username, PasswordHelper.hash(password), role, enabled, permissions, personCode, true);
+        return new Account(username, PasswordHelper.validate(password), role, enabled, permissions, personCode, true);
     }
 
     public String toCsvLine() {
@@ -199,7 +195,8 @@ public final class Account {
             names.append(permission.name());
         }
         return CsvHelper.toCsvLine(
-                username, password, role.name(), Boolean.toString(enabled), names.toString(), personCode
+                username, password, role.name(), Boolean.toString(enabled), names.toString(), personCode,
+                Boolean.toString(mustChangePassword)
         );
     }
 

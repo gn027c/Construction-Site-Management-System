@@ -43,6 +43,11 @@ public final class AccountController {
                 String password = InputHelper.getPassword(scanner, "Password: ");
                 Account account = authentication.login(username, password);
                 ConsoleTheme.success("Signed in as " + account.getUsername() + " (" + account.getRole() + ").");
+                if (account.mustChangePassword() && !requireNewPassword(scanner, password)) {
+                    authentication.logout();
+                    ConsoleTheme.warning("A new password is required before using this account.");
+                    continue;
+                }
                 return true;
             } catch (AuthenticationException e) {
                 attempt++;
@@ -53,6 +58,24 @@ public final class AccountController {
         }
         ConsoleTheme.warning("Sign-in attempts exhausted. Session closed.");
         return false;
+    }
+
+    /**
+     * Asks for a replacement password after an initial or reset password was used.
+     * Cancelling or a failed save leaves the account requiring a change.
+     */
+    private boolean requireNewPassword(Scanner scanner, String currentPassword) {
+        ConsoleTheme.warning("This account uses an initial or reset password. Choose a new password.");
+        try {
+            authentication.changePassword(currentPassword, confirmedPassword(scanner));
+            ConsoleTheme.success("Password changed.");
+            return true;
+        } catch (exception.InputCancelledException e) {
+            return false;
+        } catch (IOException | SiteManagementException e) {
+            ConsoleTheme.warning(e.getMessage());
+            return false;
+        }
     }
 
     public void changeOwnPassword(Scanner scanner) throws IOException {

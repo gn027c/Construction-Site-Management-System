@@ -162,7 +162,7 @@ public class StaffBusinessValidationTest {
         test("Account mustChangePassword defaults to true on creation and resets on password change", () -> {
             model.auth.Account acc = new model.auth.Account(
                     "user_test",
-                    util.PasswordHelper.hash("initialPass"),
+                    util.PasswordHelper.validate("initialPass"),
                     model.auth.Account.Role.SITE_USER,
                     true,
                     model.auth.Account.Role.SITE_USER.defaultPermissions(),
@@ -204,7 +204,7 @@ public class StaffBusinessValidationTest {
             equal("LoiNTW99", provisioned.getUsername());
             require(provisioned.isMustChangePassword());
             equal("W99", provisioned.getPersonCode());
-            require(util.PasswordHelper.verify("0", provisioned.getPassword()));
+            require(util.PasswordHelper.matches("0", provisioned.getPassword()));
 
             // Verify authentication works with default password "0"
             controller.getAuthentication().logout();

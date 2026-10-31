@@ -51,10 +51,10 @@ public class AuthenticationTest {
             equal(1, authentication.listAccounts().size());
         });
         test("Passwords preserve whitespace and Unicode", () -> {
-            String pass = PasswordHelper.hash("  Pa\u00dfword  ");
+            String pass = PasswordHelper.validate("  Pa\u00dfword  ");
             equal("  Pa\u00dfword  ", pass);
-            require(PasswordHelper.verify("  Pa\u00dfword  ", pass));
-            require(!PasswordHelper.verify("Pa\u00dfword", pass));
+            require(PasswordHelper.matches("  Pa\u00dfword  ", pass));
+            require(!PasswordHelper.matches("Pa\u00dfword", pass));
         });
         test("Failed login and logout revoke the previous authentication", () -> {
             AuthenticationService authentication = admin(root());
@@ -161,6 +161,27 @@ public class AuthenticationTest {
             throwsType(AuthenticationException.class, () -> restarted.login("admin", "admin"));
             restarted.login("admin", "new-secret");
             equal(1, restarted.listAccounts().size());
+        });
+        test("Created and reset passwords must be changed and the requirement survives restart", () -> {
+            Path root = root();
+            AuthenticationService authentication = admin(root);
+            authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
+            require(authentication.getAccount("officer").mustChangePassword());
+            require(!authentication.currentAccount().mustChangePassword());
+            authentication.resetPassword("officer", "temporary");
+            AuthenticationService restarted = new AuthenticationService(root);
+            require(restarted.login("officer", "temporary").mustChangePassword());
+            throwsType(DataValidationException.class, () -> restarted.changePassword("temporary", "temporary"));
+            restarted.changePassword("temporary", "chosen");
+            require(!new AuthenticationService(root).login("officer", "chosen").mustChangePassword());
+        });
+        test("Account CSV rejects the old header without the password-change column", () -> {
+            Path root = root();
+            Files.write(root.resolve("accounts.csv"), Arrays.asList(
+                    "username,passwordHash,role,enabled,permissions,personCode",
+                    "admin,admin,ADMIN,true,,"
+            ), StandardCharsets.UTF_8);
+            throwsType(IOException.class, () -> new AuthenticationService(root));
         });
         test("Admin password resets persist without changing account permissions", () -> {
             Path root = root();
@@ -272,16 +293,17 @@ public class AuthenticationTest {
             throwsType(AccessDeniedException.class, () -> controller.handleAttendanceMenu(new Scanner("1\n")));
             require(Arrays.equals(before, Files.readAllBytes(root.resolve("incidents.csv"))));
         });
-        test("Business exports exclude account records and password hashes", () -> {
+        test("Business exports exclude account records and passwords", () -> {
             Path root = root();
             SiteManagerController controller = new SiteManagerController(root);
             controller.loadAllData();
             controller.getAuthentication().login("admin", "admin");
+            controller.getAuthentication().changePassword("admin", "Unique-Secret-91");
             Path exported = controller.exportCsv(root.resolve("exports"));
             require(!Files.exists(exported.resolve("accounts.csv")));
             for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv")) {
                 String text = new String(Files.readAllBytes(exported.resolve(file)), StandardCharsets.UTF_8);
-                require(!text.contains("PBKDF2"));
+                require(!text.contains("Unique-Secret-91"));
             }
         });
         test("Manager can update personnel, create a zone and export business reports", () -> {

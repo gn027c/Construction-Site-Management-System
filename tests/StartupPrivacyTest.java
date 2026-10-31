@@ -70,7 +70,7 @@ public class StartupPrivacyTest {
             Path root = invalidHistory();
             createWorker(root);
             String output = ConsoleTest.launchRaw(
-                    root, "worker\nsecret\n3\n4\n6\n11\n12\n0\n\n0\n", 0, false
+                    root, "worker\nsecret\nchosen\nchosen\n3\n4\n6\n11\n12\n0\n\n0\n", 0, false
             );
             assertPrivate(output);
             require(output.contains("Service temporarily unavailable"));
@@ -79,7 +79,7 @@ public class StartupPrivacyTest {
         test("Logout does not repeat administrator diagnostics to the next personal session", () -> {
             Path root = invalidHistory();
             createWorker(root);
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n13\nworker\nsecret\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n13\nworker\nsecret\nchosen\nchosen\n0\n", 0, false);
             assertPrivate(output.substring(output.indexOf("Signed out.")));
         });
         test("Anonymous fatal startup errors do not disclose credential filenames or paths", () -> {

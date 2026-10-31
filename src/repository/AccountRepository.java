@@ -19,8 +19,7 @@ import util.CsvHelper;
  * Invalid input never replaces active accounts or silently recreates default credentials.
  */
 public final class AccountRepository {
-    private static final String HEADER = "username,password,role,enabled,permissions,personCode";
-    private static final String LEGACY_HEADER = "username,passwordHash,role,enabled,permissions,personCode";
+    private static final String HEADER = "username,password,role,enabled,permissions,personCode,mustChangePassword";
     private final Path file;
     private Map<String, Account> accounts = new LinkedHashMap<>();
 
@@ -35,9 +34,7 @@ public final class AccountRepository {
     public void load() throws IOException {
         try {
             List<String[]> rows = CsvHelper.readRows(file.toString());
-            if (rows.isEmpty()
-                    || (!Arrays.equals(rows.get(0), HEADER.split(","))
-                    && !Arrays.equals(rows.get(0), LEGACY_HEADER.split(",")))) {
+            if (rows.isEmpty() || !Arrays.equals(rows.get(0), HEADER.split(","))) {
                 throw new IllegalArgumentException("Invalid account header.");
             }
             List<Account> staged = new ArrayList<>();
@@ -46,7 +43,7 @@ public final class AccountRepository {
                 if (CsvHelper.isBlankRow(fields)) {
                     continue;
                 }
-                if ((fields.length != 6 && fields.length != 7) || !(fields[3].equals("true") || fields[3].equals("false"))) {
+                if (fields.length != 7 || !isBoolean(fields[3]) || !isBoolean(fields[6])) {
                     throw new IllegalArgumentException("Invalid account row " + (i + 1) + ".");
                 }
                 Set<Permission> permissions = EnumSet.noneOf(Permission.class);
@@ -57,10 +54,9 @@ public final class AccountRepository {
                         }
                     }
                 }
-                boolean mustChange = fields.length == 7 ? Boolean.parseBoolean(fields[6]) : false;
                 staged.add(new Account(
                         fields[0], fields[1], Account.Role.valueOf(fields[2]),
-                        Boolean.parseBoolean(fields[3]), permissions, fields[5], mustChange
+                        Boolean.parseBoolean(fields[3]), permissions, fields[5], Boolean.parseBoolean(fields[6])
                 ));
             }
             accounts = validate(staged);
@@ -89,6 +85,10 @@ public final class AccountRepository {
             throw new IOException("Could not save accounts.csv; account changes were not applied.");
         }
         accounts = staged;
+    }
+
+    private static boolean isBoolean(String value) {
+        return value.equals("true") || value.equals("false");
     }
 
     private static Map<String, Account> validate(List<Account> records) {

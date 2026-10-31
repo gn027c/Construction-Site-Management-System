@@ -26,7 +26,7 @@ public class AuthenticationConsoleTest {
             fixture(root);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n9\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n13\nofficer\nsecret\n1\n9\n0\n",
+                    "admin\nadmin\n9\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n13\nofficer\nsecret\nchosen\nchosen\n1\n9\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
@@ -37,7 +37,7 @@ public class AuthenticationConsoleTest {
             require(staffOutput.contains("Access denied: MANAGE_PERSONNEL"));
             require(staffOutput.contains("Access denied: MANAGE_ACCOUNTS"));
             AuthenticationService restarted = new AuthenticationService(root);
-            equal(Account.Role.SAFETY_OFFICER, restarted.login("officer", "secret").getRole());
+            equal(Account.Role.SAFETY_OFFICER, restarted.login("officer", "chosen").getRole());
         });
         test("Wrong passwords never display a protected menu or save business files", () -> {
             Path root = root();
@@ -64,12 +64,28 @@ public class AuthenticationConsoleTest {
             String restarted = ConsoleTest.launchRaw(root, "admin\nnew-secret\n0\n", 0, false);
             require(restarted.contains("Signed in as admin (ADMIN)."));
         });
+        test("A reset password forces a new password before the home menu", () -> {
+            Path root = root();
+            AuthenticationService authentication = new AuthenticationService(root);
+            authentication.login("admin", "admin");
+            authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
+            authentication.resetPassword("officer", "temporary");
+            String cancelled = ConsoleTest.launchRaw(root, "officer\ntemporary\n/cancel\n0\n", 0, false);
+            require(cancelled.contains("A new password is required before using this account."));
+            require(!cancelled.contains("HOME / officer"));
+            String changed = ConsoleTest.launchRaw(root, "officer\ntemporary\nchosen\nchosen\n0\n", 0, false);
+            require(changed.contains("Choose a new password."));
+            require(changed.contains("Password changed."));
+            require(changed.contains("HOME / officer"));
+            String next = ConsoleTest.launchRaw(root, "officer\nchosen\n0\n", 0, false);
+            require(!next.contains("Choose a new password."));
+        });
         test("Manager cannot use data reload or account administration through hidden menu numbers", () -> {
             Path root = root();
             AuthenticationService authentication = new AuthenticationService(root);
             authentication.login("admin", "admin");
             authentication.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
-            String output = ConsoleTest.launchRaw(root, "manager\nsecret\n5\n1\n9\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "manager\nsecret\nchosen\nchosen\n5\n1\n9\n0\n", 0, false);
             require(output.contains("Access denied: RELOAD_DATA"));
             require(output.contains("Access denied: MANAGE_ACCOUNTS"));
             require(!output.contains("[1] Reload CSV files"));
@@ -85,10 +101,10 @@ public class AuthenticationConsoleTest {
             require(!output.contains("credentials were not reset"));
             require(Arrays.equals(before, Files.readAllBytes(file)));
         });
-        test("Account lists show account details without password hashes", () -> {
+        test("Account lists show account details without passwords", () -> {
             String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n9\n1\n0\n0\n0\n", 0, false);
             require(output.contains("admin | ADMIN | Enabled"));
-            require(!output.contains("PBKDF2"));
+            require(!output.contains("admin | admin"));
         });
         test("Admin can replace permissions and disable an account from the console", () -> {
             Path root = root();

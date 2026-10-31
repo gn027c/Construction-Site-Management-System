@@ -29,7 +29,7 @@ public final class AuthenticationService {
         } else {
             List<Account> initial = new ArrayList<>();
             initial.add(new Account(
-                    "admin", PasswordHelper.hash("admin"), Account.Role.ADMIN,
+                    "admin", PasswordHelper.validate("admin"), Account.Role.ADMIN,
                     true, Account.Role.ADMIN.defaultPermissions(), "", false
             ));
             repository.replaceAll(initial);
@@ -42,13 +42,9 @@ public final class AuthenticationService {
         try {
             account = repository.find(Account.normalizeUsername(username));
         } catch (DataValidationException ignored) {
-            // Invalid and unknown usernames use the same password check and login error.
+            // Invalid and unknown usernames receive the same login error.
         }
-        String hash = account == null
-                ? repository.findAll().get(0).getPasswordHash()
-                : account.getPasswordHash();
-        boolean passwordMatches = PasswordHelper.verify(password, hash);
-        if (account == null || !account.isEnabled() || !passwordMatches) {
+        if (account == null || !account.isEnabled() || !PasswordHelper.matches(password, account.getPassword())) {
             throw new AuthenticationException();
         }
         currentUsername = account.getUsername();
@@ -127,7 +123,7 @@ public final class AuthenticationService {
             }
             List<Account> accounts = repository.findAll();
             Account added = new Account(
-                    normalized, PasswordHelper.hash(password), role, true, role.defaultPermissions(), personCode, mustChangePassword
+                    normalized, PasswordHelper.validate(password), role, true, role.defaultPermissions(), personCode, mustChangePassword
             );
             validatePersonLink(added);
             accounts.add(added);
@@ -185,8 +181,11 @@ public final class AuthenticationService {
     public void changePassword(String currentPassword, String nextPassword) throws IOException {
         accountChange("CHANGE_PASSWORD", currentUsername, "Changed own password; credentials excluded.", () -> {
             Account account = currentAccount();
-            if (!PasswordHelper.verify(currentPassword, account.getPasswordHash())) {
+            if (!PasswordHelper.matches(currentPassword, account.getPassword())) {
                 throw new AuthenticationException();
+            }
+            if (currentPassword.equals(nextPassword)) {
+                throw new DataValidationException("password", "The new password must differ from the current one.");
             }
             replace(account.withPassword(nextPassword));
         });
@@ -200,11 +199,18 @@ public final class AuthenticationService {
         return account;
     }
 
+    /**
+     * Saves a changed copy of an existing account.
+     * The personnel link is checked only when it changes, so password and status
+     * changes still work while business data is unavailable.
+     */
     private void replace(Account replacement) throws IOException {
-        validatePersonLink(replacement);
         List<Account> accounts = repository.findAll();
         for (int i = 0; i < accounts.size(); i++) {
             if (accounts.get(i).getUsername().equalsIgnoreCase(replacement.getUsername())) {
+                if (!accounts.get(i).getPersonCode().equals(replacement.getPersonCode())) {
+                    validatePersonLink(replacement);
+                }
                 accounts.set(i, replacement);
                 repository.replaceAll(accounts);
                 return;
