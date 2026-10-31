@@ -1,12 +1,5 @@
 package view;
 
-/**
- * Renders console messages with optional ANSI colors and visible status labels.
- *
- * <p>{@code NO_COLOR} disables colors. The {@code smartsite.color} property accepts
- * {@code always} or {@code never}; otherwise colors require an attached console.
- * Status labels remain readable when colors are disabled.
- */
 public final class ConsoleTheme {
     private static final boolean ENABLED =
             !"never".equalsIgnoreCase(System.getProperty("smartsite.color"))

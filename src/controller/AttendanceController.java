@@ -10,9 +10,6 @@ import view.ConsoleTheme;
 import view.ListView;
 import view.MenuView;
 
-/**
- * Presents personal and authorized staff attendance operations through the secured facade.
- */
 public class AttendanceController {
     private final SiteManagerController site;
     private final AuthenticationService authentication;

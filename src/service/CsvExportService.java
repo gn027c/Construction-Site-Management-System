@@ -6,17 +6,7 @@ import java.nio.file.*;
 import java.util.*;
 import util.CsvHelper;
 
-/**
- * Writes spreadsheet-oriented CSV reports from supplied in-memory tables.
- *
- * <p>Each export uses a new directory and UTF-8 CSV with a byte order mark.
- * Formula-like cells receive an apostrophe prefix for spreadsheet display,
- * so exported values may differ from the application's import data.
- */
 public final class CsvExportService {
-    /**
-     * Creates a new directory and writes formula-protected CSV reports.
-     */
     public Path export(Map<String, List<String>> tables, Path destination) throws IOException {
         Files.createDirectories(destination);
         Path folder = Files.createDirectory(destination.resolve("smartsite-export-" + UUID.randomUUID()));

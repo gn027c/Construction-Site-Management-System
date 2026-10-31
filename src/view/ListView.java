@@ -14,15 +14,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import util.IdentifierHelper;
 
-/**
- * Displays an already-authorized collection with search, ordering and ten-row pages.
- * Callers must restrict records to the current account before passing them to this view.
- */
 public final class ListView {
     public static final int PAGE_SIZE = 10;
     private static final Pattern IDENTIFIER = Pattern.compile("(?i)[a-z]+-?[0-9]+");
     private static final Set<String> STATUS_TERMS = new HashSet<>(Arrays.asList(
-            "active", "inactive", "open", "assigned", 
+            "active", "inactive", "open", "assigned",
             "resolved", "archived", "enabled", "disabled",
             "check_in", "check_out", "true", "false"
     ));
@@ -78,10 +74,6 @@ public final class ListView {
         showTable(scanner, title, description, records, headers, rowExtractor, searchText, order, null);
     }
 
-    /**
-     * Shows a table whose records can be opened for editing with {@code E}.
-     * Passing {@code null} for the edit action hides that command.
-     */
     public static <T> void showTable(
             Scanner scanner,
             String title,
@@ -232,7 +224,6 @@ public final class ListView {
                         currentPage = 1;
                     }
                 } else {
-                    // Direct search: type any text, keyword, code or status directly!
                     query = command;
                     currentPage = 1;
                 }
@@ -306,7 +297,6 @@ public final class ListView {
         }
         String normalizedTargetId = IdentifierHelper.normalizeForLookup(target);
 
-        // Pass 1: Exact ID or Code column match using IdentifierHelper
         if (headers != null && rowExtractor != null && normalizedTargetId != null) {
             for (T rec : records) {
                 List<String> row = rowExtractor.apply(rec);
@@ -322,7 +312,6 @@ public final class ListView {
             }
         }
 
-        // Pass 2: Exact model ID/Code check if applicable
         if (normalizedTargetId != null) {
             for (T rec : records) {
                 if (rec instanceof model.person.Person) {
@@ -350,7 +339,6 @@ public final class ListView {
             }
         }
 
-        // Pass 3: Exact match on any column
         for (T rec : records) {
             if (rowExtractor != null) {
                 List<String> row = rowExtractor.apply(rec);
@@ -362,7 +350,6 @@ public final class ListView {
             }
         }
 
-        // Pass 4: Fallback to matches(st, target)
         for (T rec : records) {
             String st = searchText != null ? searchText.apply(rec) : rec.toString();
             if (matches(st, target)) {
@@ -398,21 +385,18 @@ public final class ListView {
             }
             formattedRows.add(formattedRow);
         }
-        // Top border: ┌───┬───┐
         StringBuilder topBorder = new StringBuilder("  ┌");
         for (int i = 0; i < columns; i++) {
             topBorder.append(String.join("", java.util.Collections.nCopies(widths[i] + 2, "─")));
             topBorder.append(i == columns - 1 ? "┐" : "┬");
         }
 
-        // Header separator: ├───┼───┤
         StringBuilder midBorder = new StringBuilder("  ├");
         for (int i = 0; i < columns; i++) {
             midBorder.append(String.join("", java.util.Collections.nCopies(widths[i] + 2, "─")));
             midBorder.append(i == columns - 1 ? "┤" : "┼");
         }
 
-        // Bottom border: └───┴───┘
         StringBuilder botBorder = new StringBuilder("  └");
         for (int i = 0; i < columns; i++) {
             botBorder.append(String.join("", java.util.Collections.nCopies(widths[i] + 2, "─")));

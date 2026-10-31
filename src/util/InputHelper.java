@@ -3,25 +3,11 @@ package util;
 import exception.DataValidationException;
 import java.util.Scanner;
 
-/**
- * Reads and validates console input one complete line at a time.
- *
- * <p>Required text readers trim accepted input and retry after validation failures.
- * End of input propagates to the application loop so it can attempt to save and exit.
- */
 public class InputHelper {
-
-    /**
-     * Reads a password using the standard scanner line reader.
-     */
     public static String getPassword(Scanner scanner, String prompt) {
         return readLine(scanner, prompt);
     }
 
-    /**
-     * Reads optional text without changing its whitespace or empty-value semantics.
-     * The reserved command /cancel aborts entry; //cancel enters a literal /cancel.
-     */
     public static String readLine(Scanner scanner, String prompt) {
         view.ConsoleTheme.prompt(cancelPrompt(prompt));
         return interpret(scanner.nextLine());
@@ -42,10 +28,6 @@ public class InputHelper {
         return input;
     }
 
-    /**
-     * Reads navigation choices, treating zero and /cancel as Back or Exit.
-     * Data fields with meaningful zero values continue to use getInt.
-     */
     public static int getMenuChoice(Scanner scanner, String prompt, int max) {
         while (true) {
             view.ConsoleTheme.prompt(prompt);

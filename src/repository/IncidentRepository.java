@@ -4,13 +4,6 @@ import model.incident.Incident;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Stores incidents and handles incident CSV.
- *
- * <p>Incident identifiers are compared without case. CSV loading validates a
- * separate collection before replacing active data. Lifecycle rules remain
- * in {@link model.incident.Incident}.
- */
 public class IncidentRepository {
     private final List<Incident> incidentList = new ArrayList<>();
 
@@ -37,9 +30,6 @@ public class IncidentRepository {
         return null;
     }
 
-    /**
-     * Archives resolved incidents while preserving every historical record.
-     */
     public int deleteResolved() {
         return archiveResolved();
     }
@@ -54,20 +44,10 @@ public class IncidentRepository {
         return count;
     }
 
-    /**
-     * Returns a separate list in storage order containing the stored model objects.
-     *
-     * <p>Changing the returned list does not change this repository's collection.
-     * The model objects themselves are shared and retain their validated operations.
-     */
     public List<Incident> findAll() {
         return new ArrayList<>(incidentList);
     }
 
-    /**
-     * Loads CSV into a temporary repository before replacing active data.
-     * A read or validation failure returns false and retains the current collection.
-     */
     public boolean loadFromCsv(String filePath) {
         IncidentRepository staged = new IncidentRepository();
         try {
@@ -106,9 +86,6 @@ public class IncidentRepository {
         return true;
     }
 
-    /**
-     * Serializes current data and overwrites one CSV file.
-     */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
         lines.add("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived");

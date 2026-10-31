@@ -14,12 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 
-/**
- * Handles console input and result messages for zones and access permissions.
- *
- * <p>Zone rules are delegated to {@link service.ZoneService}. Permission flows
- * verify personnel registration before changing a restricted zone's whitelist.
- */
 public class ZoneController {
     private final SiteManagerController site;
 

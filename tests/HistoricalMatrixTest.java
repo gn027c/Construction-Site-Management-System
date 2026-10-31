@@ -14,12 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Workshop 6 verification runner: executes the TC matrix directly against the service layer
- * and prints one result block per test case (Actual result + captured console output).
- * Reads project fixtures; all generated files go to an isolated temporary directory.
- * Reproduces the original 25 WS6 scenarios, with strict exception checks and nonzero failure exit.
- */
 public class HistoricalMatrixTest {
     static Path output;
 
@@ -68,7 +62,6 @@ public class HistoricalMatrixTest {
         ps.loadFromCsv(); zs.loadFromCsv(); as.loadFromCsv(); is.loadFromCsv();
         try { ps.deletePerson("W6"); } catch (Exception ignored) {}
 
-        // ---------------- PERSONNEL ----------------
         tc("TC-PERS-01", "Personnel", "Normal", "Add new Worker W06 (phone 0906789012, cert CERT_06_SAFE)",
            "Record added; findPersonByCode(\"W06\") returns a Worker",
            () -> {
@@ -108,7 +101,6 @@ public class HistoricalMatrixTest {
                return "Invalid phone rejected; valid phone stored (" + phone + ")";
            }, true);
 
-        // ---------------- ZONES ----------------
         tc("TC-ZONE-01", "Zone Security", "Normal", "Visitor V01 enters regular zone Z01",
            "Zone.checkAccess() returns true (dynamic binding to base class)",
            () -> {
@@ -140,7 +132,6 @@ public class HistoricalMatrixTest {
            "RestrictedZoneViolationException after revocation",
            () -> { zs.revokeZoneAccess("Z04", "W05"); zs.verifyAccess("Z04", ps.findPersonByCode("W05")); return "Granted (unexpected)"; }, false);
 
-        // ---------------- ATTENDANCE (FSM) ----------------
         tc("TC-ATT-01", "Attendance FSM", "Normal", "W06 CHECK_IN at Z01 (no prior record)",
            "Record created; state = CHECK_IN",
            () -> {
@@ -165,7 +156,6 @@ public class HistoricalMatrixTest {
         tc("TC-ATT-06", "Attendance FSM", "Exceptional", "Visitor V02 (whitelisted for Z05, no safety credential) CHECK_IN at Z05",
            "RestrictedZoneViolationException; no attendance record created",
            () -> {
-               // Book the visit for today so only the zone rule decides the outcome.
                ((model.person.Visitor) ps.findPersonByCode("V02"))
                        .setEntryDate(util.DateTimeHelper.formatDate(java.time.LocalDate.now()));
                int before = as.getAllAttendanceRecords().size();
@@ -179,7 +169,6 @@ public class HistoricalMatrixTest {
                throw new AssertionError("Restricted check-in unexpectedly accepted");
            }, true);
 
-        // ---------------- INCIDENTS ----------------
         tc("TC-INC-01", "Incident Lifecycle", "Normal", "Report INC-201 'Lan can tang 3 bi long' (HIGH)",
            "Incident created with status OPEN",
            () -> {
@@ -214,7 +203,6 @@ public class HistoricalMatrixTest {
                return "Archived " + removed + "; " + left + " incidents retained";
            }, true);
 
-        // ---------------- FILE I/O ----------------
         tc("TC-IO-01", "File I/O", "Normal", "Load all 4 CSV types with a valid attendance test ledger (fresh services)",
            "10 persons, 5 zones, 15 attendance records, 5 incidents loaded",
            () -> {
@@ -268,7 +256,6 @@ public class HistoricalMatrixTest {
                return "Description preserved: " + got;
            }, true);
 
-        // machine-readable dump for the report builder
         try (Writer w = new OutputStreamWriter(new FileOutputStream(output.resolve("results.tsv").toString()), StandardCharsets.UTF_8)) {
             for (String[] r : results) {
                 StringBuilder sb = new StringBuilder();

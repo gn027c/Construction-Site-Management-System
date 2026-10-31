@@ -4,13 +4,6 @@ import static model.common.ModelValidation.*;
 
 import model.common.SafetyLevel;
 
-/**
- * Defines identity, contact details and polymorphic behavior for site personnel.
- *
- * <p>Identity, personnel code and role are fixed after construction. Contact
- * changes are validated by the model. Subclasses define their own safety
- * credentials and CSV representation.
- */
 public abstract class Person {
     private final String id;
     private final String code;
@@ -64,11 +57,6 @@ public abstract class Person {
         this.phoneNumber = phoneNumber(phoneNumber);
     }
 
-    /**
-     * Validates both contact values before assigning either field.
-     *
-     * <p>If either value is invalid, both existing contact values are retained.
-     */
     public void updateContactDetails(String name, String phoneNumber) {
         String validName = requiredText(name, "name");
         String validPhone = phoneNumber(phoneNumber);
@@ -76,15 +64,8 @@ public abstract class Person {
         this.phoneNumber = validPhone;
     }
 
-    /**
-     * Evaluates the subtype-specific credential rule used by restricted zones.
-     */
     public abstract boolean hasValidSafetyCredential();
 
-    /**
-     * Returns the highest restricted-zone level this person is cleared for.
-     * New personnel start at {@code NONE}.
-     */
     public SafetyLevel getSafetyLevel() {
         return safetyLevel;
     }
@@ -93,25 +74,14 @@ public abstract class Person {
         this.safetyLevel = requiredValue(safetyLevel, "safetyLevel");
     }
 
-    /**
-     * Explains why this person may not check in on the given day, or returns an
-     * empty string when check-in is allowed. Site personnel may check in on any day.
-     */
     public String checkInDenialReason(java.time.LocalDate day) {
         return "";
     }
 
-    /**
-     * Determines whether an authentication account should be provisioned for this person.
-     * By default, returns true for workforce personnel and false for temporary visitors.
-     */
     public boolean shouldProvisionAccount() {
         return role != Role.VISITOR;
     }
 
-    /**
-     * Serializes common personnel columns, subtype data, active status and safety level.
-     */
     public abstract String toCsvLine();
 
     protected String baseCsv(String type) {

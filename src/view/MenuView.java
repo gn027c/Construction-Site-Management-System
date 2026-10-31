@@ -5,12 +5,6 @@ import java.util.Map;
 import model.auth.Permission;
 import service.AuthenticationService;
 
-/**
- * Prints console navigation using the shared theme.
- *
- * <p>This view contains menu labels only; input handling and application
- * operations belong to controllers and services.
- */
 public final class MenuView {
     private MenuView() {
     }

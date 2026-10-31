@@ -7,9 +7,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import model.incident.Incident;
 
-/**
- * Formats safety incident fields consistently for searchable lists and detail screens.
- */
 public final class IncidentView {
     public static final List<String> TABLE_HEADERS = Arrays.asList(
             "Incident ID", "Title", "Severity", "Status", "Assigned To", "Reported", "Archived"
@@ -62,4 +59,3 @@ public final class IncidentView {
         return fields;
     }
 }
-

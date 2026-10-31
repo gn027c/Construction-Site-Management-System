@@ -14,10 +14,6 @@ import util.InputHelper;
 import view.ConsoleTheme;
 import view.ConsoleScreen;
 
-/**
- * Handles staff sign-in, password changes and administrator account management.
- * Account changes are authorized and saved by the authentication service.
- */
 public final class AccountController {
     private final AuthenticationService authentication;
 
@@ -60,10 +56,6 @@ public final class AccountController {
         return false;
     }
 
-    /**
-     * Asks for a replacement password after an initial or reset password was used.
-     * Cancelling or a failed save leaves the account requiring a change.
-     */
     private boolean requireNewPassword(Scanner scanner, String currentPassword) {
         ConsoleTheme.warning("This account uses an initial or reset password. Choose a new password.");
         try {

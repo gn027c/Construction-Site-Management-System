@@ -8,9 +8,6 @@ import java.util.StringJoiner;
 import model.zone.RestrictedZone;
 import model.zone.Zone;
 
-/**
- * Formats site zone fields consistently for searchable lists and detail screens.
- */
 public final class ZoneView {
     public static final List<String> TABLE_HEADERS = Arrays.asList(
             "Zone ID", "Name", "Type", "Required Safety", "Authorized Personnel"
@@ -69,4 +66,3 @@ public final class ZoneView {
         return fields;
     }
 }
-

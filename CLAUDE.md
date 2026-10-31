@@ -74,9 +74,9 @@ Layered flow: **Main -> controller -> service -> repository -> CSV** (`util.CsvH
 
 ## Code conventions
 
-`src/README.md` is the style guide: English comments/Javadoc, 4-space indent, braces always, one
-statement per line, <=120 chars. Javadoc is prose only (no `@param`/`@return` sections) and must not
-contain member names, student IDs, workshop notes or claims the code does not implement.
+`src/README.md` is the style guide: 4-space indent, braces always, one statement per line,
+<=120 chars. Java files carry **no comments or Javadoc** (owner's decision, 2026-10-31); document
+behaviour in `src/README.md` instead and never add comments back.
 
 ## Deliverables: Project Report and AI Audit Log
 

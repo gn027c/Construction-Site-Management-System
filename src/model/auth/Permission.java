@@ -1,9 +1,5 @@
 package model.auth;
 
-/**
- * Identifies application operations that can be granted to a login account.
- * These permissions are independent of physical zone access rules.
- */
 public enum Permission {
     MANAGE_PERSONNEL,
     MANAGE_ZONES,

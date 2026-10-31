@@ -8,12 +8,6 @@ import view.MenuView;
 import util.InputHelper;
 import java.util.Scanner;
 
-/**
- * Handles console input and result messages for incident operations.
- *
- * <p>Reporting, assignment, resolution and removal of resolved incidents are
- * delegated to {@link service.IncidentService}.
- */
 public class IncidentController {
     private final SiteManagerController site;
     private final AuthenticationService authentication;

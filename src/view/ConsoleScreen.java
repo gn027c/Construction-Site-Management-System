@@ -2,10 +2,6 @@ package view;
 
 import java.util.Scanner;
 
-/**
- * Manages screen transitions and result acknowledgement using the application's shared input reader.
- * Redirected sessions retain plain sequential output unless screen mode is explicitly enabled.
- */
 public final class ConsoleScreen {
     private static Scanner input;
     private static boolean enabled;
@@ -23,9 +19,6 @@ public final class ConsoleScreen {
         unreadResult = false;
     }
 
-    /**
-     * Keeps the previous result visible until acknowledged, then starts a clean screen.
-     */
     public static void begin() {
         if (!enabled) {
             return;
@@ -38,10 +31,6 @@ public final class ConsoleScreen {
         clear(false);
     }
 
-    /**
-     * Clears the visible screen and requests scrollback removal when changing account context.
-     * Terminal support varies; this does not revoke access to captured output or local files.
-     */
     public static void identityBoundary() {
         if (enabled) {
             clear(true);

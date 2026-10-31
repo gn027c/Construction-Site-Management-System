@@ -14,10 +14,6 @@ import model.auth.Account;
 import model.auth.Permission;
 import util.CsvHelper;
 
-/**
- * Stores login accounts in a dedicated CSV, outside business-data exports.
- * Invalid input never replaces active accounts or silently recreates default credentials.
- */
 public final class AccountRepository {
     private static final String HEADER = "username,password,role,enabled,permissions,personCode,mustChangePassword";
     private final Path file;
@@ -65,10 +61,6 @@ public final class AccountRepository {
         }
     }
 
-    /**
-     * Persists a validated replacement before publishing it to callers.
-     * At least one enabled administrator must remain available.
-     */
     public void replaceAll(List<Account> replacement) throws IOException {
         Map<String, Account> staged;
         try {

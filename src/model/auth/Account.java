@@ -7,10 +7,6 @@ import java.util.Set;
 import util.CsvHelper;
 import util.PasswordHelper;
 
-/**
- * Represents an immutable login account, independently of a personnel record.
- * Administrators manage accounts; staff roles start with their relevant application permissions.
- */
 public final class Account {
     public enum Role {
         ADMIN,
@@ -45,7 +41,7 @@ public final class Account {
                     );
                 case SITE_USER:
                     return EnumSet.of(
-                            Permission.RECORD_OWN_ATTENDANCE, 
+                            Permission.RECORD_OWN_ATTENDANCE,
                             Permission.VIEW_OWN_ATTENDANCE
                     );
                 default:

@@ -8,19 +8,10 @@ import java.util.HashMap;
 import java.time.format.DateTimeParseException;
 import util.DateTimeHelper;
 
-/**
- * Stores attendance records in insertion order and handles attendance CSV.
- *
- * <p>Record identifiers must be unique. CSV loading builds a separate collection
- * and replaces active data only after all rows have been accepted.
- */
 public class AttendanceRepository {
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();
     private String lastLoadError = "";
 
-    /**
-     * Stores a record only after its identifier and transition from the previous event are valid.
-     */
     public boolean save(AttendanceRecord record) {
         if (!canAppend(record)) {
             return false;
@@ -46,10 +37,6 @@ public class AttendanceRepository {
         return true;
     }
 
-    /**
-     * Validates and persists a candidate before publishing it to readers of this repository.
-     * A failed write leaves the in-memory history unchanged.
-     */
     public boolean saveAndPersist(AttendanceRecord record, String filePath) {
         if (!canAppend(record)) {
             return false;
@@ -63,11 +50,6 @@ public class AttendanceRepository {
         return true;
     }
 
-    /**
-     * Finds the most recently inserted swipe for a normalized personnel code.
-     *
-     * <p>Insertion order defines the preceding swipe. Records are not sorted by timestamp.
-     */
     public AttendanceRecord findLastByPersonCode(String personCode) {
         String cleanCode = util.IdentifierHelper.normalizeForLookup(personCode);
         if (cleanCode == null) {
@@ -82,12 +64,6 @@ public class AttendanceRepository {
         return null;
     }
 
-    /**
-     * Returns a separate list in storage order containing the stored model objects.
-     *
-     * <p>Changing the returned list does not change this repository's collection.
-     * Stored attendance events are immutable.
-     */
     public List<AttendanceRecord> findAll() {
         return new ArrayList<>(attendanceList);
     }
@@ -96,10 +72,6 @@ public class AttendanceRepository {
         return lastLoadError;
     }
 
-    /**
-     * Loads CSV into a temporary repository before replacing active data.
-     * A read or validation failure returns false and retains the current collection.
-     */
     public boolean loadFromCsv(String filePath) {
         AttendanceRepository staged = new AttendanceRepository();
         lastLoadError = "";
@@ -141,9 +113,6 @@ public class AttendanceRepository {
         return true;
     }
 
-    /**
-     * Serializes current data and overwrites one CSV file.
-     */
     public boolean saveToCsv(String filePath) {
         return writeRecords(filePath, attendanceList);
     }

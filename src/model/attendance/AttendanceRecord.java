@@ -2,13 +2,6 @@ package model.attendance;
 
 import static model.common.ModelValidation.*;
 
-/**
- * Represents one check-in or check-out for a person at a zone.
- *
- * <p>All record fields are fixed after construction. The
- * entity validates timestamps and checks whether a new swipe can follow the
- * preceding swipe supplied by the repository.
- */
 public final class AttendanceRecord {
     public enum CheckType {
         CHECK_IN,
@@ -49,13 +42,6 @@ public final class AttendanceRecord {
         return checkType;
     }
 
-    /**
-     * Checks whether this swipe can follow the supplied swipe for the same person.
-     *
-     * <p>A first swipe must be a check-in. A check-in requires the previous swipe
-     * to be a check-out; a check-out requires a check-in at the same zone. This
-     * checks action order and chronology against the supplied preceding record.
-     */
     public void assertCanFollow(AttendanceRecord previous) {
         if (previous != null && !personCode.equals(previous.personCode)) {
             throw new exception.DataValidationException("previousRecord", "Must belong to the same person.");

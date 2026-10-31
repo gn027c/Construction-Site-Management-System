@@ -2,10 +2,6 @@ package model.person;
 
 import static model.common.ModelValidation.*;
 
-/**
- * Represents an internal staff member independently of account permissions.
- * An optional safety certificate is encapsulated in a {@link SafetyCertificate} Value Object.
- */
 public class Staff extends Person {
     private String position;
     private SafetyCertificate safetyCertificate;

@@ -2,12 +2,6 @@ package model.person;
 
 import static model.common.ModelValidation.*;
 
-/**
- * Represents a contractor with a company name and a contract identifier.
- *
- * <p>Both contractor fields are required. A contract identifier beginning with
- * {@code CTR-} satisfies the current safety credential rule.
- */
 public class Contractor extends Person {
     private String companyName;
     private String contractId;
@@ -34,9 +28,6 @@ public class Contractor extends Person {
         this.contractId = requiredText(contractId, "contractId");
     }
 
-    /**
-     * Accepts contract identifiers beginning with the case-sensitive prefix {@code CTR-}.
-     */
     @Override
     public boolean hasValidSafetyCredential() {
         return contractId.startsWith("CTR-");

@@ -17,9 +17,6 @@ import util.InputHelper;
 import view.ConsoleTheme;
 import view.ListView;
 
-/**
- * Presents filtered period reports for attendance and incidents.
- */
 public final class WorkspaceController {
     private final SiteManagerController site;
     private final AuthenticationService authentication;

@@ -5,12 +5,6 @@ import repository.IncidentRepository;
 import java.util.List;
 import java.util.ArrayList;
 
-/**
- * Coordinates incident storage and personnel lookup for incident operations.
- *
- * <p>The service confirms that an assignee exists before asking the incident to
- * change its lifecycle status. The incident model owns transition validation.
- */
 public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final PersonnelService personnelService;
@@ -50,9 +44,6 @@ public class IncidentService {
         return incidentRepository.findById(incidentId);
     }
 
-    /**
-     * Confirms the assignee exists before invoking the incident's assignment operation.
-     */
     public boolean assignIncident(String incidentId, String assigneeCode)
             throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
         if (incidentId == null
@@ -94,9 +85,6 @@ public class IncidentService {
         return archiveResolvedIncidents();
     }
 
-    /**
-     * Archives resolved incidents while preserving their records for reporting.
-     */
     public int archiveResolvedIncidents() {
         int archived = 0;
         for (Incident incident : incidentRepository.findAll()) {

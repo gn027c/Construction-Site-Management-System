@@ -9,12 +9,6 @@ import model.zone.Zone;
 import repository.ZoneRepository;
 import java.util.List;
 
-/**
- * Coordinates zone storage, permission changes and access verification.
- *
- * <p>Access checks call the zone's polymorphic policy. Permission changes apply
- * only to restricted zones; personnel registry checks belong to the caller.
- */
 public class ZoneService {
     private final ZoneRepository zoneRepository;
 
@@ -66,9 +60,6 @@ public class ZoneService {
         return false;
     }
 
-    /**
-     * Looks up the zone and evaluates its polymorphic access policy.
-     */
     public boolean verifyAccess(String zoneId, Person person)
             throws ZoneNotFoundException, RestrictedZoneViolationException {
         Zone zone = findZoneById(zoneId);

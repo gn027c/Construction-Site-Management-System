@@ -4,12 +4,6 @@ import static model.common.ModelValidation.*;
 
 import model.common.SafetyLevel;
 
-/**
- * Represents a visitor with a required visit purpose and host name.
- *
- * <p>The entry date uses {@code dd/MM/yyyy}; an empty string means the date is
- * unknown. Visitors do not satisfy the current safety credential rule.
- */
 public class Visitor extends Person {
     private String purpose;
     private String hostPersonName;
@@ -46,9 +40,6 @@ public class Visitor extends Person {
         this.hostPersonName = requiredText(hostPersonName, "hostPersonName");
     }
 
-    /**
-     * Returns the visit date as {@code dd/MM/yyyy}, or an empty string when unknown.
-     */
     public String getEntryDate() {
         return entryDate;
     }
@@ -62,10 +53,6 @@ public class Visitor extends Person {
         return false;
     }
 
-    /**
-     * Allows check-in only on the booked visit date. A visitor without a date
-     * must have one recorded first. Check-out is not restricted by date.
-     */
     @Override
     public String checkInDenialReason(java.time.LocalDate day) {
         if (entryDate.isEmpty()) {
@@ -77,9 +64,6 @@ public class Visitor extends Person {
         return "";
     }
 
-    /**
-     * Visitors cannot hold a safety level, so only {@code NONE} is accepted.
-     */
     @Override
     public void setSafetyLevel(SafetyLevel safetyLevel) {
         if (safetyLevel != SafetyLevel.NONE) {

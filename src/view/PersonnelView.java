@@ -11,10 +11,6 @@ import model.person.Staff;
 import model.person.Visitor;
 import model.person.Worker;
 
-/**
- * Renders personnel fields consistently for searchable lists and detail screens.
- * Personnel types describe people independently of account permissions.
- */
 public final class PersonnelView {
     public static final List<String> TABLE_HEADERS = Arrays.asList(
             "ID", "Code", "Name", "Phone", "Type", "Status", "Safety", "Details"
@@ -69,9 +65,6 @@ public final class PersonnelView {
         }
     }
 
-    /**
-     * Defines common and subtype fields once so lists and details show the same information.
-     */
     private static Map<String, String> fields(Person person) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("ID", person.getId());

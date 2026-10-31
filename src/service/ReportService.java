@@ -14,10 +14,6 @@ import model.incident.Incident;
 import util.DateTimeHelper;
 import util.IdentifierHelper;
 
-/**
- * Filters business records and builds calendar-based summaries without file or console access.
- * Date ranges include both endpoints; archived incidents remain part of the reporting history.
- */
 public final class ReportService {
     public enum Period {
         DAY,
@@ -61,9 +57,6 @@ public final class ReportService {
         return IdentifierHelper.normalize(value);
     }
 
-    /**
-     * Produces CSV-ready rows grouped by calendar day, Monday-based week or month.
-     */
     public static List<String[]> summarizeAttendance(
             List<AttendanceRecord> records,
             LocalDate from,
@@ -92,11 +85,6 @@ public final class ReportService {
         return rows;
     }
 
-    /**
-     * Groups reported and resolved events by their actual dates.
-     * Status and archive counts describe incidents reported in each bucket.
-     * The UNKNOWN row separately counts historical dates that cannot be placed in the requested period.
-     */
     public static List<String[]> summarizeIncidents(
             List<Incident> incidents,
             LocalDate from,

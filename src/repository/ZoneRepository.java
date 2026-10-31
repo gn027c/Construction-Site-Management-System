@@ -12,13 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Stores regular and restricted zones and handles zone CSV.
- *
- * <p>Zone identifiers are compared without case. CSV loading validates a separate
- * collection before replacing active data. Restricted-zone permissions use
- * semicolon-separated codes; {@code NONE} represents an empty list.
- */
 public class ZoneRepository {
     private final List<Zone> zoneList = new ArrayList<>();
 
@@ -53,20 +46,10 @@ public class ZoneRepository {
         return z;
     }
 
-    /**
-     * Returns a separate list in storage order containing the stored model objects.
-     *
-     * <p>Changing the returned list does not change this repository's collection.
-     * The model objects themselves are shared and retain their validated operations.
-     */
     public List<Zone> findAll() {
         return new ArrayList<>(zoneList);
     }
 
-    /**
-     * Loads CSV into a temporary repository before replacing active data.
-     * A read or validation failure returns false and retains the current collection.
-     */
     public boolean loadFromCsv(String filePath) {
         ZoneRepository staged = new ZoneRepository();
         try {
@@ -109,9 +92,6 @@ public class ZoneRepository {
         return true;
     }
 
-    /**
-     * Serializes current data and overwrites one CSV file.
-     */
     public boolean saveToCsv(String filePath) {
         List<String> rows = new ArrayList<>();
         rows.add("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes");

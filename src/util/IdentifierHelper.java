@@ -6,15 +6,6 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Normalizes business identifiers before storage and lookup.
- *
- * <p>An identifier is a letter prefix and a positive number, for example {@code W1} or
- * {@code INC101}; input may contain one separator hyphen and leading zeros. The number
- * is limited to {@link #MAX_NUMBER} (nine digits). That limit fits in an {@code int}
- * and covers far more records than a site produces in ten years: 2,000 people swiping
- * four times a day for ten years create about 29 million attendance records.
- */
 public final class IdentifierHelper {
     public static final int MAX_NUMBER = 999_999_999;
     private static final int MAX_DIGITS = 9;
@@ -46,12 +37,6 @@ public final class IdentifierHelper {
         }
     }
 
-    /**
-     * Builds the identifier after the largest existing one with the same prefix.
-     * Identifiers with another prefix or an invalid form are ignored. The first
-     * identifier is {@code prefix + (floor + 1)}, so a floor of 100 starts at {@code INC101}.
-     * Fails with a clear message once the nine-digit limit is reached.
-     */
     public static String next(String prefix, Iterable<String> existing, int floor) {
         int largest = floor;
         for (String identifier : existing) {

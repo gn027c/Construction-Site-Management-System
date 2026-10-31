@@ -5,23 +5,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Encodes and decodes UTF-8 CSV, including quoted multiline fields.
- *
- * <p>The codec preserves empty fields, commas, escaped quotes and embedded line
- * breaks. Writes overwrite the target file directly.
- */
 public final class CsvHelper {
     public static final String UTF8_BOM = "\uFEFF";
 
     private CsvHelper() {
     }
 
-    /**
-     * Reads physical UTF-8 lines and removes a leading byte order mark.
-     *
-     * <p>Use {@link #readRows(String)} when CSV fields may contain line breaks.
-     */
     public static List<String> readAllLines(String filePath) {
         try {
             List<String> lines = Files.readAllLines(Paths.get(filePath), StandardCharsets.UTF_8);
@@ -34,9 +23,6 @@ public final class CsvHelper {
         }
     }
 
-    /**
-     * Reads logical CSV records, including fields containing quoted line breaks.
-     */
     public static List<String[]> readRows(String path) {
         try {
             return parseRecords(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8));
@@ -45,9 +31,6 @@ public final class CsvHelper {
         }
     }
 
-    /**
-     * Parses exactly one logical CSV record, including quoted line breaks.
-     */
     public static String[] parseLine(String line) {
         List<String[]> rows = parseRecords(line);
         if (rows.size() != 1) {
@@ -56,13 +39,6 @@ public final class CsvHelper {
         return rows.get(0);
     }
 
-    /**
-     * Decodes CSV using explicit quoted-field and closing-quote state.
-     *
-     * <p>A doubled quote inside a quoted field represents one literal quote.
-     * After a closing quote, only a separator or record boundary is valid.
-     * CRLF is one boundary; line breaks inside quotes remain field data.
-     */
     private static List<String[]> parseRecords(String text) {
         Objects.requireNonNull(text, "CSV text");
         List<String[]> rows = new ArrayList<>();
@@ -124,9 +100,6 @@ public final class CsvHelper {
         return row.length == 1 && row[0].trim().isEmpty();
     }
 
-    /**
-     * Escapes fields and joins them into one CSV record.
-     */
     public static String toCsvLine(String... fields) {
         List<String> escaped = new ArrayList<>();
         for (String field : fields) {
@@ -145,13 +118,6 @@ public final class CsvHelper {
         return field;
     }
 
-    /**
-     * Writes UTF-8 with a byte order mark, replacing the whole file.
-     *
-     * <p>The file is overwritten directly. If the program stops while writing,
-     * the file may be incomplete; the next load then rejects it instead of
-     * guessing the missing rows.
-     */
     public static boolean writeAllLines(String filePath, List<String> lines) {
         if (lines == null || lines.contains(null)) {
             return false;

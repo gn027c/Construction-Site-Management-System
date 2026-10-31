@@ -11,12 +11,6 @@ import view.MenuView;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Starts the console application and delegates operations to the facade.
- *
- * <p>The {@code smartsite.dataDir} property selects the data directory and defaults
- * to {@code data}. Signed-in sessions save current data on normal exit or end of input.
- */
 public class Main {
     public static void main(String[] args) {
         Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));

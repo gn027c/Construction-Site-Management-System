@@ -7,14 +7,6 @@ import java.util.TreeSet;
 import model.common.SafetyLevel;
 import model.person.Person;
 
-/**
- * Represents a hazardous zone that only listed, sufficiently qualified people may enter.
- *
- * <p>Entry requires all three of: the person's code is on the zone's allowed list,
- * the person holds a valid safety credential for their type, and the person's
- * safety level is at least the zone's required level. The required level is
- * {@code LOW}, {@code MEDIUM}, {@code HIGH} or {@code CRITICAL}.
- */
 public class RestrictedZone extends Zone {
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
@@ -57,16 +49,10 @@ public class RestrictedZone extends Zone {
         requiredSafetyLevel = zoneLevel(level);
     }
 
-    /**
-     * Copies the whitelist so callers cannot change it without validation.
-     */
     public Set<String> getAllowedPersonCodes() {
         return new HashSet<>(allowedPersonCodes);
     }
 
-    /**
-     * Validates every code before replacing the current whitelist.
-     */
     public void setAllowedPersonCodes(Set<String> codes) {
         allowedPersonCodes = validatedCodes(codes);
     }
@@ -79,10 +65,6 @@ public class RestrictedZone extends Zone {
         return allowedPersonCodes.remove(personCode(code, "personCode"));
     }
 
-    /**
-     * Checks the allowed list, the credential and the safety level, in that order,
-     * and reports the first rule the person fails.
-     */
     @Override
     public String accessDenialReason(Person person) {
         if (person == null) {

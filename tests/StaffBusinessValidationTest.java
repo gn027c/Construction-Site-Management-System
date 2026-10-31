@@ -30,14 +30,12 @@ public class StaffBusinessValidationTest {
         });
 
         test("InputHelper getPersonName rejects numbers and formats valid names", () -> {
-            // "1\n  \nnguyen van phuc\n" -> 1 rejected, blank rejected, "nguyen van phuc" accepted as "Nguyen Van Phuc"
             Scanner scanner = new Scanner("1\n  \nnguyen van phuc\n");
             String name = InputHelper.getPersonName(scanner, "Name: ");
             equal("Nguyen Van Phuc", name);
         });
 
         test("InputHelper getPhoneNumber rejects invalid numbers and accepts 10 digits starting with 0", () -> {
-            // "1\n1234567890\n09012345678\n0987654321\n"
             Scanner scanner = new Scanner("1\n1234567890\n09012345678\n0987654321\n");
             String phone = InputHelper.getPhoneNumber(scanner, "Phone: ");
             equal("0987654321", phone);
@@ -50,16 +48,6 @@ public class StaffBusinessValidationTest {
             AuthenticationService auth = controller.getAuthentication();
             auth.login("admin", "admin");
 
-            // Input sequence:
-            // 1: Add person
-            // 4: Staff
-            // (ID and Code are auto-generated)
-            // tran van sang: Name (will be auto-capitalized to Tran Van Sang)
-            // 0987654321: Phone
-            // 2: Position (Site Engineer)
-            // 1: Safety Certification (CERT_S1_SAFE)
-            // 3: Safety level HIGH
-            // 0: Exit personnel menu
             String input = "1\n4\ntran van sang\n0987654321\n2\n1\n3\n0\n";
             controller.handlePersonMenu(new Scanner(input));
 
@@ -83,15 +71,6 @@ public class StaffBusinessValidationTest {
             AuthenticationService auth = controller.getAuthentication();
             auth.login("admin", "admin");
 
-            // Input sequence:
-            // 1: Add person
-            // 4: Staff
-            // (ID and Code are auto-generated)
-            // le thi dao: Name -> Le Thi Dao
-            // 0912345678: Phone
-            // 3: Position (Safety Officer)
-            // 2: Safety Certification (CERT_UNSAFE)
-            // 0: Exit
             String input = "1\n4\nle thi dao\n0912345678\n3\n2\n0\n";
             controller.handlePersonMenu(new Scanner(input));
 
@@ -139,10 +118,8 @@ public class StaffBusinessValidationTest {
             String id2 = controller.suggestNextPersonId();
             require(id1.matches("^P\\d{5}$"));
             require(id2.matches("^P\\d{5}$"));
-            // Random IDs must not equal sequential index "P11"
             require(!id1.equals("P11"));
             require(!id2.equals("P11"));
-            // Existing personnel must not already have this ID
             for (Person p : controller.people()) {
                 require(!p.getId().equalsIgnoreCase(id1));
                 require(!p.getId().equalsIgnoreCase(id2));
@@ -173,11 +150,9 @@ public class StaffBusinessValidationTest {
             require(acc.isMustChangePassword());
             require(acc.mustChangePassword());
 
-            // When password is changed by user, mustChangePassword becomes false
             model.auth.Account updated = acc.withPassword("newSecretPassword123");
             require(!updated.isMustChangePassword());
 
-            // When admin resets password, mustChangePassword becomes true
             model.auth.Account reset = updated.withResetPassword("tempResetPass123");
             require(reset.isMustChangePassword());
         });
@@ -208,14 +183,12 @@ public class StaffBusinessValidationTest {
             equal("W99", provisioned.getPersonCode());
             require(util.PasswordHelper.matches("0", provisioned.getPassword()));
 
-            // Verify authentication works with default password "0"
             controller.getAuthentication().logout();
             model.auth.Account loggedIn = controller.getAuthentication().login("LoiNTW99", "0");
             require(loggedIn != null);
             equal("LoiNTW99", loggedIn.getUsername());
             require(loggedIn.isMustChangePassword());
 
-            // Case-insensitive login also succeeds
             controller.getAuthentication().logout();
             model.auth.Account lowerLoggedIn = controller.getAuthentication().login("lointw99", "0");
             require(lowerLoggedIn != null);
@@ -225,4 +198,3 @@ public class StaffBusinessValidationTest {
         finish();
     }
 }
-

@@ -16,11 +16,6 @@ import util.InputHelper;
 import java.util.List;
 import java.util.Scanner;
 
-/**
- * Handles console input and result messages for the personnel menu.
- *
- * <p>Operations are delegated to the site facade and personnel rendering to the view.
- */
 public class PersonnelController {
     private final SiteManagerController site;
     private final AuthenticationService authentication;
@@ -296,9 +291,6 @@ public class PersonnelController {
         }
     }
 
-    /**
-     * Asks for the restricted-zone safety level; Enter keeps the given current level.
-     */
     private model.common.SafetyLevel selectSafetyLevel(Scanner scanner, model.common.SafetyLevel current) {
         model.common.SafetyLevel[] levels = model.common.SafetyLevel.values();
         System.out.println("Safety level for restricted zones: 0. NONE │ 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");

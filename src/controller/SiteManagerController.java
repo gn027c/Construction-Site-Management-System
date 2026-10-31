@@ -11,13 +11,6 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 
-/**
- * Coordinates console controllers, services and the four application CSV files.
- *
- * <p>Loading stages fresh services and checks cross-file references before
- * replacing active services. Saving replaces each CSV file independently;
- * the four-file set is not a single transaction.
- */
 public class SiteManagerController {
     private static final int PERSON_ID_CAPACITY = 90000;
     private final Path directory;
@@ -63,12 +56,6 @@ public class SiteManagerController {
         incidentController = new IncidentController(this);
     }
 
-    /**
-     * Loads a complete CSV set into fresh services and validates cross-file references.
-     *
-     * <p>No existing files means an empty data set. A partial file set is rejected.
-     * Active services are replaced only after all loading and reference checks succeed.
-     */
     public void loadAllData() throws IOException {
         try {
             loadValidatedData();
@@ -140,12 +127,6 @@ public class SiteManagerController {
         }
     }
 
-    /**
-     * Validates references and saves each of the four CSV files independently.
-     *
-     * <p>Each file is overwritten separately; the complete set is not a transaction.
-     * A failure may leave some files saved; the exception names the failed files.
-     */
     public void saveAllData() throws IOException {
         if (!dataReady) {
             throw new IOException("Business data is not active; saving is blocked until administrator review.");
@@ -182,9 +163,6 @@ public class SiteManagerController {
         }
     }
 
-    /**
-     * Collects current service data for a separate spreadsheet-oriented export.
-     */
     public Path exportCsv(Path destination) throws IOException {
         authentication.require(Permission.EXPORT_REPORTS);
         requireReady();
@@ -629,11 +607,6 @@ public class SiteManagerController {
         return generateRandomPersonId();
     }
 
-    /**
-     * Picks an unused internal ID from {@code P10000} to {@code P99999} at random, so the ID
-     * does not reveal how many people were registered before. The range holds 90,000 people;
-     * once it is full the method fails instead of searching forever.
-     */
     public String generateRandomPersonId() {
         Set<String> existingIds = new HashSet<>();
         for (Person p : personnelService.getAllPersons()) {

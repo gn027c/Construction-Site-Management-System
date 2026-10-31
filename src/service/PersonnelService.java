@@ -7,12 +7,6 @@ import model.person.Person;
 import repository.PersonRepository;
 import java.util.List;
 
-/**
- * Coordinates personnel registration, lookup and contact updates.
- *
- * <p>The repository enforces unique personnel codes. Models validate their
- * fields and contact changes. This service performs no console input or output.
- */
 public class PersonnelService {
     private final PersonRepository personRepository;
 
@@ -39,10 +33,6 @@ public class PersonnelService {
         return personRepository.findByCodeOrThrow(code);
     }
 
-    /**
-     * Updates contact details through the model's validated operation.
-     * A null or blank name retains the existing name; the new phone must be valid.
-     */
     public boolean updatePerson(String code, String newName, String newPhone)
             throws PersonNotFoundException, InvalidPhoneNumberException {
         Person p = findPersonByCode(code);

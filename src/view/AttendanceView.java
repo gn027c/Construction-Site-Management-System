@@ -7,9 +7,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 import model.attendance.AttendanceRecord;
 
-/**
- * Formats attendance swipe records consistently for searchable lists and detail screens.
- */
 public final class AttendanceView {
     public static final List<String> TABLE_HEADERS = Arrays.asList(
             "Record ID", "Person", "Zone", "Type", "Timestamp"
@@ -53,4 +50,3 @@ public final class AttendanceView {
         return fields;
     }
 }
-

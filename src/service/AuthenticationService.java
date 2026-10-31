@@ -13,10 +13,6 @@ import model.auth.Permission;
 import repository.AccountRepository;
 import util.PasswordHelper;
 
-/**
- * Authenticates a console session and administers persisted account permissions.
- * A new installation receives admin/admin once; existing credentials are never overwritten on startup.
- */
 public final class AuthenticationService {
     private final AccountRepository repository;
     private String currentUsername;
@@ -42,7 +38,6 @@ public final class AuthenticationService {
         try {
             account = repository.find(Account.normalizeUsername(username));
         } catch (DataValidationException ignored) {
-            // Invalid and unknown usernames receive the same login error.
         }
         if (account == null || !account.isEnabled() || !PasswordHelper.matches(password, account.getPassword())) {
             throw new AuthenticationException();
@@ -124,9 +119,6 @@ public final class AuthenticationService {
         repository.replaceAll(accounts);
     }
 
-    /**
-     * Assigns a role and resets custom permissions to that role's defaults.
-     */
     public void changeRole(String username, Account.Role role) throws IOException {
         require(Permission.MANAGE_ACCOUNTS);
         replace(findRequired(username).withRole(role));
@@ -182,11 +174,6 @@ public final class AuthenticationService {
         return account;
     }
 
-    /**
-     * Saves a changed copy of an existing account.
-     * The personnel link is checked only when it changes, so password and status
-     * changes still work while business data is unavailable.
-     */
     private void replace(Account replacement) throws IOException {
         List<Account> accounts = repository.findAll();
         for (int i = 0; i < accounts.size(); i++) {

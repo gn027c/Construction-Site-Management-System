@@ -7,13 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import util.DateTimeHelper;
 
-/**
- * Coordinates personnel lookup, zone access and attendance storage.
- *
- * <p>The repository supplies the previous swipe to the attendance model, which owns
- * the ordering rule. A new record takes the identifier after the highest existing
- * {@code REC} number, so a rejected swipe never uses up an identifier.
- */
 public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final PersonnelService personnelService;
@@ -33,11 +26,6 @@ public class AttendanceService {
         this.zoneService = zoneService;
     }
 
-    /**
-     * Checks references and access, validates swipe order, then stores a new record.
-     *
-     * <p>Zone access is verified on check-in.
-     */
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
         AttendanceRecord record = createRecord(personCode, zoneId, type);
@@ -93,10 +81,6 @@ public class AttendanceService {
         return processAttendance(personCode, zoneId, type);
     }
 
-    /**
-     * Saves one validated swipe to CSV before adding it to memory.
-     * A failed validation or file write leaves the collection unchanged.
-     */
     public boolean recordAttendanceAndSave(
             String personCode, String zoneId, AttendanceRecord.CheckType type, String file
     ) {

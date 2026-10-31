@@ -9,18 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 
-/**
- * Stores personnel by code in an insertion-ordered map and handles personnel CSV.
- *
- * <p>Code lookup normalizes identifiers. CSV loading requires the canonical ten-column
- * header and validates all rows before replacing the active map.
- */
 public class PersonRepository {
     private final Map<String, Person> store = new LinkedHashMap<>();
 
-    /**
-     * Registers a person under its canonical code and unique internal identifier.
-     */
     public boolean save(Person person) throws DuplicatePersonCodeException {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
             return false;
@@ -38,9 +29,6 @@ public class PersonRepository {
         return true;
     }
 
-    /**
-     * Looks up equivalent case, separator and zero-padded forms of a personnel code.
-     */
     public Person findByCode(String code) {
         if (code == null) {
             return null;
@@ -48,9 +36,6 @@ public class PersonRepository {
         return store.get(util.IdentifierHelper.normalizeForLookup(code));
     }
 
-    /**
-     * Looks up personnel when the caller requires an existing record.
-     */
     public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
         Person person = findByCode(code);
         if (person == null) {
@@ -64,20 +49,10 @@ public class PersonRepository {
         return store.remove(p.getCode()) != null;
     }
 
-    /**
-     * Returns a separate list in storage order containing the stored model objects.
-     *
-     * <p>Changing the returned list does not change this repository's collection.
-     * The model objects themselves are shared and retain their validated operations.
-     */
     public List<Person> findAll() {
         return new ArrayList<>(store.values());
     }
 
-    /**
-     * Loads CSV into a temporary repository before replacing active data.
-     * A read or validation failure returns false and retains the current collection.
-     */
     public boolean loadFromCsv(String filePath) {
         PersonRepository staged = new PersonRepository();
         try {
@@ -138,9 +113,6 @@ public class PersonRepository {
         return true;
     }
 
-    /**
-     * Serializes current data and overwrites one CSV file.
-     */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
         lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel");

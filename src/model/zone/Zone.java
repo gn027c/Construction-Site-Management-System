@@ -3,12 +3,6 @@ package model.zone;
 import static model.common.ModelValidation.*;
 import model.person.Person;
 
-/**
- * Represents a regular site zone with a fixed identifier and a validated name.
- *
- * <p>A regular zone accepts any non-null person. Subclasses may override
- * {@link #checkAccess(Person)} to apply stricter access rules.
- */
 public class Zone {
     private final String zoneId;
     private String zoneName;
@@ -30,17 +24,10 @@ public class Zone {
         this.zoneName = requiredText(zoneName, "zoneName");
     }
 
-    /**
-     * Applies the access policy for a regular zone.
-     */
     public boolean checkAccess(Person person) {
         return accessDenialReason(person).isEmpty();
     }
 
-    /**
-     * Explains why a person may not enter, or returns an empty string when entry is allowed.
-     * A regular zone accepts any person.
-     */
     public String accessDenialReason(Person person) {
         return person == null ? "No person was given." : "";
     }

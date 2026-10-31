@@ -6,13 +6,6 @@ import java.time.LocalDateTime;
 import util.DateTimeHelper;
 import util.IdentifierHelper;
 
-/**
- * Represents a safety incident and controls its assignment and resolution.
- *
- * <p>The lifecycle is {@code OPEN -> ASSIGNED -> RESOLVED}. An open incident has
- * no assignee; an assigned or resolved incident must retain an assignee code.
- * The service checks whether that code belongs to a registered person.
- */
 public class Incident {
     public enum IncidentSeverity {
         LOW,
@@ -37,12 +30,6 @@ public class Incident {
     private String resolvedAt;
     private boolean archived;
 
-    /**
-     * Reconstitutes an incident while validating status and assignment together.
-     *
-     * <p>An open incident must have no assignee. Assigned and resolved incidents
-     * must have a valid code; registry membership is checked by the service.
-     */
     public Incident(
             String incidentId,
             String title,
@@ -54,10 +41,6 @@ public class Incident {
         this(incidentId, title, description, severity, status, assignedTo, "", "", false);
     }
 
-    /**
-     * Restores persisted timestamps without inventing missing historical dates.
-     * Archived incidents remain resolved and retain their original assignment.
-     */
     public Incident(
             String incidentId,
             String title,
@@ -107,9 +90,6 @@ public class Incident {
         return timestamp(value);
     }
 
-    /**
-     * Creates a new open incident without an assignee.
-     */
     public static Incident report(String id, String title, String description, IncidentSeverity severity) {
         return new Incident(
                 id, title, description, severity, IncidentStatus.OPEN, "",
@@ -173,9 +153,6 @@ public class Incident {
         this.severity = requiredValue(severity, "severity");
     }
 
-    /**
-     * Assigns an open incident after validating the supplied code.
-     */
     public void assignTo(String code) {
         if (!isOpen()) {
             throw new exception.InvalidIncidentStateException(
@@ -189,9 +166,6 @@ public class Incident {
         status = IncidentStatus.ASSIGNED;
     }
 
-    /**
-     * Marks an assigned incident as resolved while retaining its assignee.
-     */
     public void resolve() {
         if (status != IncidentStatus.ASSIGNED) {
             throw new exception.InvalidIncidentStateException(
@@ -209,9 +183,6 @@ public class Incident {
         status = IncidentStatus.RESOLVED;
     }
 
-    /**
-     * Archives a resolved incident without deleting it from history or reports.
-     */
     public boolean archive() {
         if (!isResolved()) {
             throw new exception.InvalidIncidentStateException(
