@@ -30,6 +30,7 @@ public final class MenuView {
 
         Map<Integer, String> reports = new LinkedHashMap<>();
         add(reports, 5, "CSV data and export", authentication, Permission.RELOAD_DATA, Permission.EXPORT_REPORTS);
+        add(reports, 6, "CSV validation (read only)", authentication, Permission.REVIEW_ATTENDANCE);
         add(reports, 7, "Attendance report", authentication, Permission.EXPORT_REPORTS);
         add(reports, 8, "Incident report", authentication, Permission.EXPORT_REPORTS);
         sections.put("DATA & REPORTS", reports);

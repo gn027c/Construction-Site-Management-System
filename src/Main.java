@@ -42,13 +42,14 @@ public class Main {
                         if (!controller.isDataReady()) {
                             if (isAdministrator(authentication)) {
                                 ConsoleTheme.error(startupFailure);
+                                ConsoleTheme.warning("Business actions are blocked. Open menu 6 (CSV validation) for details.");
                             } else {
                                 ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
                             }
                         }
                     }
                     MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-13): ", 13);
+                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-11): ", 11);
                     ConsoleScreen.begin();
                     switch (choice) {
                         case 1:
@@ -103,8 +104,6 @@ public class Main {
                             accounts.changeOwnPassword(scanner);
                             break;
                         case 11:
-                        case 12:
-                        case 13:
                             if (controller.isDataReady()) {
                                 controller.saveAllData();
                             }

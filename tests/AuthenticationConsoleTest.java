@@ -26,7 +26,7 @@ public class AuthenticationConsoleTest {
             fixture(root);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n9\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n13\nofficer\nsecret\nchosen\nchosen\n1\n9\n0\n",
+                    "admin\nadmin\n9\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n11\nofficer\nsecret\nchosen\nchosen\n1\n9\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
@@ -57,7 +57,7 @@ public class AuthenticationConsoleTest {
         test("Changed admin credentials are used after logout and process restart", () -> {
             Path root = root();
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n10\nadmin\nnew-secret\nnew-secret\n13\nadmin\nnew-secret\n0\n", 0, false
+                    root, "admin\nadmin\n10\nadmin\nnew-secret\nnew-secret\n11\nadmin\nnew-secret\n0\n", 0, false
             );
             require(output.contains("Password changed."));
             require(output.contains("Signed out."));
@@ -113,7 +113,7 @@ public class AuthenticationConsoleTest {
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n9\n4\nofficer\n4\n5\nofficer\n0\n0\n13\nofficer\nsecret\n0\n",
+                    "admin\nadmin\n9\n4\nofficer\n4\n5\nofficer\n0\n0\n11\nofficer\nsecret\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
