@@ -18,7 +18,7 @@ import view.ConsoleTheme;
 import view.ListView;
 
 /**
- * Presents administrator diagnostics and filtered period reports.
+ * Presents filtered period reports for attendance and incidents.
  */
 public final class WorkspaceController {
     private final SiteManagerController site;
@@ -29,35 +29,12 @@ public final class WorkspaceController {
         authentication = site.getAuthentication();
     }
 
-    public void review(Scanner scanner) {
-        authentication.require(Permission.REVIEW_ATTENDANCE);
-        List<String> issues = site.reviewAttendance();
-        if (issues.isEmpty()) {
-            ConsoleTheme.success("No issues; business data is active.");
-            return;
-        }
-        ListView.show(
-                scanner, "CSV VALIDATION ERRORS / READ ONLY", issues, text -> text, text -> text, null
-        );
-        ConsoleTheme.warning("Source CSV was not changed. Correct the source file, then run validation again.");
-    }
-
     public void attendanceReport(Scanner scanner) throws IOException {
         generateReport(scanner, 1, "ATTENDANCE REPORT");
     }
 
     public void incidentReport(Scanner scanner) throws IOException {
         generateReport(scanner, 2, "INCIDENT REPORT");
-    }
-
-    public void reports(Scanner scanner) throws IOException {
-        authentication.require(Permission.EXPORT_REPORTS);
-        ConsoleTheme.title("REPORTS");
-        int type = InputHelper.getMenuChoice(scanner, "1-Attendance report, 2-Incident report, 0-Back: ", 2);
-        if (type == 0) {
-            return;
-        }
-        generateReport(scanner, type, type == 1 ? "ATTENDANCE REPORT" : "INCIDENT REPORT");
     }
 
     private void generateReport(Scanner scanner, int type, String title) throws IOException {

@@ -42,14 +42,14 @@ public class Main {
                         if (!controller.isDataReady()) {
                             if (isAdministrator(authentication)) {
                                 ConsoleTheme.error(startupFailure);
-                                ConsoleTheme.warning("Business actions are blocked. Open menu 6 (CSV validation) for details.");
+                                ConsoleTheme.warning("Business actions are blocked. Correct the CSV file, then reload it with menu 5.");
                             } else {
                                 ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
                             }
                         }
                     }
                     MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-11): ", 11);
+                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-10): ", 10);
                     ConsoleScreen.begin();
                     switch (choice) {
                         case 1:
@@ -89,21 +89,18 @@ public class Main {
                             }
                             break;
                         case 6:
-                            workspace.review(scanner);
-                            break;
-                        case 7:
                             workspace.attendanceReport(scanner);
                             break;
-                        case 8:
+                        case 7:
                             workspace.incidentReport(scanner);
                             break;
-                        case 9:
+                        case 8:
                             accounts.handleMenu(scanner);
                             break;
-                        case 10:
+                        case 9:
                             accounts.changeOwnPassword(scanner);
                             break;
-                        case 11:
+                        case 10:
                             if (controller.isDataReady()) {
                                 controller.saveAllData();
                             }

@@ -112,7 +112,7 @@ public class ConsoleScreenTest {
         });
         test("Interactive screen mode supports acknowledgement, navigation and clean logout", () -> {
             String output = ConsoleTest.launchScreen(
-                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\n\n11\n0\n", 0, false, "always"
+                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\n\n10\n0\n", 0, false, "always"
             );
             require(output.contains("Press Enter to continue"));
             require(output.contains("HOME / admin / ADMIN"));

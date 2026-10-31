@@ -31,7 +31,6 @@ public class SiteManagerController {
     private AttendanceController attendanceController;
     private IncidentController incidentController;
     private boolean dataReady;
-    private List<String> integrityIssues = new ArrayList<>();
 
     private static final String[] FILES = { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" };
 
@@ -72,17 +71,13 @@ public class SiteManagerController {
      */
     public void loadAllData() throws IOException {
         try {
-            loadValidatedData(true);
+            loadValidatedData();
         } catch (IOException | RuntimeException e) {
-            if (integrityIssues.isEmpty()) {
-                integrityIssues.add(e.getMessage());
-            }
             throw new IOException("Business data rejected. Administrator review required: " + e.getMessage(), e);
         }
     }
 
-    private void loadValidatedData(boolean activate) throws IOException {
-        integrityIssues = new ArrayList<>();
+    private void loadValidatedData() throws IOException {
         int existing = 0;
         for (String file : FILES) {
             if (Files.exists(directory.resolve(file))) {
@@ -111,15 +106,9 @@ public class SiteManagerController {
             }
             validateReferences(people, zones, attendance, incidents);
             authentication.validateLinks(people);
-            integrityIssues = new AttendanceIntegrityService().scan(attendance.getAllAttendanceRecords());
-            if (!integrityIssues.isEmpty()) {
-                throw new IOException("Invalid attendance history (" + integrityIssues.size() + " issues).");
-            }
         }
-        if (activate) {
-            useServices(people, zones, attendance, incidents);
-            dataReady = true;
-        }
+        useServices(people, zones, attendance, incidents);
+        dataReady = true;
     }
 
     private static void validateReferences(
@@ -162,10 +151,6 @@ public class SiteManagerController {
             throw new IOException("Business data is not active; saving is blocked until administrator review.");
         }
         validateReferences(personnelService, zoneService, attendanceService, incidentService);
-        List<String> historyIssues = new AttendanceIntegrityService().scan(attendanceService.getAllAttendanceRecords());
-        if (!historyIssues.isEmpty()) {
-            throw new IOException("Attendance validation failed; no business CSV files were saved.");
-        }
         List<String> failed = new ArrayList<>();
         if (!personnelService.saveToCsv(directory.resolve(FILES[0]).toString())) {
             failed.add(FILES[0]);
@@ -578,18 +563,6 @@ public class SiteManagerController {
     public int archiveIncidents() {
         return operation(Permission.PURGE_INCIDENTS,
                 incidentService::archiveResolvedIncidents, true);
-    }
-
-    public List<String> reviewAttendance() {
-        authentication.require(Permission.REVIEW_ATTENDANCE);
-        try {
-            loadValidatedData(!dataReady);
-        } catch (IOException | RuntimeException e) {
-            if (integrityIssues.isEmpty()) {
-                integrityIssues.add(e.getMessage());
-            }
-        }
-        return new ArrayList<>(integrityIssues);
     }
 
     public List<String[]> report(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,

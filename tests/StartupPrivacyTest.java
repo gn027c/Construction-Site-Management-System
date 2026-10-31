@@ -55,10 +55,10 @@ public class StartupPrivacyTest {
             String output = ConsoleTest.launchRaw(invalidHistory(), "admin\nwrong\n0\n", 0, false);
             assertPrivate(output);
         });
-        test("Admin receives diagnostics only after successful sign-in and can review records", () -> {
+        test("Admin receives diagnostics only after successful sign-in", () -> {
             Path root = invalidHistory();
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n6\n1\n0\n0\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n0\n", 0, false);
             int signedIn = output.indexOf("Signed in as admin");
             require(signedIn >= 0);
             assertPrivate(output.substring(0, signedIn));
@@ -70,16 +70,16 @@ public class StartupPrivacyTest {
             Path root = invalidHistory();
             createWorker(root);
             String output = ConsoleTest.launchRaw(
-                    root, "worker\nsecret\nchosen\nchosen\n3\n4\n9\n6\n7\n0\n\n0\n", 0, false
+                    root, "worker\nsecret\nchosen\nchosen\n3\n4\n8\n6\n7\n0\n\n0\n", 0, false
             );
             assertPrivate(output);
             require(output.contains("Service temporarily unavailable"));
-            require(!output.contains("[6] CSV validation"));
+            require(!output.contains("[8] Manage accounts"));
         });
         test("Logout does not repeat administrator diagnostics to the next personal session", () -> {
             Path root = invalidHistory();
             createWorker(root);
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n11\nworker\nsecret\nchosen\nchosen\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n10\nworker\nsecret\nchosen\nchosen\n0\n", 0, false);
             assertPrivate(output.substring(output.indexOf("Signed out.")));
         });
         test("Anonymous fatal startup errors do not disclose credential filenames or paths", () -> {

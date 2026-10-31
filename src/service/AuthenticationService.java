@@ -74,8 +74,7 @@ public final class AuthenticationService {
     }
 
     public void require(Permission permission) {
-        boolean adminOnly = permission == Permission.MANAGE_ACCOUNTS
-                || permission == Permission.REVIEW_ATTENDANCE;
+        boolean adminOnly = permission == Permission.MANAGE_ACCOUNTS;
         if (!allows(permission) || (adminOnly && currentAccount().getRole() != Account.Role.ADMIN)) {
             throw new AccessDeniedException(permission.name());
         }

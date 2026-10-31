@@ -111,7 +111,8 @@ public class WorkflowIntegrationTest {
             require(!site.isDataReady());
             AuthenticationService auth = site.getAuthentication();
             auth.login("admin", "admin");
-            require(!site.reviewAttendance().isEmpty());
+            throwsType(java.io.IOException.class, site::reloadData);
+            require(!site.isDataReady());
             throwsType(DataValidationException.class, () -> site.exportCsv(root.resolve("reports")));
             require(Arrays.equals(before, Files.readAllBytes(root.resolve("attendance.csv"))));
             require(!Files.exists(root.resolve("attendance_quarantine.csv")));
@@ -127,7 +128,6 @@ public class WorkflowIntegrationTest {
                     "ATT1,W1,Z1,2026-10-29 07:00:00,CHECK_IN",
                     "ATT2,W1,Z2,2026-10-29 08:00:00,CHECK_OUT"
             ));
-            require(!site.reviewAttendance().isEmpty());
             throwsType(java.io.IOException.class, site::reloadData);
             require(site.attendance(false).isEmpty());
             require(CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), Arrays.asList(
@@ -137,7 +137,6 @@ public class WorkflowIntegrationTest {
             )));
             site.reloadData();
             require(site.isDataReady());
-            require(site.reviewAttendance().isEmpty());
             require(site.occupancy(false).isEmpty());
             equal(2, site.attendance(false).size());
         });

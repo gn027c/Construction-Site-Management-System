@@ -89,8 +89,7 @@ public final class Account {
         if (role == Role.ADMIN && !validated.equals(role.defaultPermissions())) {
             throw new DataValidationException("permissions", "Administrators must retain all permissions.");
         }
-        if (role != Role.ADMIN && (validated.contains(Permission.MANAGE_ACCOUNTS)
-                || validated.contains(Permission.REVIEW_ATTENDANCE))) {
+        if (role != Role.ADMIN && validated.contains(Permission.MANAGE_ACCOUNTS)) {
             throw new DataValidationException("permissions", "Account administration requires the ADMIN role.");
         }
         this.password = password;

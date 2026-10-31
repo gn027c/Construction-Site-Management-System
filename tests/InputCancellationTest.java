@@ -48,7 +48,7 @@ public class InputCancellationTest {
         });
         test("Cancelling account role selection cannot create an account", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-account-");
-            String output = ConsoleTest.launch(root, "9\n2\nnewuser\n/cancel\n0\n", 0, false);
+            String output = ConsoleTest.launch(root, "8\n2\nnewuser\n/cancel\n0\n", 0, false);
             require(output.contains("Current entry cancelled"));
             service.AuthenticationService auth = new service.AuthenticationService(root);
             auth.login("admin", "admin");
@@ -94,7 +94,7 @@ public class InputCancellationTest {
                 require(files.noneMatch(Files::isDirectory));
             }
         });
-        test("Leaving read-only CSV validation preserves the complete source history", () -> {
+        test("A rejected source stays unchanged when the administrator cancels a reload", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-review-");
             for (String file : new String[] { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" }) {
                 Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
@@ -106,10 +106,10 @@ public class InputCancellationTest {
             ));
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
             String output = ConsoleTest.launch(
-                    root, "6\n0\n0\n", 0, false
+                    root, "5\n1\n/cancel\n0\n", 0, false
             );
-            require(output.contains("CSV VALIDATION ERRORS / READ ONLY"));
-            require(!output.contains("Correct attendance with evidence"));
+            require(output.contains("Correct the CSV file, then reload it with menu 5."));
+            require(output.contains("Current entry cancelled"));
             require(java.util.Arrays.equals(original, Files.readAllBytes(root.resolve("attendance.csv"))));
         });
         finish();
