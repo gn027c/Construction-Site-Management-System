@@ -27,20 +27,23 @@ things to keep in sync: the **code**, the **Project Report** and the **AI Audit 
   non-zero on failure. There is no JUnit. Test IDs such as `TC-ZONE-01` are the ones cited in the
   report's test matrix. `src/VERIFICATION.md` records the latest full run - update it when counts change.
 - Console flows can be driven with piped input for traces: `printf '...\n' | java -cp bin/app Main`.
-  A fresh data directory creates account `admin` / password `admin`.
-- One-off CSV schema migration: `java -Dfile.encoding=UTF-8 -cp bin/app util.CsvMigration <oldDir> <newDir>`.
+  A fresh data directory creates account `admin` / password `admin`. Accounts created or reset by an
+  admin must change their password at the next sign-in, so piped traces need the new password twice.
+- If PowerShell refuses to run scripts, use `powershell -ExecutionPolicy Bypass -File scripts/test.ps1`.
 
 ## Architecture
 
 Layered flow: **Main -> controller -> service -> repository -> CSV** (`util.CsvHelper`).
 
-- `Main` only signs in, shows `MenuView.showMainMenu` and dispatches menu numbers to
-  `SiteManagerController` (facade). The facade owns the four business services (personnel, zone,
-  attendance, incident), the per-module controllers and `AuthenticationService` (which in turn owns
-  `ActivityLogService` and `NotificationService`), and does load/save/reload of all data.
+- `Main` only signs in, shows `MenuView.showMainMenu` (home menu 0-11) and dispatches menu numbers
+  to `SiteManagerController` (facade). The facade owns the four business services (personnel, zone,
+  attendance, incident), the per-module controllers and `AuthenticationService`, and does
+  load/save/reload of all data. Every facade operation goes through `operation(permission, body,
+  writes)`, which checks the permission, requires loaded data and saves after writes.
 - **Responsibilities are strict** (see `src/README.md`, "Documentation boundaries"):
   models own field constraints and state transitions (`AttendanceRecord.assertCanFollow`,
-  `Incident.assignTo/resolve`, polymorphic `Zone.checkAccess` / `RestrictedZone.checkAccess`);
+  `Incident.assignTo/resolve`, polymorphic `Zone`/`RestrictedZone.accessDenialReason`,
+  `Person`/`Visitor.checkInDenialReason`);
   services look things up and coordinate but never use `Scanner`/`System.out`; repositories own the
   collections and CSV I/O; controllers/views do all console interaction (`InputHelper`, `ConsoleTheme`,
   `ConsoleScreen`, `ListView` for 10-row paging/filtering).
@@ -48,17 +51,25 @@ Layered flow: **Main -> controller -> service -> repository -> CSV** (`util.CsvH
   Accounts (`Account`, `Role`, `Permission`) are separate from people; one person links to at most one
   account. All business exceptions extend `SiteManagementException` (a `RuntimeException`).
 - Identifiers are canonicalised by `util.IdentifierHelper`: uppercase prefix + unpadded number
-  (`W01`, `w-001` -> `W1`). Always resolve references through it.
-- Attendance write path: validate against the person's previous event -> write temp file -> atomic
-  replace of `attendance.csv` -> publish in memory, all under one repository lock. Atomicity is per
-  file only; the four business CSVs are saved independently. `util.DataDirectoryLock` stops two
-  console sessions using one data directory.
-- Invalid CSV on startup blocks business operations rather than being repaired; admin menu 11 is
-  read-only validation. The shipped `data/` sample intentionally contains historical inconsistencies -
-  do not "fix" it automatically. Tests that need files use temp directories or copies of `data/`.
-- CSV schemas, role permissions, menu numbering, cancellation (`/cancel`) and password hashing
-  (PBKDF2) are documented in `src/README.md`; design rationale in `docs/DESIGN_DECISIONS.md`,
-  `docs/MODEL_DESIGN.md`, `docs/WS6.md`. Update those files when behaviour they describe changes.
+  (`W01`, `w-001` -> `W1`), limited to nine digits (`int`). New IDs come from
+  `IdentifierHelper.next(prefix, existing, floor)`. Always resolve references through it.
+- Restricted-zone entry = on the allowed list + valid subtype credential (`_SAFE` certificate,
+  `CTR-` contract, never for visitors) + `Person.getSafetyLevel()` covering the zone's
+  `model.common.SafetyLevel` (`NONE < LOW < MEDIUM < HIGH < CRITICAL`). Visitors check in only on
+  their visit date.
+- Attendance write path: validate against the person's previous event -> write the whole
+  `attendance.csv` -> add to memory. Files are overwritten directly with `Files.write`; there is no
+  atomic move, file lock, `synchronized` or multi-file transaction (single-user console by design).
+- Invalid CSV on startup blocks business operations rather than being repaired; admin menu 6 is
+  read-only validation. Files with an old header or column count are rejected, never converted.
+  Tests that need files use temp directories or copies of `data/`; the shipped sample must stay valid
+  (`ZoneTest` and `HistoricalMatrixTest` read it).
+- Passwords are plain text in `accounts.csv` (git-ignored). There is no activity log, notification
+  inbox or CSV migration tool - they were removed on purpose; do not reintroduce them.
+- CSV schemas, role permissions, menu numbering and cancellation (`/cancel`) are documented in
+  `src/README.md`; design rationale and deliberate limits in `docs/DESIGN_DECISIONS.md`. `docs/WS6.md`,
+  `docs/MODEL_DESIGN.md` and `docs/DATE_TIME_REVIEW.md` are dated history. Update `src/README.md` and
+  `src/VERIFICATION.md` when behaviour or test counts change.
 
 ## Code conventions
 

@@ -1,5 +1,8 @@
 # Rà soát ngày giờ trong SmartSite
 
+> Ghi chép lịch sử ngày 29/10/2026. Schema hiện tại của `persons.csv` có thêm cột
+> `safetyLevel` và quy tắc ngày hẹn của khách; xem `src/README.md`.
+
 Ngày kiểm tra 29/10/2026. Phạm vi gồm toàn bộ src, các fixture CSV và test.
 Kết quả: format được khai báo một lần cho mỗi kiểu dữ liệu trong
 DateTimeHelper; không tự đổi định dạng cũ và không đoán ngày bị thiếu.

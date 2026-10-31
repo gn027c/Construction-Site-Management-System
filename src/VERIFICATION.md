@@ -1,125 +1,83 @@
 # Implementation verification
 
-Verified on 29 October 2026 with Java 8. The implementation uses CSV storage
-and console/terminal interaction. The CSV preview feature is excluded.
+Verified on 31 October 2026 with Java 8 (OpenJDK 1.8.0_504). The implementation
+uses CSV storage and console/terminal interaction.
 
 ## Automated verification
 
 Run `./scripts/test.ps1` from the project root. The latest complete run passed
-**260 checks in 28 suites, with zero failures**. The original workshop matrix
-accounts for 25 of these checks. This run includes personnel rendering, private
-startup diagnostics, form cancellation, screen transitions, atomic attendance
-commits and read-only CSV validation. The normal file-I/O matrix case uses a
-generated valid 15-event test ledger; the invalid shipped history is tested for
-rejection separately and remains unchanged.
+**271 checks in 27 suites, with zero failures**. The original workshop matrix
+(`HistoricalMatrixTest`) accounts for 25 of these checks.
 
 | Suite | Passed |
 | --- | ---: |
-| AccountAuditTest | 4 |
-| AtomicAttendanceTest | 10 |
-| AttendanceConcurrencyTest | 3 |
 | AttendanceIncidentTest | 14 |
+| AttendanceRulesTest | 9 |
 | AttendanceTimestampTest | 8 |
-| AuditNotificationTest | 10 |
-| AuthenticationConsoleTest | 9 |
-| AuthenticationTest | 25 |
-| ConsoleScreenTest | 7 |
+| AuthenticationConsoleTest | 10 |
+| AuthenticationTest | 27 |
+| ConsoleScreenTest | 8 |
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
 | CsvPersistenceTest | 10 |
 | CsvValidationConsoleTest | 4 |
 | DateTimeHelperTest | 4 |
 | DomainBehaviorTest | 12 |
+| DomainViewsTest | 7 |
 | HistoricalMatrixTest | 25 |
-| IdentifierStaffTest | 9 |
+| IdentifierStaffTest | 11 |
 | InputCancellationTest | 12 |
-| MigrationTest | 7 |
 | ModelValidationTest | 8 |
-| PagingTest | 8 |
+| PagingTest | 9 |
 | PersonnelTest | 9 |
 | PersonnelViewTest | 7 |
 | ReportArchiveTest | 12 |
-| StartupPrivacyTest | 7 |
-| VisitorDateTest | 8 |
-| WorkflowIntegrationTest | 10 |
-| ZoneTest | 7 |
-| Total | 260 |
+| SafetyCertificateTest | 5 |
+| StaffBusinessValidationTest | 11 |
+| StartupPrivacyTest | 6 |
+| VisitorDateTest | 11 |
+| WorkflowIntegrationTest | 9 |
+| ZoneTest | 12 |
+| Total | 271 |
 
-Privacy checks compare anonymous output for healthy and rejected business data,
-verify administrator-only diagnostics, exercise personal accounts through hidden
-menus and inboxes, and check account switches and fatal credential errors.
-Screen checks cover aligned option columns, result acknowledgement, account
-boundaries, plain redirected output and EOF while waiting for Enter.
-Atomic attendance checks cover invalid first exits, repeated entries/exits,
-wrong-zone exits, backwards timestamps, direct repository callers, staged CSV
-load rejection, duplicate IDs, failed file replacement, sequence preservation,
-restart and competing repository writers. Read-only validation checks confirm
-that diagnostics remain administrator-only and cannot edit rejected files.
+What the newer checks cover:
 
-The Windows UTF-8 launcher also passed a separate smoke check from the `src`
-working directory: compilation, `admin` login, home menu, CSV save and clean exit.
-An additional forced-screen launcher check passed from `src`, including the
-Enter acknowledgement and logout. Both checks used temporary data directories.
+- Attendance rules: invalid first exits, repeated entries and exits, wrong-zone
+  exits, backwards timestamps, direct repository callers, staged CSV load
+  rejection, duplicate IDs, a failed file write, identifier reuse and restart.
+- Safety levels: a level below, equal to and above the zone level; the order of
+  denial reasons (allowed list, credential, level); restricted zones rejecting
+  `NONE`; visitors refusing a level; unknown levels in CSV; and the sample data
+  admitting W1 to Z3 (HIGH) but refusing W1 at Z4 (CRITICAL) by level only.
+- Visit dates: check-in on the booked day, refusal on another day or without a
+  date, check-out after the date changes, and editing the date from the console.
+- Identifiers: the nine-digit limit, leading zeros, and the next identifier per
+  prefix, including the clear failure at `999,999,999`.
+- Accounts: created and reset passwords must be changed at sign-in, the change
+  survives restart, the new password must differ, cancelling signs out, and a
+  linked account can change its password while business data is rejected.
+- Privacy: anonymous output for healthy and rejected business data, administrator-
+  only diagnostics, personal accounts trying hidden menu numbers, and fatal
+  credential errors.
 
-Javadoc validation passed. Expanded layout, line lengths and English
-description-only source comments were checked for all 66 Java source files.
+## Terminal walkthrough
 
-Form checks cover cancelling string, integer, date and password input; blank menu
-navigation; preserving meaningful zero values and optional blanks; escaped command
-text; partial personnel/account/contact changes; report filters; read-only validation;
-and returning from password entry without spending a failed login attempt.
+On a copy of the shipped `data/` directory, `admin`/`admin` signed in, the home
+menu showed options 0-11 including menu 6 (CSV validation), and business data
+loaded without rejection. Through menu 3, option 1:
 
-## Terminal walkthroughs
+| Swipe | Result |
+| --- | --- |
+| W1 check-in at Z4 | Refused: `Safety level HIGH is below the required CRITICAL.` |
+| W1 check-in at Z3 | Recorded as `REC1` in `attendance.csv` |
+| V1 check-in at Z1 | Refused: `Visit date is not set; record the visit date before check-in.` |
+| W3 check-in at Z4 | Refused: `Safety level MEDIUM is below the required CRITICAL.` |
 
-Process-level walkthroughs include:
+The shipped `data/` files were not changed by the walkthrough.
 
-1. A linked SITE_USER signs in, records a personal check-in, views personal
-   history and occupancy, and exits without seeing another person's records.
-2. An administrator opens activity history and the private inbox, then generates
-   an inclusive daily report showing the two recorded check-ins.
-3. The shipped invalid historical data blocks business activation while allowing
-   administrator validation. The first invalid event, ATT6, is reported, and all original business
-   CSV bytes remain unchanged after exit.
-4. A fresh console records one valid entry, rejects a cross-zone entry and a
-   wrong-zone exit, then records a valid exit. The file contains only REC1 IN and
-   REC2 OUT at Z1. After restart, another exit is rejected and file bytes remain
-   unchanged. This walkthrough used a temporary directory.
+## Not yet updated
 
-The sample's historical anomalies are retained deliberately. Start with a new
-data directory for an empty registry, or review historical evidence before
-correcting the sample; the application does not invent missing checkout events.
-
-## Earlier report and academic audit checkpoint
-
-The following artifacts document the earlier 213-check implementation checkpoint.
-The console and review changes above are verified against the current source;
-the academic artifacts and submission archive have not been regenerated for them.
-
-Workshop 6 and Final Word reports and their PDFs were updated in their existing
-Project Report locations. Each PDF has 17 pages, including current models, CSV
-schemas, role boundaries, the 22-suite result table and all 25 original acceptance
-scenarios. All distinct rendered pages were inspected. The packaged renderer
-could not find LibreOffice; hidden Microsoft Word export and Poppler rendering
-were used to verify the actual document layout.
-
-Both corresponding AI Audit Log workbooks were updated in their existing
-locations. Their four sheets were inspected and rendered. Each contains 16 core
-entries and 6 documented correction cases. Formula caches, summary counts,
-continuous entry rows, evidence paths and wrapped Human Delta cells were checked.
-The summary identifies the total historical prompt count as unverified; the
-legacy estimate of 75 is retained as an estimate and is not used to assert a
-verified selection ratio. Academic audit workbooks are distinct from the
-application's runtime activity log.
-
-## Change boundaries
-
-Code was committed on `codex/complete-console-plan` in separate domain,
-identifier, authentication/audit, console workflow and CSV migration commits.
-Subsequent console privacy, navigation and guided review changes were committed
-separately on `codex/console-navigation-data-review`.
-Form cancellation was committed on `codex/console-form-cancellation`; atomic
-attendance validation and removal of the CSV editor are committed separately
-on `codex/atomic-attendance-validation`.
-Runtime credentials, activity and notifications remain ignored by Git. Reports
-and academic workbooks retain their existing ignored document locations.
-Pre-existing unrelated workspace changes were preserved.
+The Workshop 6 and Final reports and both AI Audit Log workbooks still describe
+an earlier checkpoint (213 checks in 22 suites, PBKDF2 passwords, atomic file
+replacement, activity log, notifications and CSV migration). They must be
+regenerated from this version before submission.

@@ -10,9 +10,10 @@ package `algorithm` chỉ để chuyển nguyên phương thức sang file khác
 | --- | --- | --- |
 | Chu kỳ vào/ra | AttendanceRecord.assertCanFollow; AttendanceService điều phối | Model kiểm tra quy tắc, Service tìm nhân sự/khu vực và bản ghi trước rồi lưu |
 | OPEN → ASSIGNED → RESOLVED | Incident.assignTo/resolve | Model tự giữ vòng đời; Service tìm sự cố và kiểm tra nhân sự tồn tại |
-| Kiểm tra quyền | Zone.checkAccess và RestrictedZone.checkAccess | Đa hình phù hợp mục tiêu OOP và mô hình đã có |
+| Kiểm tra quyền vào khu | Zone/RestrictedZone.accessDenialReason, Person.hasValidSafetyCredential, SafetyLevel.covers | Đa hình: khu thường nhận mọi người; khu hạn chế xét whitelist, chứng chỉ theo loại người và cấp an toàn |
+| Ngày hẹn của khách | Person/Visitor.checkInDenialReason | Đa hình: nhân sự vào ngày nào cũng được, khách chỉ đúng ngày hẹn |
 | Parse và ghi CSV | CsvHelper | Dùng lại bởi bốn repository; phải có một bộ codec dùng chung |
-| Lưu/nạp và khóa phiên | Facade điều phối Service/Repository; DataDirectoryLock giữ khóa | Không cần lớp gom dữ liệu hoặc lịch sử phiên bản; khóa chỉ ngăn hai phiên console ghi cùng thư mục |
+| Lưu/nạp | Facade điều phối Service/Repository; CsvHelper ghi đè từng file | Không cần lớp gom dữ liệu, lịch sử phiên bản hay khóa phiên cho ứng dụng console một người dùng |
 | Nhập liệu, màu, thông báo | InputHelper, ConsoleTheme, controller/view | Service không còn in ra console |
 
 Tách thêm `AttendancePolicy`/`IncidentPolicy` khi một quy tắc có nhiều biến
@@ -40,33 +41,32 @@ lên: [tài liệu chính thức](https://commons.apache.org/proper/commons-csv/
 Lựa chọn dùng thư viện ở giai đoạn sau là đánh giá thiết kế cho project này,
 không phải kết luận rằng thư viện tự giải quyết giao dịch nhiều file hay đồng bộ dữ liệu.
 
-## Cơ sở cho thiết kế khóa và ghi file
+## Giới hạn có chủ đích
 
-`tryLock()` có thể trả `null` hoặc ném lỗi khi khóa chồng lấn; ứng dụng xử lý
-hai trường hợp bằng lỗi mở phiên rõ ràng, không dùng vòng lặp chờ khóa.
-Ứng dụng có một khóa phiên và một luồng sở hữu dữ liệu trong
-console, không tạo chu trình chờ giữa nhiều khóa module. Xem
-[FileChannel Java 8](https://docs.oracle.com/javase/8/docs/api/java/nio/channels/FileChannel.html).
+Hệ thống được thiết kế để chạy 5-10 năm với giới hạn rõ ràng, thay vì "càng
+lớn càng tốt":
 
-Atomic move phụ thuộc filesystem và có thể không được hỗ trợ. SmartSite
-trả lỗi lưu khi không thể thay file bằng atomic move; không tuyên bố mọi
-filesystem/network share có độ bền như database. Xem
-[Files Java 8](https://docs.oracle.com/javase/8/docs/api/java/nio/file/Files.html).
+- **Mã định danh:** phần số tối đa 9 chữ số (999.999.999), lưu bằng `int`.
+  2.000 người quẹt 4 lần/ngày trong 10 năm tạo khoảng 29 triệu bản ghi điểm
+  danh, nhỏ hơn giới hạn hơn 30 lần. Trước đây dùng `BigInteger` để không bị
+  tràn số với mã dài tùy ý; giới hạn cụ thể dễ giải thích và kiểm thử hơn.
+  Khi chạm giới hạn, hệ thống báo lỗi rõ ràng thay vì treo hay tràn số.
+- **Mã nội bộ nhân sự:** chọn ngẫu nhiên trong P10000-P99999 (90.000 người)
+  để không lộ thứ tự đăng ký; hết dải thì báo lỗi thay vì lặp vô hạn.
+- **Ghi file:** ghi đè trực tiếp bằng `Files.write`. Đã gỡ ghi qua file tạm +
+  `ATOMIC_MOVE`, `FileChannel`, khóa thư mục `DataDirectoryLock` và `synchronized`
+  vì ứng dụng là console một người dùng, một luồng. Đổi lại: nếu chương trình
+  dừng giữa lúc ghi, file có thể không đầy đủ và lần khởi động sau sẽ từ chối
+  file đó; không nên mở hai phiên trên cùng thư mục dữ liệu.
+- **Mật khẩu:** lưu dạng chữ thường trong `accounts.csv` (không đưa lên Git,
+  không xuất ra báo cáo) sau khi gỡ PBKDF2. Đây là giới hạn đã biết; thư mục
+  dữ liệu phải được giữ riêng cho quản trị viên.
 
 ## Thứ tự nhiệm vụ tiếp theo
 
-1. **Đồng bộ hồ sơ nộp bài:** bỏ mẫu BookManager/AddBook khỏi Final Report,
-   sửa hướng dẫn split CSV trong Audit Log; cập nhật UML theo luồng
-   Controller → Service → Repository → CSV, schema nhân sự và kết quả
-   25/25 cùng 51 ca bổ sung. Render lại DOCX/PDF sau chỉnh sửa.
-2. **Đối soát dữ liệu thật:** bổ sung thông tin `Unknown` và ngày đến còn trống, kiểm tra
-   các lượt vào/ra cũ sai chu kỳ. Không đoán dữ liệu đã bị mất.
-3. **Lịch sử cá nhân và báo cáo theo ngày/tuần:** lọc theo mã, khoảng thời
-   gian và khu vực; xuất thống kê tổng số lượt và sự cố theo trạng thái.
-4. **Quản lý nhân sự an toàn:** deactivation thay vì xóa hồ sơ đang có tham
-   chiếu; tách loại nhân sự khỏi quyền tài khoản trước khi thêm đăng nhập.
-5. **Import CSV:** preview lỗi từng dòng và xác nhận trước khi thay dữ liệu.
-   Chỉ bổ sung backup/versioning khi có yêu cầu mới, không khôi phục cơ chế
-   snapshot vừa được yêu cầu gỡ.
-6. **Nếu mở rộng triển khai:** SQLite cho một máy hoặc DB server cho nhiều
-   máy; lúc đó chuyển orchestration sang API/GUI thay vì chia sẻ CSV qua mạng.
+1. **Đồng bộ hồ sơ nộp bài:** cập nhật Workshop 6 và Final Report, hai AI Audit
+   Log theo code hiện tại (271 ca kiểm thử, cấp an toàn, ngày hẹn, gỡ PBKDF2,
+   atomic move, activity log, thông báo và migration). Render lại DOCX/PDF.
+2. **Slide thuyết trình Final** sau khi hồ sơ đã khớp code.
+3. **Nếu mở rộng triển khai:** SQLite cho một máy hoặc DB server cho nhiều
+   máy; lúc đó mới cần transaction và khóa, CSV chỉ còn là định dạng import/export.

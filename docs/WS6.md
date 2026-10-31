@@ -1,5 +1,8 @@
 # Workshop 6 triển khai và nghiệm thu
 
+> Ghi chép lịch sử của đợt Workshop 6 (29/10/2026). Trạng thái hiện tại của code,
+> menu, schema CSV và kết quả kiểm thử nằm trong `src/README.md` và `src/VERIFICATION.md`.
+
 Bản hiện tại dùng luồng **Controller → Service → Repository → CSV**.
 Theo yêu cầu đơn giản hóa, đã bỏ package `src/state`, AppState, StateStore,
 snapshot, manifest và CURRENT khỏi luồng chạy. Bốn CSV là nguồn dữ liệu
@@ -38,25 +41,23 @@ chương trình lưu dữ liệu rồi đóng.
 Mã điểm danh tiếp theo được tính lại từ số REC lớn nhất trong attendance.csv
 sau khi nạp thành công. Không có file riêng lưu recordCounter.
 
-`DataDirectoryLock` giữ khóa không chờ trên `.smartsite.lock` trong phiên
-console để từ chối phiên SmartSite thứ hai dùng cùng thư mục dữ liệu.
-Lớp này chỉ giữ khóa file, không lưu dữ liệu nghiệp vụ hay phiên bản dữ liệu.
+Không có khóa thư mục dữ liệu: chỉ nên mở một phiên console cho mỗi thư mục,
+vì hai phiên cùng lúc có thể ghi đè file của nhau.
 
 ## Giới hạn cần biết
 
-- Thay thế từng CSV là atomic move; bốn CSV không phải một transaction chung.
+- Mỗi CSV được ghi đè trực tiếp; bốn CSV không phải một transaction chung.
   Nếu một file ghi lỗi, chương trình nêu tên file lỗi và cho biết các file
-  khác có thể đã ghi. Sửa nguyên nhân rồi thử Save lại.
+  khác có thể đã ghi. Sửa nguyên nhân rồi thử Save lại. Nếu chương trình dừng
+  giữa lúc ghi, file có thể không đầy đủ và lần khởi động sau sẽ từ chối file đó.
 - Không có lịch sử phiên bản, checksum hay khôi phục snapshot. Không cam kết
   giữ thao tác nhập dở hoặc dữ liệu chưa lưu khi mất điện/kill tiến trình.
-- Khóa chỉ bảo vệ các phiên SmartSite tuân thủ khóa, không chặn ứng dụng khác
-  tự sửa CSV. Service/Repository không được thiết kế cho nhiều thread ghi đồng thời.
-- `requiredSafetyLevel` mô tả mức nguy hiểm; chưa so sánh cấp độ chứng chỉ
-  của từng người vì model chưa có thuộc tính này. Quy tắc hiện tại là
-  whitelist + chứng chỉ Boolean. Đăng nhập/RBAC menu chưa được triển khai.
+- Ứng dụng là console một người dùng, một luồng; Service/Repository không được
+  thiết kế cho nhiều thread hay nhiều phiên ghi đồng thời.
+- Khu hạn chế yêu cầu: có trong whitelist, chứng chỉ hợp lệ và cấp an toàn của
+  người ≥ `requiredSafetyLevel` của khu (NONE < LOW < MEDIUM < HIGH < CRITICAL).
 - Mã nhân sự `NONE` hoặc chứa `;` bị model từ chối vì xung đột biểu diễn whitelist.
-- CSV mẫu có check-in lặp ATT-006 và check-out không khớp chu kỳ ATT-008.
-  Không tự sửa lịch sử hoặc đoán dữ liệu nghề/tổ đội/ngày đến đã thiếu.
+- Không tự sửa lịch sử hoặc đoán dữ liệu nghề/tổ đội/ngày đến đã thiếu.
 
 ## Cách chạy
 

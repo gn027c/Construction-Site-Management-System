@@ -1,5 +1,8 @@
 # Tổ chức model và quy tắc nghiệp vụ
 
+> Ghi chép lịch sử ngày 29/10/2026. Quy tắc vào khu hạn chế hiện có thêm cấp an toàn
+> và khách chỉ check-in đúng ngày hẹn; xem `src/README.md`.
+
 Ngày rà soát 29/10/2026. Model được chỉnh theo hướng bảo vệ dữ liệu và hành
 vi ngay trong đối tượng, giữ cấu trúc Java console hiện có. Không thêm
 framework validation, Entity base dùng chung hay tầng quản lý state.

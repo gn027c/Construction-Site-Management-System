@@ -84,10 +84,10 @@ Models own field constraints and entity transitions. Services coordinate lookups
 and model operations. Repositories own collections and CSV persistence.
 Controllers handle console interaction, and views print navigation and status.
 
-Be precise about existing limits: atomic replacement protects one CSV file,
-the four files are saved independently, attendance uses insertion order, and
-spreadsheet exports may prefix formula-like cells. Update these explanations
-when the corresponding implementation changes.
+Be precise about existing limits: each CSV file is overwritten directly, the four
+business files are saved independently, attendance uses insertion order, the
+console is single-user and single-threaded, and spreadsheet exports may prefix
+formula-like cells. Update these explanations when the implementation changes.
 
 ## Run and verify
 
@@ -97,7 +97,11 @@ Run from the project root in PowerShell:
 ```powershell
 ./scripts/run.ps1
 ./scripts/test.ps1
+./scripts/test.ps1 -TestClass ZoneTest
 ```
+
+If Windows reports that running scripts is disabled, start the same script with
+`powershell -ExecutionPolicy Bypass -File scripts/run.ps1` (or `scripts/test.ps1`).
 
 When the terminal is inside `src`, run `../scripts/run.ps1` instead. The launcher
 always compiles from the project root with UTF-8 and writes classes to `bin/app`.
@@ -120,14 +124,35 @@ Java option is `-Dsmartsite.screen=auto|always|never`.
 
 Select a different directory with `./scripts/run.ps1 -DataDirectory D:/SmartSiteData`.
 The first installation creates `admin` with password `admin`; existing credentials
-are never overwritten. Change the password through menu 7. Menu 8 signs out.
+are never overwritten. Only one console should use a data directory at a time,
+because nothing prevents two sessions from overwriting each other's files.
+
+## Home menu
+
+| Number | Option | Shown to |
+| --- | --- | --- |
+| 1 | Personnel | MANAGE_PERSONNEL |
+| 2 | Zones and permissions | MANAGE_ZONES |
+| 3 | Attendance | any attendance permission |
+| 4 | Safety incidents | any incident permission |
+| 5 | CSV data and export (reload, save, export) | RELOAD_DATA or EXPORT_REPORTS |
+| 6 | CSV validation (read only) | ADMIN |
+| 7 | Attendance report | EXPORT_REPORTS |
+| 8 | Incident report | EXPORT_REPORTS |
+| 9 | Manage accounts | ADMIN |
+| 10 | Change my password | everyone |
+| 11 | Sign out | everyone |
+| 0 | Save and exit | everyone |
+
+Hidden numbers are still checked at the service boundary, so typing a number
+that is not shown is refused.
 
 ## Leaving menus and cancelling input
 
 At navigation menus, Enter or 0 chooses Back; at Home it saves and exits.
 Lists also accept Enter, 0 or `/cancel` to return. At an entry field, `/cancel`
 abandons the current entry and returns to Home. Numeric selections also accept
-Enter to cancel. Cancellation is recorded as CANCELLED rather than FAILED.
+Enter to cancel.
 
 Cancellation does not submit partially entered personnel, account, attendance,
 or report data. Earlier completed operations remain saved. Empty
@@ -138,7 +163,8 @@ prompt says so.
 The command `/cancel` is reserved by console readers. Enter `//cancel` to use the
 literal text `/cancel`, including as a password; password whitespace is preserved.
 At sign-in, cancelling password entry returns to Username without consuming a
-failed login attempt. Enter, 0 or `/cancel` at Username exits.
+failed login attempt. Enter, 0 or `/cancel` at Username exits. Three wrong
+passwords close the sign-in screen.
 
 ## People, accounts and permissions
 
@@ -149,22 +175,31 @@ not grant application access. Personnel can be deactivated; an inactive person
 cannot check in again but can check out of an already-open visit.
 
 Accounts are separate from people. A person can be linked to at most one account.
-Admin menu 6 creates accounts, assigns roles and permissions, changes account
-status, resets passwords and links personnel. The creation flow requests the
-personnel code before the password for non-admin roles.
+Menu 9 creates accounts, assigns roles and permissions, changes account status,
+resets passwords and links personnel. Adding a worker, staff member or contractor
+also creates a linked account named from the person's name and code (for example
+`LoiNTW99`) with the initial password `0`; staff whose position mentions safety
+become SAFETY_OFFICER, managers and supervisors become SITE_MANAGER, everyone else
+SITE_USER. Visitors get no account.
 
 | Account role | Default access |
 | --- | --- |
-| ADMIN | Application and account administration, logs and read-only CSV validation |
-| SITE_MANAGER | Personal attendance, personnel/zones, occupancy, reports |
-| SAFETY_OFFICER | Personal attendance, occupancy, incident handling |
+| ADMIN | Everything, including account administration and read-only CSV validation |
+| SITE_MANAGER | Personnel and zones, attendance and incident viewing, occupancy, reports, personal attendance |
+| SAFETY_OFFICER | Incident reporting, assignment and resolution, occupancy, personal attendance |
 | SITE_USER | Personal attendance and personal attendance history |
 
 Personal attendance derives identity from the signed-in account; it never accepts
 a substitute person code. Staff accounts without a personnel link can still use
 their management operations but must be linked before using personal attendance.
-Administrator-only log and review permissions cannot be granted to staff roles.
-No account can bypass attendance order or restricted-zone credentials.
+Account administration and CSV validation cannot be granted to non-admin roles.
+No account can bypass attendance order, restricted-zone rules or visit dates.
+
+Passwords are stored as plain text in `accounts.csv`, which Git and business
+exports exclude; keep the data directory private. Every account created by an
+administrator or by personnel provisioning, and every reset password, must be
+changed at the next sign-in before the home menu opens. A new password must
+differ from the current one. Cancelling the change signs the account out again.
 
 ## Canonical identifiers
 
@@ -174,124 +209,109 @@ or `w-001` resolves to `W1`. Prefix-only values, zero and malformed numbers are
 rejected. Natural sorting places `S2` before `S10`. All references, including
 whitelists and linked accounts, use the same normalizer.
 
+The number is limited to nine digits (`999,999,999`), which fits in an `int`.
+That is far more than ten years of use needs: 2,000 people swiping four times a
+day for ten years create about 29 million attendance records. New personnel codes,
+zone IDs, incident IDs (starting at `INC101`) and attendance IDs (`REC1`, `REC2`,
+...) follow the highest existing number for their prefix and fail with a clear
+message at the limit. Internal person IDs are picked at random from `P10000` to
+`P99999` so they do not reveal registration order; the range holds 90,000 people.
+
 Phone numbers, passwords, usernames, certificate numbers, contract numbers and
 free text do not use business identifier normalization. Account usernames retain
-their own case-insensitive rules. Migration stops on identifier collisions and
-never silently merges records.
+their own case-insensitive rules.
 
-## CSV schemas and migration
+## CSV schemas
 
 | File | Columns |
 | --- | --- |
-| persons.csv | type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active |
+| persons.csv | type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel |
 | zones.csv | type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes |
 | attendance.csv | recordId,personCode,zoneId,timestamp,checkType |
 | incidents.csv | incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived |
-| accounts.csv | username,passwordHash,role,enabled,permissions,personCode |
-| activity_log.csv | logId,operationId,timestamp,actorUsername,actorRole,action,targetType,targetId,status,reason |
-| notifications.csv | notificationId,recipientUsername,operationId,timestamp,message,read |
+| accounts.csv | username,password,role,enabled,permissions,personCode,mustChangePassword |
 
 Worker extras are certificate/trade/team; Staff extras are certificate/position/
 empty; Contractor extras are contract/company/empty; Visitor extras are purpose/
-host/date. Dates use `dd/MM/yyyy`; timestamps use `yyyy-MM-dd HH:mm:ss`.
-Unknown historical incident timestamps remain empty. Migration does not invent
-dates or fix unknown attendance history.
+host/visit date. Dates use `dd/MM/yyyy`; timestamps use `yyyy-MM-dd HH:mm:ss`.
+Unknown historical incident timestamps and unknown visit dates remain empty; the
+loader does not invent values. Files with a different header or column count are
+rejected rather than converted.
 
-Convert an older CSV directory once into a new destination:
+## Safety levels and restricted zones
 
-```powershell
-java '-Dfile.encoding=UTF-8' -cp bin/app util.CsvMigration D:/OldData D:/ConvertedData
-```
+Safety levels are ordered `NONE < LOW < MEDIUM < HIGH < CRITICAL`. A regular zone
+admits anyone. A restricted zone requires `LOW`, `MEDIUM`, `HIGH` or `CRITICAL`
+and admits a person only when all three rules hold, checked in this order:
 
-The converter preserves source files, credentials and free-text fields, checks
-collisions, references and attendance transitions before writing, and refuses an
-existing destination. It converts old personnel, incident and account schemas;
-runtime loaders use the new
-schemas. Existing activity and notification files are not copied by migration.
-Each business CSV replacement is atomic; the collection is not a multi-file
-transaction. No file-based application snapshot or state store is used.
+1. The person's code is on the zone's allowed list (menu 2, grant/revoke).
+2. The person has a valid credential for their type: a worker or staff
+   certificate ending in `_SAFE`, or a contractor contract starting with `CTR-`.
+   Visitors never have one.
+3. The person's safety level is at least the zone's level; a higher level also
+   covers lower zones.
 
-## Attendance, occupancy and CSV validation
+A denied check-in names the first rule that failed, for example
+`Safety level HIGH is below the required CRITICAL.` New personnel start at `NONE`;
+the add and edit forms ask for the level only when the credential is valid.
+Visitors are always `NONE`.
 
-Attendance menu 3 retains staff entry/history at options 1/2, and adds personal
-entry/history at 3/4 and occupancy at 5/6. Staff entry on behalf of others needs
-its separate permission. Failed swipes are logged with FAILED but are not added
-to the attendance collection or attendance.csv.
+## Attendance, visit dates and CSV validation
+
+The attendance menu (3) offers staff entry and history at options 1/2, personal
+entry and history at 3/4, and occupancy at 5/6. Staff entry on behalf of others
+needs its separate permission.
 
 A first event must be CHECK_IN. After an entry, only CHECK_OUT at the same zone
 is valid. After an exit, only CHECK_IN is valid. Event time cannot precede that
 person's previous event. Canonical aliases resolve to the same person before
-these rules are checked. References, active status and zone credentials are
-checked by the service; the model owns the transition rule and the repository
+these rules are checked. References, active status, visit dates and zone rules
+are checked by the service; the model owns the transition rule and the repository
 also enforces it for direct appends and CSV loads.
 
-Persisted attendance follows this sequence under one repository lock:
+A visitor may check in only on the booked visit date. A visitor without a date
+must have one recorded first (menu 1, view and update personnel). Check-out is
+always allowed so nobody is held inside.
 
-1. Validate the candidate against the previous event and reject duplicate IDs.
-2. Serialize the candidate history to a sibling temporary file and flush it.
-3. Atomically replace attendance.csv; fail if atomic replacement is unsupported.
-4. Publish the immutable event in memory and advance the service's identifier.
-
-Validation or write failure leaves the prior in-memory history unchanged and
-does not consume an identifier. Readers cannot observe a candidate event before
-its file replacement completes. Concurrent writers sharing the repository use
-the same lock. The running console also holds the data directory lock; unrelated
-external tools must cooperate with it. This is one attendance-file transaction,
-not a transaction across all CSV files.
+Saving a swipe validates it against the previous event, writes the whole history
+to `attendance.csv`, and only then adds the event to memory. A validation or write
+failure leaves the in-memory history unchanged and does not use up an identifier.
+If the program stops in the middle of writing, the file may be incomplete; the
+next start then rejects it instead of guessing the missing rows.
 
 Attendance fields cannot be edited after construction. CSV loading validates the
 whole staged history before replacing active records, stopping at the first
-invalid row. Migration also rejects an invalid transition before creating output.
-Saving the complete business set checks history before writing any business file.
+invalid row. Saving the complete business set checks history before writing any
+business file.
 
 Occupancy is derived from the last successful swipe for each person, including
 inactive people who have not checked out. Global occupancy requires its own
 permission; personal occupancy includes only the linked person.
 
-Admin menu 11 is read-only CSV validation. It displays rejected-row diagnostics
-and never edits attendance, asks for correction evidence or guesses missing
-checkouts. A failed reload retains active data. Invalid startup data leaves
-business operations blocked. Only a signed-in administrator sees diagnostics;
-other accounts receive a generic availability message. The included sample
-still contains historical inconsistencies and is not rewritten automatically.
-Correct a source file outside the application using verified information, then
-reload it or run validation again. To work with an empty registry independently
-of the sample, use `./scripts/run.ps1 -DataDirectory D:/SmartSiteData` with a new
-directory. A CSV inconsistency is not proof of misconduct.
-
-## Activity history and notifications
-
-Activity history records logins, account operations, protected business actions,
-reads/search/navigation, exports, and denied operations.
-Statuses are SUCCESS, FAILED and CANCELLED. Menu 9 is restricted to ADMIN at the
-service boundary. Passwords, salts and credential hashes are excluded. Reading
-logs does not cause recursive logging.
-
-Menu 10 exposes only the current account's inbox and its own read markers. Failed
-attendance notifies the actor with a generic failed-operation message and enabled
-administrators with diagnostic details, with an operation identifier when logging
-succeeds. Account changes also notify the affected user.
-A log or notification storage failure does not reverse successfully persisted
-business data; only the administrator sees storage diagnostics. If storage is
-unavailable, the application does not claim that the missing record was saved.
-Credentials, runtime activity and notifications are excluded from Git and
-business report exports. Passwords use PBKDF2-HMAC-SHA256 with 600,000 iterations
-and independent salts, following the [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+Menu 6 is read-only CSV validation. It displays rejected-row diagnostics and never
+edits attendance or guesses missing checkouts. A failed reload retains active data.
+Invalid startup data leaves business operations blocked, and the administrator is
+pointed to menu 6. Only a signed-in administrator sees diagnostics; other accounts
+receive a generic availability message. Correct a source file outside the
+application using verified information, then reload it or run validation again.
+To work with an empty registry independently of the sample, use
+`./scripts/run.ps1 -DataDirectory D:/SmartSiteData` with a new directory. A CSV
+inconsistency is not proof of misconduct.
 
 ## Search, archive and reports
 
 Lists show ten rows per page. Use N/P for next/previous, a page number to jump,
-F to filter, R to clear filters and 0 to return. Filter terms combine with AND;
-identifiers accept canonical aliases. Status words such as active/inactive and
-success/failed are matched as whole words. Authorization limits the collection
+F to filter, R to clear filters, D to open a record and 0 to return. Filter terms
+combine with AND; identifiers accept canonical aliases. Status words such as
+active/inactive are matched as whole words. Authorization limits the collection
 before searching or paging.
 
-Incident menu 5 archives resolved incidents instead of deleting history; option
-6 includes archived records. Archived incidents remain in reports. Resolving an
-incident stamps its resolution time; reporting stamps its creation time.
+Incident menu option 5 archives resolved incidents instead of deleting history;
+option 6 includes archived records. Archived incidents remain in reports. Resolving
+an incident stamps its resolution time; reporting stamps its creation time.
 
-Menu 12 generates attendance and incident summaries by day, Monday-based week or
-calendar month, with inclusive from/to dates. Attendance reports can filter person
-and zone; incident reports include unknown historical dates in a separate row.
-Exports contain the filtered report and do not include accounts or logs. Menu 5
-still saves/reloads/exports business CSV data according to account permissions.
+Menus 7 and 8 generate attendance and incident summaries by day, Monday-based week
+or calendar month, with inclusive from/to dates. Attendance reports can filter
+person and zone; incident reports include unknown historical dates in a separate
+row. Exports contain the filtered report and do not include accounts. Menu 5
+reloads, saves and exports business CSV data according to account permissions.

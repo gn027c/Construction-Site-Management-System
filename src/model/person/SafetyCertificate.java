@@ -52,8 +52,9 @@ public final class SafetyCertificate {
     }
 
     /**
-     * Adapts legacy raw string identifiers (such as "_SAFE" or "CERT_UNSAFE")
-     * into a strongly-typed Value Object preserving historical compatibility.
+     * Builds a certificate from the stored certificate text. Text ending in
+     * {@code _SAFE} is a valid certificate; any other text, such as {@code CERT_UNSAFE},
+     * is kept but not valid. Expiry and revocation are not stored in CSV.
      */
     public static SafetyCertificate fromRaw(String raw) {
         if (raw == null || raw.trim().isEmpty()) {
