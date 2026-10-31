@@ -37,8 +37,7 @@ public final class WorkspaceController {
             return;
         }
         ListView.show(
-                scanner, "CSV VALIDATION ERRORS / READ ONLY", issues, text -> text, text -> text, null,
-                event -> authentication.audit(event, "REVIEW", "", "SUCCESS", "Navigated validation errors.")
+                scanner, "CSV VALIDATION ERRORS / READ ONLY", issues, text -> text, text -> text, null
         );
         ConsoleTheme.warning("Source CSV was not changed. Correct the source file, then run validation again.");
     }

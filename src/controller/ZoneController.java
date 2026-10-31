@@ -170,8 +170,7 @@ public class ZoneController {
                 view.ZoneView.TABLE_HEADERS,
                 view.ZoneView::tableRow,
                 view.ZoneView::formatSummary,
-                java.util.Comparator.comparing(Zone::getZoneId, util.IdentifierHelper.NATURAL_ORDER),
-                event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                java.util.Comparator.comparing(Zone::getZoneId, util.IdentifierHelper.NATURAL_ORDER)
         );
     }
 }

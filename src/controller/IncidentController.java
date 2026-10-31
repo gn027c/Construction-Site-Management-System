@@ -44,8 +44,7 @@ public class IncidentController {
                             view.IncidentView::formatSummary,
                             java.util.Comparator.comparing(
                                     Incident::getIncidentId, util.IdentifierHelper.NATURAL_ORDER
-                            ),
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                            )
                     );
                     break;
                 case 3:

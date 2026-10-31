@@ -24,8 +24,7 @@ public final class ListView {
     private static final Set<String> STATUS_TERMS = new HashSet<>(Arrays.asList(
             "active", "inactive", "open", "assigned", 
             "resolved", "archived", "enabled", "disabled",
-            "check_in", "check_out", "success", "failed", 
-            "cancelled", "true", "false"
+            "check_in", "check_out", "true", "false"
     ));
 
     private ListView() {
@@ -39,8 +38,7 @@ public final class ListView {
             Function<T, String> searchText,
             Comparator<T> order
     ) {
-        show(scanner, title, null, records, renderer, searchText, order, action -> {
-        });
+        show(scanner, title, null, records, renderer, searchText, order);
     }
 
     public static <T> void show(
@@ -52,81 +50,38 @@ public final class ListView {
             Function<T, String> searchText,
             Comparator<T> order
     ) {
-        show(scanner, title, description, records, renderer, searchText, order, action -> {
-        });
+        showInternal(scanner, title, description, records, null, null, renderer, searchText, order, null);
+    }
+
+    public static <T> void showTable(
+            Scanner scanner,
+            String title,
+            List<T> records,
+            List<String> headers,
+            Function<T, List<String>> rowExtractor,
+            Function<T, String> searchText,
+            Comparator<T> order
+    ) {
+        showTable(scanner, title, null, records, headers, rowExtractor, searchText, order);
+    }
+
+    public static <T> void showTable(
+            Scanner scanner,
+            String title,
+            String description,
+            List<T> records,
+            List<String> headers,
+            Function<T, List<String>> rowExtractor,
+            Function<T, String> searchText,
+            Comparator<T> order
+    ) {
+        showTable(scanner, title, description, records, headers, rowExtractor, searchText, order, null);
     }
 
     /**
-     * Reports navigation action names without including arbitrary user-entered search text.
+     * Shows a table whose records can be opened for editing with {@code E}.
+     * Passing {@code null} for the edit action hides that command.
      */
-    public static <T> void show(
-            Scanner scanner,
-            String title,
-            List<T> records,
-            Function<T, String> renderer,
-            Function<T, String> searchText,
-            Comparator<T> order,
-            Consumer<String> onNavigation
-    ) {
-        show(scanner, title, null, records, renderer, searchText, order, onNavigation);
-    }
-
-    public static <T> void show(
-            Scanner scanner,
-            String title,
-            String description,
-            List<T> records,
-            Function<T, String> renderer,
-            Function<T, String> searchText,
-            Comparator<T> order,
-            Consumer<String> onNavigation
-    ) {
-        showInternal(
-                scanner, title, description, records, null, null, renderer,
-                searchText, order, onNavigation
-        );
-    }
-
-    public static <T> void showTable(
-            Scanner scanner,
-            String title,
-            List<T> records,
-            List<String> headers,
-            Function<T, List<String>> rowExtractor,
-            Function<T, String> searchText,
-            Comparator<T> order
-    ) {
-        showTable(scanner, title, null, records, headers, rowExtractor, searchText, order, action -> {
-        });
-    }
-
-    public static <T> void showTable(
-            Scanner scanner,
-            String title,
-            String description,
-            List<T> records,
-            List<String> headers,
-            Function<T, List<String>> rowExtractor,
-            Function<T, String> searchText,
-            Comparator<T> order
-    ) {
-        showTable(scanner, title, description, records, headers, rowExtractor, searchText, order, action -> {
-        });
-    }
-
-    public static <T> void showTable(
-            Scanner scanner,
-            String title,
-            List<T> records,
-            List<String> headers,
-            Function<T, List<String>> rowExtractor,
-            Function<T, String> searchText,
-            Comparator<T> order,
-            Consumer<String> onNavigation
-    ) {
-        showTable(scanner, title, null, records, headers, rowExtractor, searchText, order, onNavigation);
-    }
-
     public static <T> void showTable(
             Scanner scanner,
             String title,
@@ -136,30 +91,9 @@ public final class ListView {
             Function<T, List<String>> rowExtractor,
             Function<T, String> searchText,
             Comparator<T> order,
-            Consumer<String> onNavigation
-    ) {
-        showInternal(
-                scanner, title, description, records, headers, rowExtractor, null,
-                searchText, order, onNavigation, null
-        );
-    }
-
-    public static <T> void showTable(
-            Scanner scanner,
-            String title,
-            String description,
-            List<T> records,
-            List<String> headers,
-            Function<T, List<String>> rowExtractor,
-            Function<T, String> searchText,
-            Comparator<T> order,
-            Consumer<String> onNavigation,
             Consumer<T> onEdit
     ) {
-        showInternal(
-                scanner, title, description, records, headers, rowExtractor, null,
-                searchText, order, onNavigation, onEdit
-        );
+        showInternal(scanner, title, description, records, headers, rowExtractor, null, searchText, order, onEdit);
     }
 
     private static <T> void showInternal(
@@ -172,25 +106,6 @@ public final class ListView {
             Function<T, String> lineRenderer,
             Function<T, String> searchText,
             Comparator<T> order,
-            Consumer<String> onNavigation
-    ) {
-        showInternal(
-                scanner, title, description, records, headers, rowExtractor, lineRenderer,
-                searchText, order, onNavigation, null
-        );
-    }
-
-    private static <T> void showInternal(
-            Scanner scanner,
-            String title,
-            String description,
-            List<T> records,
-            List<String> headers,
-            Function<T, List<String>> rowExtractor,
-            Function<T, String> lineRenderer,
-            Function<T, String> searchText,
-            Comparator<T> order,
-            Consumer<String> onNavigation,
             Consumer<T> onEdit
     ) {
         int currentPage = 1;
@@ -228,18 +143,15 @@ public final class ListView {
             ConsoleTheme.prompt(promptMsg);
             String command = scanner.nextLine().trim();
             if (command.isEmpty() || command.equals("0") || command.equalsIgnoreCase("/cancel")) {
-                onNavigation.accept("BACK");
                 return;
             }
             if (command.equalsIgnoreCase("n")) {
-                onNavigation.accept("NEXT_PAGE");
                 if (currentPage < pages) {
                     currentPage++;
                 } else {
                     ConsoleTheme.warning("No next page.");
                 }
             } else if (command.equalsIgnoreCase("p")) {
-                onNavigation.accept("PREVIOUS_PAGE");
                 if (currentPage > 1) {
                     currentPage--;
                 } else {
@@ -248,11 +160,9 @@ public final class ListView {
             } else if (command.equalsIgnoreCase("f")) {
                 query = util.InputHelper.readLine(scanner, "Search text or codes (space-separated terms): ").trim();
                 currentPage = 1;
-                onNavigation.accept("FILTER");
             } else if (command.equalsIgnoreCase("r")) {
                 query = "";
                 currentPage = 1;
-                onNavigation.accept("RESET_FILTER");
             } else if (onEdit != null && (command.equalsIgnoreCase("e") || command.toLowerCase().startsWith("e ") || command.toLowerCase().startsWith("edit"))) {
                 String target = command.equalsIgnoreCase("e") || command.equalsIgnoreCase("edit") ? "" : command.substring(command.indexOf(' ') + 1).trim();
                 if (target.isEmpty()) {
@@ -275,7 +185,6 @@ public final class ListView {
                         selectedRecord = findRecord(matching, target, headers, rowExtractor, searchText);
                     }
                     if (selectedRecord != null) {
-                        onNavigation.accept("EDIT");
                         onEdit.accept(selectedRecord);
                     } else {
                         ConsoleTheme.warning("No record found matching '" + target + "'.");
@@ -303,7 +212,6 @@ public final class ListView {
                         selectedRecord = findRecord(matching, target, headers, rowExtractor, searchText);
                     }
                     if (selectedRecord != null) {
-                        onNavigation.accept("DETAIL");
                         showRecordCard(scanner, selectedRecord, headers, rowExtractor, lineRenderer, onEdit);
                     } else {
                         ConsoleTheme.warning("No record found matching '" + target + "'.");
@@ -315,22 +223,18 @@ public final class ListView {
                     try {
                         int requestedPage = Integer.parseInt(command);
                         if (requestedPage < 1 || requestedPage > pages) {
-                            onNavigation.accept("INVALID_PAGE");
                             ConsoleTheme.warning("Choose an existing page.");
                         } else {
                             currentPage = requestedPage;
-                            onNavigation.accept("SELECT_PAGE_" + requestedPage);
                         }
                     } catch (NumberFormatException e) {
                         query = command;
                         currentPage = 1;
-                        onNavigation.accept("FILTER");
                     }
                 } else {
                     // Direct search: type any text, keyword, code or status directly!
                     query = command;
                     currentPage = 1;
-                    onNavigation.accept("FILTER");
                 }
             }
         }

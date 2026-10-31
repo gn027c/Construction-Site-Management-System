@@ -123,7 +123,6 @@ public class Main {
                             break;
                     }
                 } catch (exception.InputCancelledException e) {
-                    authentication.audit("CONSOLE_OPERATION", "MENU", "", "CANCELLED", "User cancelled input.");
                     ConsoleTheme.warning("Current entry cancelled. Returned to the main menu.");
                 } catch (NoSuchElementException e) {
                     if (authentication.isLoggedIn() && controller.isDataReady()) {
@@ -136,7 +135,6 @@ public class Main {
                     }
                     exit = true;
                 } catch (Exception e) {
-                    authentication.audit("CONSOLE_OPERATION", "MENU", "", "FAILED", e.getMessage());
                     if (!isAdministrator(authentication) && (!controller.isDataReady()
                             || e instanceof java.io.IOException
                             || e.getClass() == exception.SiteManagementException.class)) {

@@ -79,20 +79,6 @@ public class PagingTest {
             equal(0, ListView.filterAndSort(scoped, "W2", value -> value, null).size());
             equal(1, scoped.size());
         });
-        test("Navigation callbacks identify actions without disclosing arbitrary filter text", () -> {
-            List<String> actions = new ArrayList<>();
-            PrintStream original = System.out;
-            try {
-                System.setOut(new PrintStream(new ByteArrayOutputStream()));
-                ListView.show(
-                        new Scanner("f\nsecret-like-filter\nr\n0\n"), "Rows", Arrays.asList("W1"),
-                        value -> value, value -> value, null, actions::add
-                );
-            } finally {
-                System.setOut(original);
-            }
-            equal(Arrays.asList("FILTER", "RESET_FILTER", "BACK"), actions);
-        });
         test("Direct search from prompt filters immediately without requiring F command", () -> {
             List<String> rows = Arrays.asList("W1 | Nguyen Van An", "W2 | Tran Van Binh", "W3 | Le Van Cuong");
             ByteArrayOutputStream captured = new ByteArrayOutputStream();
@@ -113,14 +99,13 @@ public class PagingTest {
         });
         test("View navigation supports inspecting record details with D command", () -> {
             List<String> rows = Arrays.asList("W1 | Nguyen Van An", "W2 | Tran Van Binh");
-            List<String> actions = new ArrayList<>();
             ByteArrayOutputStream captured = new ByteArrayOutputStream();
             PrintStream original = System.out;
             try {
                 System.setOut(new PrintStream(captured, true, "UTF-8"));
                 ListView.show(
                         new Scanner("d 1\n\n0\n"), "Workers", rows,
-                        value -> value, value -> value, null, actions::add
+                        value -> value, value -> value, null
                 );
             } finally {
                 System.setOut(original);
@@ -128,7 +113,6 @@ public class PagingTest {
             String output = captured.toString("UTF-8");
             require(output.contains("RECORD DETAILS"));
             require(output.contains("W1 | Nguyen Van An"));
-            equal(Arrays.asList("DETAIL", "BACK"), actions);
         });
         finish();
     }

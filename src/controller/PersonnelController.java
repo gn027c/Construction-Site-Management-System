@@ -161,7 +161,6 @@ public class PersonnelController {
                 PersonnelView::tableRow,
                 PersonnelView::formatSummary,
                 java.util.Comparator.comparing(Person::getCode, util.IdentifierHelper.NATURAL_ORDER),
-                event -> authentication.audit(event, "LIST", "", "SUCCESS", "Navigated list."),
                 person -> editPerson(scanner, person)
         );
     }

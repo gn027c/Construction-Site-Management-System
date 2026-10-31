@@ -72,12 +72,10 @@ public class SiteManagerController {
     public void loadAllData() throws IOException {
         try {
             loadValidatedData(true);
-            authentication.audit("LOAD_DATA", "CSV", "", "SUCCESS", "Loaded validated business data.");
         } catch (IOException | RuntimeException e) {
             if (integrityIssues.isEmpty()) {
                 integrityIssues.add(e.getMessage());
             }
-            authentication.audit("LOAD_DATA", "CSV", "", "FAILED", String.join(" | ", integrityIssues));
             throw new IOException("Business data rejected. Administrator review required: " + e.getMessage(), e);
         }
     }
@@ -232,14 +230,7 @@ public class SiteManagerController {
             incidents.add(incident.toCsvLine());
         }
         tables.put(FILES[3], incidents);
-        try {
-            Path result = new CsvExportService().export(tables, destination);
-            authentication.audit("EXPORT_CSV", "CSV", "", "SUCCESS", "Exported business data.");
-            return result;
-        } catch (IOException e) {
-            authentication.audit("EXPORT_CSV", "CSV", "", "FAILED", e.getMessage());
-            throw e;
-        }
+        return new CsvExportService().export(tables, destination);
     }
 
     public void handlePersonMenu(Scanner scanner) {
@@ -290,37 +281,31 @@ public class SiteManagerController {
     }
 
     private <T> T operation(
-            Permission permission, String action, String target, java.util.function.Supplier<T> body, boolean writes
+            Permission permission, java.util.function.Supplier<T> body, boolean writes
     ) {
-        try {
-            authentication.require(permission);
-            requireReady();
-            T result = body.get();
-            if (Boolean.FALSE.equals(result)) {
-                throw new exception.DataValidationException("operation", "The requested change was not accepted.");
-            }
-            if (writes) {
-                saveChanges();
-            }
-            authentication.audit(action, "BUSINESS", target, "SUCCESS", writes ? "Change saved." : "Read data.");
-            return result;
-        } catch (RuntimeException e) {
-            authentication.audit(action, "BUSINESS", target, "FAILED", e.getMessage());
-            throw e;
+        authentication.require(permission);
+        requireReady();
+        T result = body.get();
+        if (Boolean.FALSE.equals(result)) {
+            throw new exception.DataValidationException("operation", "The requested change was not accepted.");
         }
+        if (writes) {
+            saveChanges();
+        }
+        return result;
     }
 
     public List<Person> people() {
-        return operation(Permission.MANAGE_PERSONNEL, "LIST_PERSONNEL", "", personnelService::getAllPersons, false);
+        return operation(Permission.MANAGE_PERSONNEL, personnelService::getAllPersons, false);
     }
 
     public Person person(String code) {
-        return operation(Permission.MANAGE_PERSONNEL, "FIND_PERSON", code,
+        return operation(Permission.MANAGE_PERSONNEL,
                 () -> personnelService.findPersonByCode(code), false);
     }
 
     public boolean addPerson(Person person) {
-        return operation(Permission.MANAGE_PERSONNEL, "ADD_PERSON", person.getCode(),
+        return operation(Permission.MANAGE_PERSONNEL,
                 () -> personnelService.addPerson(person), true);
     }
 
@@ -423,19 +408,19 @@ public class SiteManagerController {
     }
 
     public boolean updatePerson(String code, String name, String phone) {
-        return operation(Permission.MANAGE_PERSONNEL, "UPDATE_PERSON", code,
+        return operation(Permission.MANAGE_PERSONNEL,
                 () -> personnelService.updatePerson(code, name, phone), true);
     }
 
     public void setPersonActive(String code, boolean active) {
-        operation(Permission.MANAGE_PERSONNEL, "SET_PERSON_ACTIVE", code, () -> {
+        operation(Permission.MANAGE_PERSONNEL, () -> {
             personnelService.findPersonByCode(code).setActive(active);
             return true;
         }, true);
     }
 
     public void deletePerson(String code) {
-        operation(Permission.MANAGE_PERSONNEL, "DELETE_PERSON", code, () -> {
+        operation(Permission.MANAGE_PERSONNEL, () -> {
             String normalized = util.IdentifierHelper.normalize(code);
             boolean referenced = authentication.isPersonLinked(code);
             for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
@@ -459,15 +444,15 @@ public class SiteManagerController {
     }
 
     public List<Zone> zones() {
-        return operation(Permission.MANAGE_ZONES, "LIST_ZONES", "", zoneService::getAllZones, false);
+        return operation(Permission.MANAGE_ZONES, zoneService::getAllZones, false);
     }
 
     public boolean addZone(Zone zone) {
-        return operation(Permission.MANAGE_ZONES, "ADD_ZONE", zone.getZoneId(), () -> zoneService.addZone(zone), true);
+        return operation(Permission.MANAGE_ZONES, () -> zoneService.addZone(zone), true);
     }
 
     public boolean changeAccess(String zoneId, String personCode, boolean grant) {
-        return operation(Permission.MANAGE_ZONES, grant ? "GRANT_ACCESS" : "REVOKE_ACCESS", zoneId, () -> {
+        return operation(Permission.MANAGE_ZONES, () -> {
             personnelService.findPersonByCode(personCode);
             return grant ? zoneService.grantZoneAccess(zoneId, personCode)
                     : zoneService.revokeZoneAccess(zoneId, personCode);
@@ -475,8 +460,7 @@ public class SiteManagerController {
     }
 
     public List<AttendanceRecord> attendance(boolean personal) {
-        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_ATTENDANCE,
-                personal ? "VIEW_OWN_ATTENDANCE" : "VIEW_ATTENDANCE", "", () -> {
+        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_ATTENDANCE, () -> {
                     List<AttendanceRecord> result = new ArrayList<>();
                     String code = personal ? authentication.currentPersonCode() : "";
                     for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
@@ -492,16 +476,14 @@ public class SiteManagerController {
             String personCode, String zoneId, AttendanceRecord.CheckType type, boolean personal
     ) {
         String subject = personal ? authentication.currentPersonCode() : personCode;
-        return operation(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE,
-                type == null ? "ATTENDANCE" : type.name(), subject + " / " + zoneId, () -> {
+        return operation(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE, () -> {
                     return attendanceService.recordAttendanceAndSave(subject, zoneId, type,
                             directory.resolve("attendance.csv").toString());
                 }, false);
     }
 
     public List<String> occupancy(boolean personal) {
-        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_OCCUPANCY,
-                "VIEW_OCCUPANCY", "", () -> {
+        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_OCCUPANCY, () -> {
                     Map<String, AttendanceRecord> latest = new LinkedHashMap<>();
                     for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
                         latest.put(record.getPersonCode(), record);
@@ -543,7 +525,7 @@ public class SiteManagerController {
     }
 
     public List<Incident> incidents(boolean archived) {
-        return operation(Permission.VIEW_INCIDENTS, "LIST_INCIDENTS", "", () -> {
+        return operation(Permission.VIEW_INCIDENTS, () -> {
             List<Incident> result = new ArrayList<>();
             for (Incident incident : incidentService.getAllIncidents()) {
                 if (archived || !incident.isArchived()) {
@@ -555,27 +537,27 @@ public class SiteManagerController {
     }
 
     public boolean reportIncident(String id, String title, String description, Incident.IncidentSeverity severity) {
-        return operation(Permission.REPORT_INCIDENTS, "REPORT_INCIDENT", id,
+        return operation(Permission.REPORT_INCIDENTS,
                 () -> incidentService.reportIncident(id, title, description, severity), true);
     }
 
     public boolean assignIncident(String id, String code) {
-        return operation(Permission.ASSIGN_INCIDENTS, "ASSIGN_INCIDENT", id,
+        return operation(Permission.ASSIGN_INCIDENTS,
                 () -> incidentService.assignIncident(id, code), true);
     }
 
     public List<Person> candidateAssignees() {
-        return operation(Permission.ASSIGN_INCIDENTS, "LIST_ASSIGNEES", "",
+        return operation(Permission.ASSIGN_INCIDENTS,
                 personnelService::getAllPersons, false);
     }
 
     public boolean resolveIncident(String id) {
-        return operation(Permission.RESOLVE_INCIDENTS, "RESOLVE_INCIDENT", id,
+        return operation(Permission.RESOLVE_INCIDENTS,
                 () -> incidentService.resolveIncident(id), true);
     }
 
     public int archiveIncidents() {
-        return operation(Permission.PURGE_INCIDENTS, "ARCHIVE_INCIDENTS", "",
+        return operation(Permission.PURGE_INCIDENTS,
                 incidentService::archiveResolvedIncidents, true);
     }
 
@@ -588,14 +570,12 @@ public class SiteManagerController {
                 integrityIssues.add(e.getMessage());
             }
         }
-        authentication.audit("SCAN_ATTENDANCE", "CSV", "", integrityIssues.isEmpty() ? "SUCCESS" : "FAILED",
-                integrityIssues.isEmpty() ? "No issues." : String.join(" | ", integrityIssues));
         return new ArrayList<>(integrityIssues);
     }
 
     public List<String[]> report(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,
             boolean incidents, String personCode, String zoneId) {
-        return operation(Permission.EXPORT_REPORTS, "GENERATE_REPORT", "", () -> incidents
+        return operation(Permission.EXPORT_REPORTS, () -> incidents
                 ? ReportService.summarizeIncidents(incidentService.getAllIncidents(), from, to, period)
                 : ReportService.summarizeAttendance(
                         attendanceService.getAllAttendanceRecords(), from, to, personCode, zoneId, period
@@ -650,14 +630,7 @@ public class SiteManagerController {
             lines.add(util.CsvHelper.toCsvLine(row));
         }
         tables.put("report.csv", lines);
-        try {
-            Path result = new CsvExportService().export(tables, destination);
-            authentication.audit("EXPORT_REPORT", "REPORT", "", "SUCCESS", "Exported filtered report.");
-            return result;
-        } catch (IOException e) {
-            authentication.audit("EXPORT_REPORT", "REPORT", "", "FAILED", e.getMessage());
-            throw e;
-        }
+        return new CsvExportService().export(tables, destination);
     }
 
     public String suggestNextPersonId() {

@@ -90,7 +90,6 @@ public final class Account {
             throw new DataValidationException("permissions", "Administrators must retain all permissions.");
         }
         if (role != Role.ADMIN && (validated.contains(Permission.MANAGE_ACCOUNTS)
-                || validated.contains(Permission.VIEW_ACTIVITY_LOG)
                 || validated.contains(Permission.REVIEW_ATTENDANCE))) {
             throw new DataValidationException("permissions", "Account administration requires the ADMIN role.");
         }

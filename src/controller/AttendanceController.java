@@ -58,7 +58,6 @@ public class AttendanceController {
                     }
                     int action = InputHelper.getMenuChoice(scanner, "1-Check in, 2-Check out, 0-Cancel: ", 2);
                     if (action == 0) {
-                        authentication.audit("ATTENDANCE", "PERSON", person, "CANCELLED", "Cancelled by user.");
                         break;
                     }
                     site.recordAttendance(person, zone, action == 1
@@ -78,8 +77,7 @@ public class AttendanceController {
                                     .thenComparing(
                                             AttendanceRecord::getRecordId,
                                             util.IdentifierHelper.NATURAL_ORDER.reversed()
-                                    ),
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                                    )
                     );
                     break;
                 case 5:
@@ -110,8 +108,7 @@ public class AttendanceController {
                             java.util.Arrays.asList("Zone", "Person", "Name", "Role", "Check-in Time", "Status"),
                             row -> row,
                             row -> String.join(" ", row),
-                            null,
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                            null
                     );
                     break;
             }

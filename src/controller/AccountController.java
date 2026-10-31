@@ -106,8 +106,7 @@ public final class AccountController {
                             a -> a.getUsername() + " | " + a.getRole() + " | " + (a.isEnabled() ? "Enabled" : "Disabled")
                                     + " | Person: " + (a.getPersonCode().isEmpty() ? "(None)" : a.getPersonCode())
                                     + " | " + (a.getRole() == Account.Role.ADMIN ? "ALL (17 permissions)" : a.getPermissions()),
-                            Account::toString, java.util.Comparator.comparing(Account::getUsername),
-                            event -> authentication.audit(event, "LIST", "", "SUCCESS", "Navigated list."));
+                            Account::toString, java.util.Comparator.comparing(Account::getUsername));
                     continue;
                 }
                 if (choice == 2) {
@@ -156,7 +155,6 @@ public final class AccountController {
                     return;
                 }
             } catch (SiteManagementException | IOException e) {
-                authentication.audit("ACCOUNT_OPERATION", "ACCOUNT", "", "FAILED", e.getMessage());
                 ConsoleTheme.error(e.getMessage());
             }
         }
