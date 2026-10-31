@@ -3,7 +3,7 @@ package service;
 import exception.DuplicatePersonCodeException;
 import exception.InvalidPhoneNumberException;
 import exception.PersonNotFoundException;
-import model.Person;
+import model.person.Person;
 import repository.PersonRepository;
 import java.util.List;
 
@@ -29,6 +29,10 @@ public class PersonnelService {
             return false;
         }
         return personRepository.save(p);
+    }
+
+    public boolean shouldProvisionAccount(Person p) {
+        return p != null && p.shouldProvisionAccount();
     }
 
     public Person findPersonByCode(String code) throws PersonNotFoundException {

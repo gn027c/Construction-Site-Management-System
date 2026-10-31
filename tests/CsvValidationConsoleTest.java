@@ -4,7 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import model.Account;
+import model.auth.Account;
 import service.AuthenticationService;
 
 public class CsvValidationConsoleTest {
@@ -13,6 +13,11 @@ public class CsvValidationConsoleTest {
         for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv")) {
             Files.copy(Paths.get("data", file), root.resolve(file));
         }
+        util.CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), Arrays.asList(
+                "recordId,personCode,zoneId,timestamp,checkType",
+                "ATT1,W1,Z1,2026-10-12 07:30:00,CHECK_IN",
+                "ATT6,W1,Z3,2026-10-12 08:15:00,CHECK_IN"
+        ));
         return root;
     }
 
@@ -20,8 +25,7 @@ public class CsvValidationConsoleTest {
         test("Admin sees validation details without a CSV editor and cannot change rejected source", () -> {
             Path root = invalidFixture();
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
-            String output = ConsoleTest.launch(root, "11\n0\n0\n", 0, false);
-            require(output.contains("CSV validation (read only)"));
+            String output = ConsoleTest.launch(root, "6\n0\n0\n", 0, false);
             require(output.contains("CSV VALIDATION ERRORS / READ ONLY"));
             require(output.contains("ATT6"));
             require(!output.contains("Correct attendance with evidence"));
@@ -31,7 +35,7 @@ public class CsvValidationConsoleTest {
         });
         test("Healthy data validation returns directly without repair steps", () -> {
             Path root = Files.createTempDirectory("smartsite-valid-ledger-");
-            String output = ConsoleTest.launch(root, "11\n0\n", 0, false);
+            String output = ConsoleTest.launch(root, "6\n0\n", 0, false);
             require(output.contains("No issues; business data is active."));
             require(!output.contains("REVIEW STEPS"));
             require(!output.contains("Correction reason"));
@@ -41,16 +45,16 @@ public class CsvValidationConsoleTest {
             AuthenticationService auth = new AuthenticationService(root);
             auth.login("admin", "admin");
             auth.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
-            String output = ConsoleTest.launchRaw(root, "manager\nsecret\n11\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "manager\nsecret\n6\n0\n", 0, false);
             require(!output.contains("CSV VALIDATION ERRORS"));
             require(!output.contains("Invalid attendance.csv"));
             require(!output.contains("ATT6"));
-            require(!output.contains("[11] CSV validation"));
+            require(!output.contains("[6] CSV validation"));
         });
         test("EOF in read-only validation exits without rewriting rejected history", () -> {
             Path root = invalidFixture();
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
-            String output = ConsoleTest.launch(root, "11\n", 0, false);
+            String output = ConsoleTest.launch(root, "6\n", 0, false);
             require(output.contains("Session closed."));
             require(Arrays.equals(original, Files.readAllBytes(root.resolve("attendance.csv"))));
         });

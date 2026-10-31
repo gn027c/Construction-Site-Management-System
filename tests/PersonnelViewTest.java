@@ -7,11 +7,11 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import model.Contractor;
-import model.Person;
-import model.Staff;
-import model.Visitor;
-import model.Worker;
+import model.person.Contractor;
+import model.person.Person;
+import model.person.Staff;
+import model.person.Visitor;
+import model.person.Worker;
 import service.PersonnelService;
 import util.IdentifierHelper;
 import view.ListView;
@@ -101,8 +101,8 @@ public class PersonnelViewTest {
             Path root = Files.createTempDirectory("smartsite-personnel-view-");
             String output = ConsoleTest.launch(
                     root,
-                    "1\n1\n4\nP1\nS1\nStaff A\n0901234567\nPlanner\n\n"
-                            + "2\nf\ns01 active planner\n0\n3\ns01\nUpdated Staff\n\n0\n0\n",
+                    "1\n1\n4\nStaff A\n0901234567\nPlanner\n\n"
+                            + "2\nf\ns01 active planner\ne\ns01\nUpdated Staff\n\n0\n0\n",
                     0,
                     false
             );

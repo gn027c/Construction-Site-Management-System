@@ -1,7 +1,12 @@
 import static support.Checks.*;
 import java.nio.file.*;
 import java.util.*;
-import model.*;
+import model.person.*;
+import model.zone.*;
+import model.attendance.*;
+import model.incident.*;
+import model.auth.*;
+import model.common.*;
 import service.*;
 import exception.*;
 public class ZoneTest {

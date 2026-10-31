@@ -2,8 +2,8 @@ package controller;
 
 import java.util.Comparator;
 import java.util.Scanner;
-import model.AttendanceRecord;
-import model.Permission;
+import model.attendance.AttendanceRecord;
+import model.auth.Permission;
 import service.AuthenticationService;
 import util.InputHelper;
 import view.ConsoleTheme;
@@ -35,9 +35,27 @@ public class AttendanceController {
                 case 3:
                     boolean personal = choice == 3;
                     authentication.require(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE);
+                    view.ConsoleTheme.breadcrumb("ATTENDANCE / " + (personal ? "MY CHECK IN / OUT" : "RECORD ATTENDANCE"));
                     String person = personal ? authentication.currentPersonCode()
                             : InputHelper.getString(scanner, "Person code: ");
+                    if (!personal) {
+                        try {
+                            site.person(person);
+                        } catch (exception.PersonNotFoundException e) {
+                            ConsoleTheme.error(e.getMessage());
+                            break;
+                        }
+                    }
                     String zone = InputHelper.getString(scanner, "Zone ID: ");
+                    try {
+                        site.zones().stream()
+                                .filter(z -> z.getZoneId().equalsIgnoreCase(zone))
+                                .findFirst()
+                                .orElseThrow(() -> new exception.ZoneNotFoundException("Zone '" + zone + "' not found."));
+                    } catch (exception.ZoneNotFoundException e) {
+                        ConsoleTheme.error(e.getMessage());
+                        break;
+                    }
                     int action = InputHelper.getMenuChoice(scanner, "1-Check in, 2-Check out, 0-Cancel: ", 2);
                     if (action == 0) {
                         authentication.audit("ATTENDANCE", "PERSON", person, "CANCELLED", "Cancelled by user.");
@@ -49,20 +67,52 @@ public class AttendanceController {
                     break;
                 case 2:
                 case 4:
-                    ListView.show(scanner, "ATTENDANCE", site.attendance(choice == 4),
-                            AttendanceRecord::toString, AttendanceRecord::toString,
+                    ListView.showTable(
+                            scanner,
+                            "ATTENDANCE",
+                            site.attendance(choice == 4),
+                            view.AttendanceView.TABLE_HEADERS,
+                            view.AttendanceView::tableRow,
+                            view.AttendanceView::formatSummary,
                             Comparator.comparing(AttendanceRecord::getTimestamp).reversed()
                                     .thenComparing(
                                             AttendanceRecord::getRecordId,
                                             util.IdentifierHelper.NATURAL_ORDER.reversed()
                                     ),
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
+                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                    );
                     break;
                 case 5:
                 case 6:
-                    ListView.show(scanner, "CURRENT OCCUPANCY", site.occupancy(choice == 6),
-                            s -> s, s -> s, null,
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
+                    java.util.List<String> rawOccupancy = site.occupancy(choice == 6);
+                    java.util.List<java.util.List<String>> occRows = new java.util.ArrayList<>();
+                    for (String line : rawOccupancy) {
+                        if (line.startsWith("TOTAL ")) {
+                            String[] parts = line.split(" = ");
+                            String zoneName = parts[0].substring(6).trim();
+                            String count = parts.length > 1 ? parts[1].trim() : "";
+                            occRows.add(java.util.Arrays.asList(zoneName, "-", "[TOTAL OCCUPANTS: " + count + "]", "-", "-", "-"));
+                        } else {
+                            String[] parts = line.split(" \\| ");
+                            String zoneName = parts.length > 0 ? parts[0].trim() : "";
+                            String pCode = parts.length > 1 ? parts[1].trim() : "";
+                            String pName = parts.length > 2 ? parts[2].trim() : "";
+                            String pRole = parts.length > 3 ? parts[3].trim() : "";
+                            String pTime = parts.length > 4 ? parts[4].trim() : "";
+                            String pStatus = parts.length > 5 ? parts[5].trim() : "Active";
+                            occRows.add(java.util.Arrays.asList(zoneName, pCode, pName, pRole, pTime, pStatus));
+                        }
+                    }
+                    ListView.showTable(
+                            scanner,
+                            "CURRENT OCCUPANCY",
+                            occRows,
+                            java.util.Arrays.asList("Zone", "Person", "Name", "Role", "Check-in Time", "Status"),
+                            row -> row,
+                            row -> String.join(" ", row),
+                            null,
+                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                    );
                     break;
             }
         }

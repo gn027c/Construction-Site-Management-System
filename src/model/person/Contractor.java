@@ -1,6 +1,6 @@
-package model;
+package model.person;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 
 /**
  * Represents a contractor with a company name and a contract identifier.
@@ -40,6 +40,11 @@ public class Contractor extends Person {
     @Override
     public boolean hasValidSafetyCredential() {
         return contractId.startsWith("CTR-");
+    }
+
+    @Override
+    public boolean shouldProvisionAccount() {
+        return true;
     }
 
     @Override

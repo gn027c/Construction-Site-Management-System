@@ -8,12 +8,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.EnumSet;
-import model.Account;
-import model.AttendanceRecord;
-import model.Permission;
-import model.Staff;
-import model.Worker;
-import model.Zone;
+import model.auth.Account;
+import model.attendance.AttendanceRecord;
+import model.auth.Permission;
+import model.person.Staff;
+import model.person.Worker;
+import model.zone.Zone;
 import service.AuthenticationService;
 import util.CsvHelper;
 
@@ -71,13 +71,6 @@ public class WorkflowIntegrationTest {
                     "", "Z2", AttendanceRecord.CheckType.CHECK_IN, true
             ));
             equal(1, site.attendance(true).size());
-            require(!auth.getNotifications().listMine(auth).isEmpty());
-            throwsType(AccessDeniedException.class, () -> auth.getActivityLog().list(auth));
-            auth.login("admin", "admin");
-            require(auth.getActivityLog().list(auth).stream().anyMatch(
-                    e -> e.getStatus().equals("FAILED") && e.getAction().equals("CHECK_IN")
-            ));
-            require(!auth.getNotifications().listMine(auth).isEmpty());
         });
         test("Inactive people remain visible inside and can check out but cannot check in again", () -> {
             SiteManagerController site = site();
@@ -107,6 +100,11 @@ public class WorkflowIntegrationTest {
             for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv")) {
                 Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
             }
+            CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), Arrays.asList(
+                    "recordId,personCode,zoneId,timestamp,checkType",
+                    "ATT1,W1,Z1,2026-10-12 07:30:00,CHECK_IN",
+                    "ATT6,W1,Z3,2026-10-12 08:15:00,CHECK_IN"
+            ));
             byte[] before = Files.readAllBytes(root.resolve("attendance.csv"));
             SiteManagerController site = new SiteManagerController(root);
             throwsType(java.io.IOException.class, site::loadAllData);
@@ -143,20 +141,6 @@ public class WorkflowIntegrationTest {
             require(site.occupancy(false).isEmpty());
             equal(2, site.attendance(false).size());
         });
-        test("Log write failures do not reverse a successful business action", () -> {
-            Path root = Files.createTempDirectory("smartsite-audit-failure-");
-            SiteManagerController site = new SiteManagerController(root);
-            site.loadAllData();
-            site.getAuthentication().login("admin", "admin");
-            setup(site);
-            Path log = root.resolve("activity_log.csv");
-            Files.move(log, root.resolve("saved-log.csv"));
-            Files.createDirectory(log);
-            site.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN, false);
-            equal(1, site.attendance(false).size());
-            require(!site.getAuthentication().getActivityLog().getLastWriteError().isEmpty());
-            require(!site.getAuthentication().getNotifications().listMine(site.getAuthentication()).isEmpty());
-        });
         test("A failed attendance CSV write rolls back the swipe and sequence", () -> {
             Path root = Files.createTempDirectory("smartsite-swipe-failure-");
             SiteManagerController site = new SiteManagerController(root);
@@ -185,7 +169,7 @@ public class WorkflowIntegrationTest {
             ));
             auth.createAccount("manager", "secret", Account.Role.SITE_MANAGER, "S2");
             throwsType(DataValidationException.class, () -> auth.changePermissions(
-                    "manager", EnumSet.of(Permission.VIEW_ACTIVITY_LOG)
+                    "manager", EnumSet.of(Permission.MANAGE_ACCOUNTS)
             ));
         });
         finish();

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import model.AttendanceRecord;
+import model.attendance.AttendanceRecord;
 import util.DateTimeHelper;
 
 /**

@@ -9,8 +9,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import model.AttendanceRecord;
-import model.Incident;
+import model.attendance.AttendanceRecord;
+import model.incident.Incident;
 import util.DateTimeHelper;
 import util.IdentifierHelper;
 

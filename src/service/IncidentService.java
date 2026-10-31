@@ -1,6 +1,6 @@
 package service;
 
-import model.Incident;
+import model.incident.Incident;
 import repository.IncidentRepository;
 import java.util.List;
 import java.util.ArrayList;

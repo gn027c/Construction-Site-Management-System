@@ -12,23 +12,9 @@ import java.util.Scanner;
 public class InputHelper {
 
     /**
-     * Reads a password without echo when a native console is available.
-     * Redirected input and embedded terminals use the shared line reader.
+     * Reads a password using the standard scanner line reader.
      */
     public static String getPassword(Scanner scanner, String prompt) {
-        java.io.Console console = System.console();
-        if (console != null) {
-            view.ConsoleScreen.inputPrompted();
-            char[] password = console.readPassword("%s", cancelPrompt(prompt));
-            if (password == null) {
-                throw new java.util.NoSuchElementException("Input closed.");
-            }
-            try {
-                return interpret(new String(password));
-            } finally {
-                java.util.Arrays.fill(password, '\0');
-            }
-        }
         return readLine(scanner, prompt);
     }
 
@@ -42,7 +28,7 @@ public class InputHelper {
     }
 
     private static String cancelPrompt(String prompt) {
-        return prompt + "[/cancel to cancel] ";
+        return prompt;
     }
 
     private static String interpret(String input) {
@@ -57,14 +43,14 @@ public class InputHelper {
     }
 
     /**
-     * Reads navigation choices, treating Enter, zero and /cancel as Back or Exit.
+     * Reads navigation choices, treating zero and /cancel as Back or Exit.
      * Data fields with meaningful zero values continue to use getInt.
      */
     public static int getMenuChoice(Scanner scanner, String prompt, int max) {
         while (true) {
-            view.ConsoleTheme.prompt(prompt + "[Enter = 0] ");
+            view.ConsoleTheme.prompt(prompt);
             String input = scanner.nextLine().trim();
-            if (input.isEmpty() || input.equalsIgnoreCase("/cancel")) {
+            if (input.equalsIgnoreCase("/cancel")) {
                 return 0;
             }
             try {
@@ -138,6 +124,73 @@ public class InputHelper {
             } catch (DataValidationException e) {
                 view.ConsoleTheme.warning(e.getMessage());
             }
+        }
+    }
+
+    public static boolean confirm(Scanner scanner, String prompt) {
+        view.ConsoleTheme.prompt(prompt + " (y/N): ");
+        String line = scanner.nextLine().trim();
+        return line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes");
+    }
+
+    private static final java.util.regex.Pattern PERSON_NAME_PATTERN =
+            java.util.regex.Pattern.compile("^[\\p{L}\\s.'-]{2,50}$");
+
+    public static String capitalizeName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        String[] words = name.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String w : words) {
+            if (!w.isEmpty()) {
+                sb.append(Character.toUpperCase(w.charAt(0)))
+                  .append(w.substring(1).toLowerCase())
+                  .append(" ");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    public static String getPersonName(Scanner scanner, String prompt) {
+        while (true) {
+            String input = readLine(scanner, prompt);
+            if (input == null || input.trim().isEmpty()) {
+                view.ConsoleTheme.warning("Full name cannot be empty or whitespace.");
+                continue;
+            }
+            String trimmed = input.trim();
+            if (trimmed.length() < 2) {
+                view.ConsoleTheme.warning("Full name must be at least 2 characters.");
+                continue;
+            }
+            if (trimmed.matches("^\\d+$")) {
+                view.ConsoleTheme.warning("Full name cannot be pure numbers. Please enter a valid name.");
+                continue;
+            }
+            if (trimmed.equals(trimmed.toLowerCase()) || trimmed.equals(trimmed.toUpperCase())) {
+                return capitalizeName(trimmed);
+            }
+            return trimmed;
+        }
+    }
+
+    private static final java.util.regex.Pattern PHONE_PATTERN =
+            java.util.regex.Pattern.compile("^0\\d{9}$");
+
+    public static String getPhoneNumber(Scanner scanner, String prompt) {
+        while (true) {
+            String input = readLine(scanner, prompt);
+            if (input == null || input.trim().isEmpty()) {
+                view.ConsoleTheme.warning("Phone number cannot be empty.");
+                continue;
+            }
+            String trimmed = input.trim();
+            if (!PHONE_PATTERN.matcher(trimmed).matches()) {
+                view.ConsoleTheme.warning("Invalid phone number. It must have 10 digits and start with 0.");
+                continue;
+            }
+            return trimmed;
         }
     }
 }

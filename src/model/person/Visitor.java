@@ -1,6 +1,6 @@
-package model;
+package model.person;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 
 /**
  * Represents a visitor with a required visit purpose and host name.
@@ -57,6 +57,11 @@ public class Visitor extends Person {
 
     @Override
     public boolean hasValidSafetyCredential() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldProvisionAccount() {
         return false;
     }
 

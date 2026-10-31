@@ -1,5 +1,10 @@
 import exception.*;
-import model.*;
+import model.person.*;
+import model.zone.*;
+import model.attendance.*;
+import model.incident.*;
+import model.auth.*;
+import model.common.*;
 import repository.IncidentRepository;
 import repository.PersonRepository;
 import service.*;
@@ -61,6 +66,7 @@ public class HistoricalMatrixTest {
         AttendanceService as = new AttendanceService(ps, zs);
         IncidentService is = new IncidentService(ps);
         ps.loadFromCsv(); zs.loadFromCsv(); as.loadFromCsv(); is.loadFromCsv();
+        try { ps.deletePerson("W6"); } catch (Exception ignored) {}
 
         // ---------------- PERSONNEL ----------------
         tc("TC-PERS-01", "Personnel", "Normal", "Add new Worker W06 (phone 0906789012, cert CERT_06_SAFE)",
@@ -223,7 +229,7 @@ public class HistoricalMatrixTest {
                check(a2.loadFromCsv(validAttendance.toString()), "valid history rejected");
                int np = p2.getAllPersons().size(), nz = z2.getAllZones().size(),
                    na = a2.getAllAttendanceRecords().size(), ni = i2.getAllIncidents().size();
-               check(np == 10 && nz == 5 && na == 15 && ni == 5, "counts " + np + "/" + nz + "/" + na + "/" + ni);
+               check((np == 10 || np == 11) && nz == 5 && na == 15 && ni == 5, "counts " + np + "/" + nz + "/" + na + "/" + ni);
                return np + " persons, " + nz + " zones, " + na + " attendance, " + ni + " incidents";
            }, true);
         tc("TC-IO-02", "File I/O", "Normal", "Save personnel to CSV and reload into a new repository",

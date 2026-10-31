@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import model.Account;
+import model.auth.Account;
 import service.AuthenticationService;
 
 public class AuthenticationConsoleTest {
@@ -26,14 +26,14 @@ public class AuthenticationConsoleTest {
             fixture(root);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n6\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n8\nofficer\nsecret\n1\n6\n0\n",
+                    "admin\nadmin\n9\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n13\nofficer\nsecret\n1\n9\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
             require(output.contains("Signed in as officer (SAFETY_OFFICER)."));
             String staffOutput = output.substring(output.indexOf("Signed in as officer"));
             require(!staffOutput.contains("[1] Personnel"));
-            require(!staffOutput.contains("[6] Account administration"));
+            require(!staffOutput.contains("[9] Manage accounts"));
             require(staffOutput.contains("Access denied: MANAGE_PERSONNEL"));
             require(staffOutput.contains("Access denied: MANAGE_ACCOUNTS"));
             AuthenticationService restarted = new AuthenticationService(root);
@@ -45,7 +45,7 @@ public class AuthenticationConsoleTest {
                     root, "admin\nwrong\nadmin\nwrong\nunknown\nwrong\n", 0, false
             );
             require(output.contains("Sign-in attempts exhausted"));
-            require(!output.contains("[6] Account administration"));
+            require(!output.contains("[9] Manage accounts"));
             require(!Files.exists(root.resolve("persons.csv")));
         });
         test("EOF before sign-in exits cleanly without saving business data", () -> {
@@ -57,7 +57,7 @@ public class AuthenticationConsoleTest {
         test("Changed admin credentials are used after logout and process restart", () -> {
             Path root = root();
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n7\nadmin\nnew-secret\nnew-secret\n8\nadmin\nnew-secret\n0\n", 0, false
+                    root, "admin\nadmin\n10\nadmin\nnew-secret\nnew-secret\n13\nadmin\nnew-secret\n0\n", 0, false
             );
             require(output.contains("Password changed."));
             require(output.contains("Signed out."));
@@ -69,7 +69,7 @@ public class AuthenticationConsoleTest {
             AuthenticationService authentication = new AuthenticationService(root);
             authentication.login("admin", "admin");
             authentication.createAccount("manager", "secret", Account.Role.SITE_MANAGER);
-            String output = ConsoleTest.launchRaw(root, "manager\nsecret\n5\n1\n6\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "manager\nsecret\n5\n1\n9\n0\n", 0, false);
             require(output.contains("Access denied: RELOAD_DATA"));
             require(output.contains("Access denied: MANAGE_ACCOUNTS"));
             require(!output.contains("[1] Reload CSV files"));
@@ -86,7 +86,7 @@ public class AuthenticationConsoleTest {
             require(Arrays.equals(before, Files.readAllBytes(file)));
         });
         test("Account lists show account details without password hashes", () -> {
-            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n6\n1\n0\n0\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n9\n1\n0\n0\n0\n", 0, false);
             require(output.contains("admin | ADMIN | Enabled"));
             require(!output.contains("PBKDF2"));
         });
@@ -97,7 +97,7 @@ public class AuthenticationConsoleTest {
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n6\n4\nofficer\n4\n5\nofficer\n0\n0\n8\nofficer\nsecret\n0\n",
+                    "admin\nadmin\n9\n4\nofficer\n4\n5\nofficer\n0\n0\n13\nofficer\nsecret\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
@@ -107,7 +107,7 @@ public class AuthenticationConsoleTest {
             for (Account account : restarted.listAccounts()) {
                 if (account.getUsername().equals("officer")) {
                     require(!account.isEnabled());
-                    equal(java.util.EnumSet.of(model.Permission.VIEW_ATTENDANCE), account.getPermissions());
+                    equal(java.util.EnumSet.of(model.auth.Permission.VIEW_ATTENDANCE), account.getPermissions());
                 }
             }
         });
@@ -115,7 +115,7 @@ public class AuthenticationConsoleTest {
             Path root = root();
             fixture(root);
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n6\n2\nofficer\n3\nW1\nsecret\nwrong\n0\n0\n", 0, false
+                    root, "admin\nadmin\n9\n2\nofficer\n3\nW1\nsecret\nwrong\n0\n0\n", 0, false
             );
             require(output.contains("Confirmation does not match."));
             AuthenticationService restarted = new AuthenticationService(root);

@@ -1,6 +1,11 @@
 package controller;
 
-import model.*;
+import model.person.*;
+import model.zone.*;
+import model.attendance.*;
+import model.incident.*;
+import model.auth.*;
+import model.common.*;
 import service.*;
 import java.io.IOException;
 import java.nio.file.*;
@@ -319,6 +324,104 @@ public class SiteManagerController {
                 () -> personnelService.addPerson(person), true);
     }
 
+    public boolean shouldProvisionAccount(Person person) {
+        return person != null && person.shouldProvisionAccount();
+    }
+
+    public Account provisionAccount(Person person) throws IOException {
+        return provisionAccount(person, "0");
+    }
+
+    public Account provisionAccount(Person person, String initialPassword) throws IOException {
+        if (!shouldProvisionAccount(person)) {
+            throw new exception.DataValidationException(
+                    "person", "Account provisioning is not supported for " + (person == null ? "null" : person.getRole())
+            );
+        }
+        String normalizedCode = util.IdentifierHelper.normalize(person.getCode());
+        if (authentication.isPersonLinked(normalizedCode)) {
+            throw new exception.DataValidationException("personCode", "Person is already linked to an account.");
+        }
+        String username = generateProvisionedUsername(person);
+        Account.Role role = resolveAccountRole(person);
+        String pass = (initialPassword == null || initialPassword.trim().isEmpty()) ? "0" : initialPassword;
+
+        authentication.createAccount(username, pass, role, normalizedCode, true);
+        return authentication.getAccount(username);
+    }
+
+    public static String removeDiacritics(String text) {
+        if (text == null) {
+            return "";
+        }
+        String nfd = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        return pattern.matcher(nfd).replaceAll("")
+                .replace('\u0111', 'd')
+                .replace('\u0110', 'D')
+                .replace('đ', 'd')
+                .replace('Đ', 'D');
+    }
+
+    public static String buildUsernameBase(String name, String code) {
+        if (code == null) {
+            code = "";
+        }
+        String cleanCode = code.trim().toUpperCase(java.util.Locale.ROOT);
+        if (name == null || name.trim().isEmpty()) {
+            return ("User" + cleanCode).replaceAll("[^a-zA-Z0-9_.-]", "");
+        }
+        String noAccents = removeDiacritics(name);
+        String[] words = noAccents.trim().split("\\s+");
+        List<String> validWords = new ArrayList<>();
+        for (String w : words) {
+            String cleaned = w.replaceAll("[^a-zA-Z0-9]", "");
+            if (!cleaned.isEmpty()) {
+                validWords.add(cleaned);
+            }
+        }
+        if (validWords.isEmpty()) {
+            return ("User" + cleanCode).replaceAll("[^a-zA-Z0-9_.-]", "");
+        }
+        String lastWord = validWords.get(validWords.size() - 1);
+        String givenName = Character.toUpperCase(lastWord.charAt(0))
+                + (lastWord.length() > 1 ? lastWord.substring(1).toLowerCase(java.util.Locale.ROOT) : "");
+
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < validWords.size() - 1; i++) {
+            initials.append(Character.toUpperCase(validWords.get(i).charAt(0)));
+        }
+
+        String base = givenName + initials.toString() + cleanCode;
+        if (base.length() < 3) {
+            base = "User" + cleanCode;
+        }
+        return base;
+    }
+
+    public String generateProvisionedUsername(Person person) {
+        String base = buildUsernameBase(person.getName(), person.getCode());
+        String candidate = base;
+        int counter = 2;
+        while (authentication.isUsernameTaken(candidate)) {
+            candidate = base + "_" + counter++;
+        }
+        return candidate;
+    }
+
+    private Account.Role resolveAccountRole(Person person) {
+        if (person instanceof Staff) {
+            Staff s = (Staff) person;
+            String pos = s.getPosition() != null ? s.getPosition().toLowerCase() : "";
+            if (pos.contains("safety")) {
+                return Account.Role.SAFETY_OFFICER;
+            } else if (pos.contains("manager") || pos.contains("supervisor")) {
+                return Account.Role.SITE_MANAGER;
+            }
+        }
+        return Account.Role.SITE_USER;
+    }
+
     public boolean updatePerson(String code, String name, String phone) {
         return operation(Permission.MANAGE_PERSONNEL, "UPDATE_PERSON", code,
                 () -> personnelService.updatePerson(code, name, phone), true);
@@ -389,16 +492,11 @@ public class SiteManagerController {
             String personCode, String zoneId, AttendanceRecord.CheckType type, boolean personal
     ) {
         String subject = personal ? authentication.currentPersonCode() : personCode;
-        boolean saved = operation(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE,
+        return operation(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE,
                 type == null ? "ATTENDANCE" : type.name(), subject + " / " + zoneId, () -> {
                     return attendanceService.recordAttendanceAndSave(subject, zoneId, type,
                             directory.resolve("attendance.csv").toString());
                 }, false);
-        String message = type + " recorded for " + util.IdentifierHelper.normalize(subject)
-                + " at " + util.IdentifierHelper.normalize(zoneId) + ".";
-        authentication.getNotifications().notifyUser(authentication.currentAccount().getUsername(),
-                authentication.getActivityLog().getLastOperationId(), message);
-        return saved;
     }
 
     public List<String> occupancy(boolean personal) {
@@ -466,6 +564,11 @@ public class SiteManagerController {
                 () -> incidentService.assignIncident(id, code), true);
     }
 
+    public List<Person> candidateAssignees() {
+        return operation(Permission.ASSIGN_INCIDENTS, "LIST_ASSIGNEES", "",
+                personnelService::getAllPersons, false);
+    }
+
     public boolean resolveIncident(String id) {
         return operation(Permission.RESOLVE_INCIDENTS, "RESOLVE_INCIDENT", id,
                 () -> incidentService.resolveIncident(id), true);
@@ -499,6 +602,45 @@ public class SiteManagerController {
                 ), false);
     }
 
+    public java.time.LocalDate[] getReportDateBounds(boolean incidents) {
+        authentication.require(Permission.EXPORT_REPORTS);
+        java.time.LocalDate min = null;
+        java.time.LocalDate max = null;
+        if (incidents) {
+            for (Incident inc : incidentService.getAllIncidents()) {
+                if (inc.getReportedAt() != null && !inc.getReportedAt().isEmpty()) {
+                    try {
+                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(inc.getReportedAt()).toLocalDate();
+                        if (min == null || d.isBefore(min)) min = d;
+                        if (max == null || d.isAfter(max)) max = d;
+                    } catch (RuntimeException ignored) {}
+                }
+                if (inc.getResolvedAt() != null && !inc.getResolvedAt().isEmpty()) {
+                    try {
+                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(inc.getResolvedAt()).toLocalDate();
+                        if (min == null || d.isBefore(min)) min = d;
+                        if (max == null || d.isAfter(max)) max = d;
+                    } catch (RuntimeException ignored) {}
+                }
+            }
+        } else {
+            for (AttendanceRecord r : attendanceService.getAllAttendanceRecords()) {
+                if (r.getTimestamp() != null && !r.getTimestamp().isEmpty()) {
+                    try {
+                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(r.getTimestamp()).toLocalDate();
+                        if (min == null || d.isBefore(min)) min = d;
+                        if (max == null || d.isAfter(max)) max = d;
+                    } catch (RuntimeException ignored) {}
+                }
+            }
+        }
+        if (min == null || max == null) {
+            java.time.LocalDate now = java.time.LocalDate.now();
+            return new java.time.LocalDate[] { now.minusMonths(1), now };
+        }
+        return new java.time.LocalDate[] { min, max };
+    }
+
     public Path exportReport(List<String[]> rows, Path destination) throws IOException {
         authentication.require(Permission.EXPORT_REPORTS);
         requireReady();
@@ -516,5 +658,91 @@ public class SiteManagerController {
             authentication.audit("EXPORT_REPORT", "REPORT", "", "FAILED", e.getMessage());
             throw e;
         }
+    }
+
+    public String suggestNextPersonId() {
+        return generateRandomPersonId();
+    }
+
+    public String generateRandomPersonId() {
+        Set<String> existingIds = new HashSet<>();
+        for (Person p : personnelService.getAllPersons()) {
+            if (p.getId() != null) {
+                existingIds.add(p.getId().toUpperCase());
+            }
+        }
+        Random random = new java.security.SecureRandom();
+        String candidate;
+        do {
+            int num = 10000 + random.nextInt(90000);
+            candidate = "P" + num;
+        } while (existingIds.contains(candidate));
+        return candidate;
+    }
+
+    public String suggestNextPersonCode(int type) {
+        String prefix;
+        switch (type) {
+            case 1:
+                prefix = "W";
+                break;
+            case 2:
+                prefix = "C";
+                break;
+            case 3:
+                prefix = "V";
+                break;
+            case 4:
+                prefix = "S";
+                break;
+            default:
+                prefix = "P";
+                break;
+        }
+        int max = 0;
+        for (Person p : personnelService.getAllPersons()) {
+            String code = p.getCode();
+            if (code != null && code.toUpperCase().startsWith(prefix)) {
+                String digits = code.substring(prefix.length()).trim();
+                if (digits.matches("[0-9]+")) {
+                    try {
+                        int val = Integer.parseInt(digits);
+                        max = Math.max(max, val);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+        return prefix + (max + 1);
+    }
+
+    public String suggestNextZoneId() {
+        int max = 0;
+        for (Zone z : zoneService.getAllZones()) {
+            String id = z.getZoneId();
+            if (id != null && id.matches("(?i)Z[0-9]+")) {
+                try {
+                    int val = Integer.parseInt(id.replaceAll("[^0-9]", ""));
+                    max = Math.max(max, val);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return "Z" + (max + 1);
+    }
+
+    public String suggestNextIncidentId() {
+        int max = 100;
+        for (Incident inc : incidentService.getAllIncidents()) {
+            String id = inc.getIncidentId();
+            if (id != null && id.matches("(?i)INC[0-9]+")) {
+                try {
+                    int val = Integer.parseInt(id.replaceAll("[^0-9]", ""));
+                    max = Math.max(max, val);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return "INC" + (max + 1);
     }
 }

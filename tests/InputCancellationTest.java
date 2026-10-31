@@ -24,8 +24,8 @@ public class InputCancellationTest {
             throwsType(InputCancelledException.class, () -> InputHelper.readLine(new Scanner("/cancel\n"), "Optional: "));
             throwsType(InputCancelledException.class, () -> InputHelper.getInt(new Scanner("\n"), "Role: ", 1, 4));
         });
-        test("Menu Enter, zero and cancel return Back without trapping the reader", () -> {
-            for (String input : new String[] { "\n", "0\n", "/cancel\n", "bad\n\n" }) {
+        test("Menu zero and cancel return Back without trapping the reader", () -> {
+            for (String input : new String[] { "0\n", "/cancel\n", "bad\n0\n", "\n0\n" }) {
                 equal(0, InputHelper.getMenuChoice(new Scanner(input), "Choice: ", 3));
             }
         });
@@ -41,16 +41,14 @@ public class InputCancellationTest {
         test("Cancelling a partially entered worker returns Home without saving a person", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-worker-");
             String output = ConsoleTest.launch(
-                    root, "1\n1\n1\nP1\nW1\nWorker A\n0901234567\n/cancel\n0\n", 0, false
+                    root, "1\n1\n1\nWorker A\n0901234567\n/cancel\n0\n", 0, false
             );
             require(output.contains("Current entry cancelled. Returned to the main menu."));
             equal(0, people(root).getAllPersons().size());
-            String log = new String(Files.readAllBytes(root.resolve("activity_log.csv")), StandardCharsets.UTF_8);
-            require(log.contains("CANCELLED,User cancelled input."));
         });
         test("Cancelling account role selection cannot create an account", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-account-");
-            String output = ConsoleTest.launch(root, "6\n2\nnewuser\n/cancel\n0\n", 0, false);
+            String output = ConsoleTest.launch(root, "9\n2\nnewuser\n/cancel\n0\n", 0, false);
             require(output.contains("Current entry cancelled"));
             service.AuthenticationService auth = new service.AuthenticationService(root);
             auth.login("admin", "admin");
@@ -59,23 +57,23 @@ public class InputCancellationTest {
         test("Cancelling visitor date entry cannot save partially entered personnel", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-date-");
             ConsoleTest.launch(
-                    root, "1\n1\n3\nP1\nV1\nVisitor A\n0901234567\nMeeting\nHost A\n/cancel\n0\n", 0, false
+                    root, "1\n1\n3\nVisitor A\n0901234567\nMeeting\nHost A\n/cancel\n0\n", 0, false
             );
             equal(0, people(root).getAllPersons().size());
         });
         test("Cancelling a contact edit retains both existing contact values", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-contact-");
             ConsoleTest.launch(
-                    root, "1\n1\n1\nP1\nW1\nOriginal\n0901234567\nWelder\nX_SAFE\nTeam A\n0\n0\n", 0, false
+                    root, "1\n1\n1\nOriginal\n0901234567\nWelder\nX_SAFE\nTeam A\n0\n0\n", 0, false
             );
-            ConsoleTest.launch(root, "1\n3\nW1\nChanged\n/cancel\n0\n", 0, false);
+            ConsoleTest.launch(root, "1\n2\ne\nW1\nChanged\n/cancel\n0\n0\n", 0, false);
             equal("Original", people(root).findPersonByCode("W1").getName());
             equal("0901234567", people(root).findPersonByCode("W1").getPhoneNumber());
         });
-        test("Blank submenu selection returns Home and blank Home selection exits", () -> {
-            String output = ConsoleTest.launch(Files.createTempDirectory("smartsite-cancel-menu-"), "1\n\n\n", 0, false);
+        test("Blank submenu selection warns and requires explicit choice", () -> {
+            String output = ConsoleTest.launch(Files.createTempDirectory("smartsite-cancel-menu-"), "1\n\n0\n0\n", 0, false);
             require(output.contains("Goodbye."));
-            require(!output.contains("Cannot be empty"));
+            require(output.contains("Cannot be empty"));
         });
         test("Cancelling password entry returns to username without spending a login attempt", () -> {
             String output = ConsoleTest.launchRaw(
@@ -88,7 +86,7 @@ public class InputCancellationTest {
         test("Cancelling a report filter returns Home without creating an export", () -> {
             Path root = Files.createTempDirectory("smartsite-cancel-report-");
             String output = ConsoleTest.launch(
-                    root, "12\n1\n29/10/2026\n29/10/2026\n1\n/cancel\n0\n", 0, false
+                    root, "7\n29/10/2026\n29/10/2026\n1\n/cancel\n0\n", 0, false
             );
             require(output.contains("Current entry cancelled"));
             require(!output.contains("Report exported:"));
@@ -101,9 +99,14 @@ public class InputCancellationTest {
             for (String file : new String[] { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" }) {
                 Files.copy(java.nio.file.Paths.get("data", file), root.resolve(file));
             }
+            util.CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), java.util.Arrays.asList(
+                    "recordId,personCode,zoneId,timestamp,checkType",
+                    "ATT1,W1,Z1,2026-10-12 07:30:00,CHECK_IN",
+                    "ATT6,W1,Z3,2026-10-12 08:15:00,CHECK_IN"
+            ));
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
             String output = ConsoleTest.launch(
-                    root, "11\n\n0\n", 0, false
+                    root, "6\n0\n0\n", 0, false
             );
             require(output.contains("CSV VALIDATION ERRORS / READ ONLY"));
             require(!output.contains("Correct attendance with evidence"));

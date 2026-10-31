@@ -8,8 +8,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import model.Account;
-import model.Permission;
+import model.auth.Account;
+import model.auth.Permission;
 import repository.AccountRepository;
 import util.PasswordHelper;
 
@@ -20,13 +20,9 @@ import util.PasswordHelper;
 public final class AuthenticationService {
     private final AccountRepository repository;
     private String currentUsername;
-    private final ActivityLogService activityLog;
-    private final NotificationService notifications;
     private PersonnelService personnel;
 
     public AuthenticationService(Path directory) throws IOException {
-        activityLog = new ActivityLogService(directory);
-        notifications = new NotificationService(directory);
         repository = new AccountRepository(directory.resolve("accounts.csv"));
         if (repository.exists()) {
             repository.load();
@@ -34,7 +30,7 @@ public final class AuthenticationService {
             List<Account> initial = new ArrayList<>();
             initial.add(new Account(
                     "admin", PasswordHelper.hash("admin"), Account.Role.ADMIN,
-                    true, Account.Role.ADMIN.defaultPermissions()
+                    true, Account.Role.ADMIN.defaultPermissions(), "", false
             ));
             repository.replaceAll(initial);
         }
@@ -53,7 +49,6 @@ public final class AuthenticationService {
                 : account.getPasswordHash();
         boolean passwordMatches = PasswordHelper.verify(password, hash);
         if (account == null || !account.isEnabled() || !passwordMatches) {
-            recordAudit("ANONYMOUS", "", "LOGIN", "ACCOUNT", "", "FAILED", "Invalid credentials.");
             throw new AuthenticationException();
         }
         currentUsername = account.getUsername();
@@ -86,7 +81,7 @@ public final class AuthenticationService {
 
     public void require(Permission permission) {
         boolean adminOnly = permission == Permission.MANAGE_ACCOUNTS
-                || permission == Permission.VIEW_ACTIVITY_LOG || permission == Permission.REVIEW_ATTENDANCE;
+                || permission == Permission.REVIEW_ATTENDANCE;
         if (!allows(permission) || (adminOnly && currentAccount().getRole() != Account.Role.ADMIN)) {
             audit("ACCESS", "PERMISSION", permission.name(), "FAILED", "Permission denied.");
             throw new AccessDeniedException(permission.name());
@@ -115,6 +110,12 @@ public final class AuthenticationService {
 
     public void createAccount(String username, String password, Account.Role role, String personCode)
             throws IOException {
+        createAccount(username, password, role, personCode, true);
+    }
+
+    public void createAccount(
+            String username, String password, Account.Role role, String personCode, boolean mustChangePassword
+    ) throws IOException {
         require(Permission.MANAGE_ACCOUNTS);
         accountChange("CREATE_ACCOUNT", username, "Created account with role " + role + ".", () -> {
             String normalized = Account.normalizeUsername(username);
@@ -126,7 +127,7 @@ public final class AuthenticationService {
             }
             List<Account> accounts = repository.findAll();
             Account added = new Account(
-                    normalized, PasswordHelper.hash(password), role, true, role.defaultPermissions(), personCode
+                    normalized, PasswordHelper.hash(password), role, true, role.defaultPermissions(), personCode, mustChangePassword
             );
             validatePersonLink(added);
             accounts.add(added);
@@ -165,8 +166,20 @@ public final class AuthenticationService {
     public void resetPassword(String username, String password) throws IOException {
         require(Permission.MANAGE_ACCOUNTS);
         accountChange("RESET_PASSWORD", username, "Reset account password; credentials excluded.", () -> {
-            replace(findRequired(username).withPassword(password));
+            replace(findRequired(username).withResetPassword(password));
         });
+    }
+
+    public Account getAccount(String username) {
+        return repository.find(Account.normalizeUsername(username));
+    }
+
+    public boolean isUsernameTaken(String username) {
+        try {
+            return repository.find(Account.normalizeUsername(username)) != null;
+        } catch (DataValidationException e) {
+            return false;
+        }
     }
 
     public void changePassword(String currentPassword, String nextPassword) throws IOException {
@@ -191,7 +204,7 @@ public final class AuthenticationService {
         validatePersonLink(replacement);
         List<Account> accounts = repository.findAll();
         for (int i = 0; i < accounts.size(); i++) {
-            if (accounts.get(i).getUsername().equals(replacement.getUsername())) {
+            if (accounts.get(i).getUsername().equalsIgnoreCase(replacement.getUsername())) {
                 accounts.set(i, replacement);
                 repository.replaceAll(accounts);
                 return;
@@ -246,90 +259,15 @@ public final class AuthenticationService {
         return false;
     }
 
-    public ActivityLogService getActivityLog() {
-        return activityLog;
-    }
-
-    public NotificationService getNotifications() {
-        return notifications;
-    }
-
     public void audit(String action, String targetType, String targetId, String status, String reason) {
-        String actor = isLoggedIn() ? currentUsername : "SYSTEM";
-        String role = isLoggedIn() ? currentAccount().getRole().name() : "";
-        if (targetType.equals("BUSINESS") || targetType.equals("PERSON")
-                || targetType.equals("ATTENDANCE") || targetType.equals("NOTIFICATION")) {
-            String[] parts = targetId.split("/");
-            List<String> normalized = new ArrayList<>();
-            for (String part : parts) {
-                String code = util.IdentifierHelper.normalizeForLookup(part.trim());
-                if (code != null) {
-                    normalized.add(code);
-                }
-            }
-            targetId = String.join(" / ", normalized);
-        }
-        recordAudit(actor, role, action, targetType, targetId, status, reason);
-    }
-
-    private String recordAudit(
-            String actor, String role, String action, String targetType, String targetId, String status, String reason
-    ) {
-        boolean saved = activityLog.record(actor, role, action, targetType, targetId, status, reason);
-        String operationId = activityLog.getLastOperationId();
-        if (!saved) {
-            String warning = "Activity log could not be saved; the business result is unchanged.";
-            notifyAdmins(operationId, warning);
-        }
-        if (status.equals("FAILED")) {
-            Account actorAccount = repository.find(actor);
-            if (actorAccount != null && actorAccount.getRole() != Account.Role.ADMIN) {
-                notifications.notifyUser(actor, operationId, action + ": Operation could not be completed.");
-            }
-            notifyAdmins(operationId, actor + " / " + action + ": " + reason);
-        }
-        return operationId;
     }
 
     private interface AccountChange {
         void run() throws IOException;
     }
 
-    /**
-     * Records the pre-change actor and the persisted result without exposing password values.
-     * Log or notification failures do not turn a saved account change into a failed operation.
-     */
     private void accountChange(String action, String username, String description, AccountChange change)
             throws IOException {
-        String actor = isLoggedIn() ? currentUsername : "SYSTEM";
-        String actorRole = isLoggedIn() ? currentAccount().getRole().name() : "";
-        String target = "";
-        try {
-            target = Account.normalizeUsername(username);
-        } catch (DataValidationException ignored) {
-            // Invalid account input is represented by an empty target rather than copied into the log.
-        }
-        try {
-            change.run();
-        } catch (IOException | RuntimeException e) {
-            recordAudit(actor, actorRole, action, "ACCOUNT", target, "FAILED", e.getMessage());
-            throw e;
-        }
-        String operationId = recordAudit(actor, actorRole, action, "ACCOUNT", target, "SUCCESS", description);
-        String message = action + " / " + target + ": " + description;
-        if (repository.find(actor) != null) {
-            notifications.notifyUser(actor, operationId, message);
-        }
-        if (!target.equals(actor) && repository.find(target) != null) {
-            notifications.notifyUser(target, operationId, message);
-        }
-    }
-
-    public void notifyAdmins(String operationId, String message) {
-        for (Account account : repository.findAll()) {
-            if (account.getRole() == Account.Role.ADMIN && account.isEnabled()) {
-                notifications.notifyUser(account.getUsername(), operationId, message);
-            }
-        }
+        change.run();
     }
 }

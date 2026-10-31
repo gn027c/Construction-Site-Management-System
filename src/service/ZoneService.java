@@ -3,9 +3,9 @@ package service;
 import exception.DuplicateZoneIdException;
 import exception.RestrictedZoneViolationException;
 import exception.ZoneNotFoundException;
-import model.Person;
-import model.RestrictedZone;
-import model.Zone;
+import model.person.Person;
+import model.zone.RestrictedZone;
+import model.zone.Zone;
 import repository.ZoneRepository;
 import java.util.List;
 

@@ -1,6 +1,6 @@
-package model;
+package model.incident;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 import exception.DataValidationException;
 import java.time.LocalDateTime;
 import util.DateTimeHelper;

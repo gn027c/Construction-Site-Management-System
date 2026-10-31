@@ -1,5 +1,10 @@
 import static support.Checks.*;
-import model.*;
+import model.person.*;
+import model.zone.*;
+import model.attendance.*;
+import model.incident.*;
+import model.auth.*;
+import model.common.*;
 import service.*;
 import repository.*;
 import exception.*;

@@ -37,19 +37,37 @@ public class ConsoleScreenTest {
         test("One and two digit options align with the exit option", () -> {
             Map<Integer, String> options = new LinkedHashMap<>();
             options.put(1, "Personnel");
-            options.put(9, "Activity log");
-            options.put(10, "My notifications");
+            options.put(9, "Audit settings");
+            options.put(10, "Sign out");
             options.put(12, "Period reports");
             String output = capture("never", new Scanner(""), () -> {
                 ConsoleTheme.menuOptions("HOME", options, "Save and exit");
             });
             for (String label : new String[] {
-                    "Personnel", "Activity log", "My notifications", "Period reports", "Save and exit"
+                    "Personnel", "Audit settings", "Sign out", "Period reports", "Save and exit"
             }) {
                 String line = java.util.Arrays.stream(output.split("\\R"))
                         .filter(value -> value.endsWith(label)).findFirst().get();
                 equal(7, line.indexOf(label));
             }
+        });
+        test("Breadcrumb description renders directly beneath breadcrumb and above divider", () -> {
+            Map<Integer, String> options = new LinkedHashMap<>();
+            options.put(1, "Personnel");
+            String output = capture("never", new Scanner(""), () -> {
+                ConsoleTheme.menuOptions("TEST PATH", "Test description text", options, "Back");
+            });
+            require(output.contains("SMARTSITE / TEST PATH"));
+            String smallDesc = ConsoleTheme.toSmallCaps("Test description text");
+            require(output.contains("  › " + smallDesc));
+            int breadcrumbIdx = output.indexOf("SMARTSITE / TEST PATH");
+            int descIdx = output.indexOf(smallDesc);
+            int dividerIdx = output.indexOf("──────");
+            if (dividerIdx < 0) {
+                dividerIdx = output.indexOf("------");
+            }
+            require(breadcrumbIdx < descIdx);
+            require(descIdx < dividerIdx);
         });
         test("Results remain visible until Enter before the next screen is cleared", () -> {
             Scanner input = new Scanner("\nnext\n");
@@ -94,7 +112,7 @@ public class ConsoleScreenTest {
         });
         test("Interactive screen mode supports acknowledgement, navigation and clean logout", () -> {
             String output = ConsoleTest.launchScreen(
-                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\n\n8\n0\n", 0, false, "always"
+                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\n\n13\n0\n", 0, false, "always"
             );
             require(output.contains("Press Enter to continue"));
             require(output.contains("HOME / admin / ADMIN"));

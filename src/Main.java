@@ -1,10 +1,9 @@
 import controller.SiteManagerController;
 import controller.AccountController;
 import controller.WorkspaceController;
-import model.Permission;
-import model.Account;
+import model.auth.Permission;
+import model.auth.Account;
 import service.AuthenticationService;
-import util.DataDirectoryLock;
 import util.InputHelper;
 import view.ConsoleTheme;
 import view.ConsoleScreen;
@@ -16,14 +15,12 @@ import java.util.*;
  * Starts the console application and delegates operations to the facade.
  *
  * <p>The {@code smartsite.dataDir} property selects the data directory and defaults
- * to {@code data}. A directory lock is held for the session lifetime. Signed-in
- * sessions save current data on normal exit or end of input.
+ * to {@code data}. Signed-in sessions save current data on normal exit or end of input.
  */
 public class Main {
     public static void main(String[] args) {
         Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));
-        try (DataDirectoryLock lock = new DataDirectoryLock(directory);
-            Scanner scanner = new Scanner(System.in)) {
+        try (Scanner scanner = new Scanner(System.in)) {
             ConsoleScreen.attach(scanner);
             SiteManagerController controller = new SiteManagerController(directory);
             String startupFailure = "";
@@ -45,14 +42,13 @@ public class Main {
                         if (!controller.isDataReady()) {
                             if (isAdministrator(authentication)) {
                                 ConsoleTheme.error(startupFailure);
-                                ConsoleTheme.warning("Open menu 11 - CSV validation. Business actions are blocked.");
                             } else {
                                 ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
                             }
                         }
                     }
                     MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-12): ", 12);
+                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-13): ", 13);
                     ConsoleScreen.begin();
                     switch (choice) {
                         case 1:
@@ -92,30 +88,29 @@ public class Main {
                             }
                             break;
                         case 6:
-                            accounts.handleMenu(scanner);
+                            workspace.review(scanner);
                             break;
                         case 7:
-                            accounts.changeOwnPassword(scanner);
+                            workspace.attendanceReport(scanner);
                             break;
                         case 8:
+                            workspace.incidentReport(scanner);
+                            break;
+                        case 9:
+                            accounts.handleMenu(scanner);
+                            break;
+                        case 10:
+                            accounts.changeOwnPassword(scanner);
+                            break;
+                        case 11:
+                        case 12:
+                        case 13:
                             if (controller.isDataReady()) {
                                 controller.saveAllData();
                             }
                             authentication.logout();
                             ConsoleScreen.identityBoundary();
                             ConsoleTheme.success("Signed out.");
-                            break;
-                        case 9:
-                            workspace.logs(scanner);
-                            break;
-                        case 10:
-                            workspace.notifications(scanner);
-                            break;
-                        case 11:
-                            workspace.review(scanner);
-                            break;
-                        case 12:
-                            workspace.reports(scanner);
                             break;
                         case 0:
                             if (controller.isDataReady()) {
@@ -149,14 +144,6 @@ public class Main {
                     } else {
                         ConsoleTheme.error(e.getMessage());
                     }
-                }
-                if (isAdministrator(authentication)
-                        && !authentication.getActivityLog().getLastWriteError().isEmpty()) {
-                    ConsoleTheme.warning("Activity log was not saved; the business result is unchanged.");
-                }
-                if (isAdministrator(authentication)
-                        && !authentication.getNotifications().getLastWriteError().isEmpty()) {
-                    ConsoleTheme.warning("Notification storage failed; the business result is unchanged.");
                 }
             }
         } catch (Exception e) {

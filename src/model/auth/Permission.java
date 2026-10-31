@@ -1,4 +1,4 @@
-package model;
+package model.auth;
 
 /**
  * Identifies application operations that can be granted to a login account.

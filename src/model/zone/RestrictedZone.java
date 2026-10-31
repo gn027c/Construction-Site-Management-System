@@ -1,9 +1,10 @@
-package model;
+package model.zone;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+import model.person.Person;
 
 /**
  * Represents a zone requiring explicit permission and a safety credential.

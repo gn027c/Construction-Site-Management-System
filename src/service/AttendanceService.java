@@ -1,6 +1,6 @@
 package service;
 
-import model.AttendanceRecord;
+import model.attendance.AttendanceRecord;
 import repository.AttendanceRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,7 +77,7 @@ public class AttendanceService {
         }
         String cleanPersonCode = util.IdentifierHelper.normalize(personCode, "personCode");
         String cleanZoneId = util.IdentifierHelper.normalize(zoneId, "zoneId");
-        model.Person person = personnelService.findPersonByCode(cleanPersonCode);
+        model.person.Person person = personnelService.findPersonByCode(cleanPersonCode);
         zoneService.findZoneById(cleanZoneId);
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
             if (!person.isActive()) {

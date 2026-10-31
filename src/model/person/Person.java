@@ -1,6 +1,6 @@
-package model;
+package model.person;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 
 /**
  * Defines identity, contact details and polymorphic behavior for site personnel.
@@ -77,6 +77,14 @@ public abstract class Person {
      * Evaluates the subtype-specific credential rule used by restricted zones.
      */
     public abstract boolean hasValidSafetyCredential();
+
+    /**
+     * Determines whether an authentication account should be provisioned for this person.
+     * By default, returns true for workforce personnel and false for temporary visitors.
+     */
+    public boolean shouldProvisionAccount() {
+        return role != Role.VISITOR;
+    }
 
     /**
      * Serializes common personnel columns, subtype data and active status.

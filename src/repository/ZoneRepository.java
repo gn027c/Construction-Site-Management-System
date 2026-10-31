@@ -2,8 +2,8 @@ package repository;
 
 import exception.DuplicateZoneIdException;
 import exception.ZoneNotFoundException;
-import model.RestrictedZone;
-import model.Zone;
+import model.zone.RestrictedZone;
+import model.zone.Zone;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

@@ -1,9 +1,9 @@
 package controller;
 
-import model.Incident;
+import model.incident.Incident;
 import service.IncidentService;
 import service.AuthenticationService;
-import model.Permission;
+import model.auth.Permission;
 import view.MenuView;
 import util.InputHelper;
 import java.util.Scanner;
@@ -35,12 +35,18 @@ public class IncidentController {
                     break;
                 case 2:
                 case 6:
-                    view.ListView.show(scanner, "INCIDENTS", site.incidents(choice == 6),
-                            Incident::toString, Incident::toString,
+                    view.ListView.showTable(
+                            scanner,
+                            "INCIDENTS",
+                            site.incidents(choice == 6),
+                            view.IncidentView.TABLE_HEADERS,
+                            view.IncidentView::tableRow,
+                            view.IncidentView::formatSummary,
                             java.util.Comparator.comparing(
                                     Incident::getIncidentId, util.IdentifierHelper.NATURAL_ORDER
                             ),
-                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list."));
+                            event -> site.getAuthentication().audit(event, "LIST", "", "SUCCESS", "Navigated list.")
+                    );
                     break;
                 case 3:
                     authentication.require(Permission.ASSIGN_INCIDENTS);
@@ -51,6 +57,11 @@ public class IncidentController {
                     resolveIncidentFlow(scanner);
                     break;
                 case 5:
+                    authentication.require(Permission.PURGE_INCIDENTS);
+                    if (!InputHelper.confirm(scanner, "Are you sure you want to archive all resolved incidents?")) {
+                        view.ConsoleTheme.warning("Archiving cancelled.");
+                        break;
+                    }
                     view.ConsoleTheme.success("Archived " + site.archiveIncidents() + " resolved incidents.");
                     break;
                 case 0:
@@ -60,8 +71,9 @@ public class IncidentController {
     }
 
     private void reportIncidentFlow(Scanner scanner) {
-        view.ConsoleTheme.title("REPORT NEW INCIDENT");
-        String id = InputHelper.getString(scanner, "Enter Incident ID (e.g., INC001): ");
+        view.ConsoleTheme.breadcrumb("INCIDENTS / REPORT NEW INCIDENT");
+        String defaultId = site.suggestNextIncidentId();
+        String id = getValidatedIncidentId(scanner, defaultId);
         String title = InputHelper.getString(scanner, "Enter Incident Title: ");
         String description = InputHelper.getString(scanner, "Enter Incident Description: ");
         System.out.println("Select Severity Level:");
@@ -90,8 +102,27 @@ public class IncidentController {
     }
 
     private void assignIncidentFlow(Scanner scanner) {
-        System.out.println("\n--- ASSIGN INCIDENT HANDLER ---");
+        view.ConsoleTheme.breadcrumb("INCIDENTS / ASSIGN HANDLER");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
+        Incident target = site.incidents(false).stream()
+                .filter(i -> i.getIncidentId().equalsIgnoreCase(incidentId))
+                .findFirst().orElse(null);
+        if (target == null) {
+            view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
+            return;
+        }
+        if (target.getStatus() == Incident.IncidentStatus.RESOLVED) {
+            view.ConsoleTheme.warning("Incident '" + incidentId + "' is already resolved.");
+            return;
+        }
+        java.util.List<model.person.Person> activePeople = site.candidateAssignees().stream()
+                .filter(model.person.Person::isActive)
+                .collect(java.util.stream.Collectors.toList());
+        if (!activePeople.isEmpty()) {
+            System.out.println("Available assignees: " + activePeople.stream()
+                    .map(p -> p.getCode() + " (" + p.getName() + " - " + p.getRole() + ")")
+                    .collect(java.util.stream.Collectors.joining(", ")));
+        }
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
         try {
             if (site.assignIncident(incidentId, assigneeCode)) {
@@ -105,12 +136,43 @@ public class IncidentController {
     }
 
     private void resolveIncidentFlow(Scanner scanner) {
-        System.out.println("\n--- RESOLVE INCIDENT ---");
+        view.ConsoleTheme.breadcrumb("INCIDENTS / RESOLVE INCIDENT");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
+        Incident target = site.incidents(false).stream()
+                .filter(i -> i.getIncidentId().equalsIgnoreCase(incidentId))
+                .findFirst().orElse(null);
+        if (target == null) {
+            view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
+            return;
+        }
+        if (target.getStatus() != Incident.IncidentStatus.ASSIGNED) {
+            view.ConsoleTheme.warning("Only ASSIGNED incidents can be resolved. Current status: " + target.getStatus());
+            return;
+        }
         if (site.resolveIncident(incidentId)) {
             view.ConsoleTheme.success("Incident resolved.");
         } else {
             view.ConsoleTheme.warning("Invalid incident ID.");
+        }
+    }
+
+    private String getValidatedIncidentId(Scanner scanner, String defaultId) {
+        while (true) {
+            String input = InputHelper.readLine(scanner, "Enter Incident ID (e.g., " + defaultId + ", blank for default): ").trim();
+            if (input.isEmpty()) {
+                input = defaultId;
+            }
+            try {
+                String normalized = util.IdentifierHelper.normalize(input, "incidentId");
+                boolean duplicate = site.incidents(true).stream().anyMatch(i -> i.getIncidentId().equalsIgnoreCase(normalized));
+                if (duplicate) {
+                    view.ConsoleTheme.warning("Incident ID '" + normalized + "' already exists. Please choose a different ID.");
+                    continue;
+                }
+                return normalized;
+            } catch (exception.DataValidationException e) {
+                view.ConsoleTheme.warning("Invalid incident ID: " + e.getMessage());
+            }
         }
     }
 }

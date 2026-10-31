@@ -14,17 +14,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import model.Account;
-import model.AttendanceRecord;
-import model.Contractor;
-import model.Incident;
-import model.Permission;
-import model.Person;
-import model.RestrictedZone;
-import model.Staff;
-import model.Visitor;
-import model.Worker;
-import model.Zone;
+import model.attendance.AttendanceRecord;
+import model.auth.Account;
+import model.auth.Permission;
+import model.incident.Incident;
+import model.person.Contractor;
+import model.person.Person;
+import model.person.Staff;
+import model.person.Visitor;
+import model.person.Worker;
+import model.zone.RestrictedZone;
+import model.zone.Zone;
+
 
 /**
  * Converts old business CSV schemas and optional accounts into a new directory.

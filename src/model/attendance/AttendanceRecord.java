@@ -1,6 +1,6 @@
-package model;
+package model.attendance;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
 
 /**
  * Represents one check-in or check-out for a person at a zone.

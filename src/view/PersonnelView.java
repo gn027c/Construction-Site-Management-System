@@ -1,20 +1,57 @@
 package view;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
-import model.Contractor;
-import model.Person;
-import model.Staff;
-import model.Visitor;
-import model.Worker;
+import model.person.Contractor;
+import model.person.Person;
+import model.person.Staff;
+import model.person.Visitor;
+import model.person.Worker;
 
 /**
  * Renders personnel fields consistently for searchable lists and detail screens.
  * Personnel types describe people independently of account permissions.
  */
 public final class PersonnelView {
+    public static final List<String> TABLE_HEADERS = Arrays.asList(
+            "ID", "Code", "Name", "Phone", "Type", "Status", "Safety", "Details"
+    );
+
     private PersonnelView() {
+    }
+
+    public static List<String> tableRow(Person person) {
+        String details;
+        if (person instanceof Worker) {
+            Worker w = (Worker) person;
+            details = w.getTrade() + (w.getAssignedTeam().isEmpty() ? "" : " (" + w.getAssignedTeam() + ")")
+                    + (w.getSafetyCertId().isEmpty() ? "" : " [" + w.getSafetyCertId() + "]");
+        } else if (person instanceof Staff) {
+            Staff s = (Staff) person;
+            details = s.getPosition() + (s.getSafetyCertId().isEmpty() ? "" : " [" + s.getSafetyCertId() + "]");
+        } else if (person instanceof Contractor) {
+            Contractor c = (Contractor) person;
+            details = c.getCompanyName() + (c.getContractId().isEmpty() ? "" : " (" + c.getContractId() + ")");
+        } else if (person instanceof Visitor) {
+            Visitor v = (Visitor) person;
+            details = (v.getPurpose().isEmpty() ? "Visit" : v.getPurpose())
+                    + (v.getHostPersonName().isEmpty() ? "" : " [Host: " + v.getHostPersonName() + "]");
+        } else {
+            details = "";
+        }
+        return Arrays.asList(
+                person.getId(),
+                person.getCode(),
+                person.getName(),
+                person.getPhoneNumber(),
+                person.getRole().name(),
+                person.isActive() ? "Active" : "Inactive",
+                person.hasValidSafetyCredential() ? "Yes" : "No",
+                details
+        );
     }
 
     public static String formatSummary(Person person) {

@@ -1,6 +1,7 @@
-package model;
+package model.zone;
 
-import static model.ModelValidation.*;
+import static model.common.ModelValidation.*;
+import model.person.Person;
 
 /**
  * Represents a regular site zone with a fixed identifier and a validated name.

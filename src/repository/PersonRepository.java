@@ -2,7 +2,7 @@ package repository;
 
 import exception.DuplicatePersonCodeException;
 import exception.PersonNotFoundException;
-import model.Person;
+import model.person.Person;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -103,22 +103,22 @@ public class PersonRepository {
                 Person person;
                 switch (p[0]) {
                     case "WORKER":
-                        person = new model.Worker(p[1], p[2], p[3], p[4], p[7], p[6], p[8]);
+                        person = new model.person.Worker(p[1], p[2], p[3], p[4], p[7], p[6], p[8]);
                         break;
                     case "CONTRACTOR":
                         if (!p[8].isEmpty()) {
                             return false;
                         }
-                        person = new model.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
+                        person = new model.person.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
                         break;
                     case "VISITOR":
-                        person = new model.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
+                        person = new model.person.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
                         break;
                     case "STAFF":
                         if (!p[8].isEmpty()) {
                             return false;
                         }
-                        person = new model.Staff(p[1], p[2], p[3], p[4], p[7], p[6]);
+                        person = new model.person.Staff(p[1], p[2], p[3], p[4], p[7], p[6]);
                         break;
                     default:
                         return false;

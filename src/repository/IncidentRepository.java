@@ -1,6 +1,6 @@
 package repository;
 
-import model.Incident;
+import model.incident.Incident;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +9,7 @@ import java.util.List;
  *
  * <p>Incident identifiers are compared without case. CSV loading validates a
  * separate collection before replacing active data. Lifecycle rules remain
- * in {@link model.Incident}.
+ * in {@link model.incident.Incident}.
  */
 public class IncidentRepository {
     private final List<Incident> incidentList = new ArrayList<>();

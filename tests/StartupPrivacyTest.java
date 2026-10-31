@@ -1,11 +1,12 @@
 import static support.Checks.*;
 
+import exception.AccessDeniedException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import model.Account;
+import model.auth.Account;
 import service.AuthenticationService;
 
 public class StartupPrivacyTest {
@@ -14,13 +15,18 @@ public class StartupPrivacyTest {
         for (String file : Arrays.asList("persons.csv", "zones.csv", "attendance.csv", "incidents.csv")) {
             Files.copy(Paths.get("data", file), root.resolve(file));
         }
+        util.CsvHelper.writeAllLines(root.resolve("attendance.csv").toString(), Arrays.asList(
+                "recordId,personCode,zoneId,timestamp,checkType",
+                "ATT1,W1,Z1,2026-10-12 07:30:00,CHECK_IN",
+                "ATT6,W1,Z3,2026-10-12 08:15:00,CHECK_IN"
+        ));
         return root;
     }
 
     private static void assertPrivate(String output) {
         for (String secret : Arrays.asList(
                 "Invalid attendance history", "Invalid attendance.csv", "Business data rejected", "CSV issues", "ATT6", "ATT8",
-                "previous=", "Activity log was not saved", "Notification storage failed"
+                "previous="
         )) {
             require(!output.contains(secret));
         }
@@ -52,7 +58,7 @@ public class StartupPrivacyTest {
         test("Admin receives diagnostics only after successful sign-in and can review records", () -> {
             Path root = invalidHistory();
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n11\n1\n0\n0\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n6\n1\n0\n0\n0\n", 0, false);
             int signedIn = output.indexOf("Signed in as admin");
             require(signedIn >= 0);
             assertPrivate(output.substring(0, signedIn));
@@ -64,16 +70,16 @@ public class StartupPrivacyTest {
             Path root = invalidHistory();
             createWorker(root);
             String output = ConsoleTest.launchRaw(
-                    root, "worker\nsecret\n3\n4\n11\n9\n10\n0\n\n0\n", 0, false
+                    root, "worker\nsecret\n3\n4\n6\n11\n12\n0\n\n0\n", 0, false
             );
             assertPrivate(output);
             require(output.contains("Service temporarily unavailable"));
-            require(!output.contains("[11] CSV validation"));
+            require(!output.contains("[6] CSV validation"));
         });
         test("Logout does not repeat administrator diagnostics to the next personal session", () -> {
             Path root = invalidHistory();
             createWorker(root);
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n8\nworker\nsecret\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n13\nworker\nsecret\n0\n", 0, false);
             assertPrivate(output.substring(output.indexOf("Signed out.")));
         });
         test("Anonymous fatal startup errors do not disclose credential filenames or paths", () -> {
@@ -83,18 +89,6 @@ public class StartupPrivacyTest {
             require(output.contains("Session unavailable. Contact an administrator."));
             require(!output.contains("accounts.csv"));
             require(!output.contains(root.toString()));
-        });
-        test("Audit failure details reach admins but ordinary actors receive a generic result", () -> {
-            Path root = Files.createTempDirectory("smartsite-private-audit-");
-            AuthenticationService auth = createWorker(root);
-            auth.login("worker", "secret");
-            auth.audit("TEST", "MENU", "", "FAILED", "Internal CSV issue ATT6 previous=ATT1");
-            for (model.Notification message : auth.getNotifications().listMine(auth)) {
-                require(!message.getMessage().contains("Internal CSV issue"));
-            }
-            auth.login("admin", "admin");
-            require(auth.getNotifications().listMine(auth).stream()
-                    .anyMatch(message -> message.getMessage().contains("Internal CSV issue")));
         });
         finish();
     }

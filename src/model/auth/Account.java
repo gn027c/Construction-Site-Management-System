@@ -1,4 +1,4 @@
-package model;
+package model.auth;
 
 import exception.DataValidationException;
 import java.util.EnumSet;
@@ -44,7 +44,10 @@ public final class Account {
                             Permission.RESOLVE_INCIDENTS
                     );
                 case SITE_USER:
-                    return EnumSet.of(Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE);
+                    return EnumSet.of(
+                            Permission.RECORD_OWN_ATTENDANCE, 
+                            Permission.VIEW_OWN_ATTENDANCE
+                    );
                 default:
                     throw new IllegalStateException("Unsupported account role.");
             }
@@ -52,23 +55,31 @@ public final class Account {
     }
 
     private final String username;
-    private final String passwordHash;
+    private final String password;
     private final Role role;
     private final boolean enabled;
     private final Set<Permission> permissions;
     private final String personCode;
+    private final boolean mustChangePassword;
 
-    public Account(String username, String passwordHash, Role role, boolean enabled, Set<Permission> permissions) {
-        this(username, passwordHash, role, enabled, permissions, "");
+    public Account(String username, String password, Role role, boolean enabled, Set<Permission> permissions) {
+        this(username, password, role, enabled, permissions, "", true);
     }
 
     public Account(
-            String username, String passwordHash, Role role, boolean enabled,
+            String username, String password, Role role, boolean enabled,
             Set<Permission> permissions, String personCode
     ) {
+        this(username, password, role, enabled, permissions, personCode, true);
+    }
+
+    public Account(
+            String username, String password, Role role, boolean enabled,
+            Set<Permission> permissions, String personCode, boolean mustChangePassword
+    ) {
         this.username = normalizeUsername(username);
-        if (!PasswordHelper.isValidHash(passwordHash)) {
-            throw new DataValidationException("passwordHash", "Must be a supported password hash.");
+        if (!PasswordHelper.isValidHash(password)) {
+            throw new DataValidationException("password", "Must contain between 1 and 128 characters.");
         }
         if (role == null || permissions == null || permissions.contains(null)) {
             throw new DataValidationException("account", "Role and permissions must not be null.");
@@ -83,12 +94,13 @@ public final class Account {
                 || validated.contains(Permission.REVIEW_ATTENDANCE))) {
             throw new DataValidationException("permissions", "Account administration requires the ADMIN role.");
         }
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.role = role;
         this.enabled = enabled;
         this.permissions = validated;
         this.personCode = personCode == null || personCode.trim().isEmpty()
                 ? "" : util.IdentifierHelper.normalize(personCode);
+        this.mustChangePassword = mustChangePassword;
         if (role == Role.SITE_USER && this.personCode.isEmpty()) {
             throw new DataValidationException("personCode", "A site user must be linked to a person.");
         }
@@ -98,8 +110,8 @@ public final class Account {
     }
 
     public static String normalizeUsername(String username) {
-        String normalized = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
-        if (!normalized.matches("[a-z0-9_.-]{3,32}")) {
+        String normalized = username == null ? "" : username.trim();
+        if (!normalized.matches("[a-zA-Z0-9_.-]{3,32}")) {
             throw new DataValidationException("username", "Use 3 to 32 letters, digits, dots, underscores or hyphens.");
         }
         return normalized;
@@ -109,8 +121,12 @@ public final class Account {
         return username;
     }
 
+    public String getPassword() {
+        return password;
+    }
+
     public String getPasswordHash() {
-        return passwordHash;
+        return password;
     }
 
     public Role getRole() {
@@ -121,8 +137,16 @@ public final class Account {
         return personCode;
     }
 
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public boolean mustChangePassword() {
+        return mustChangePassword;
+    }
+
     public Account withPersonCode(String code) {
-        return new Account(username, passwordHash, role, enabled, permissions, code);
+        return new Account(username, password, role, enabled, permissions, code, mustChangePassword);
     }
 
     public boolean isEnabled() {
@@ -143,19 +167,27 @@ public final class Account {
         if (nextRole == null) {
             throw new DataValidationException("role", "Must not be null.");
         }
-        return new Account(username, passwordHash, nextRole, enabled, nextRole.defaultPermissions(), personCode);
+        return new Account(username, password, nextRole, enabled, nextRole.defaultPermissions(), personCode, mustChangePassword);
     }
 
     public Account withPermissions(Set<Permission> nextPermissions) {
-        return new Account(username, passwordHash, role, enabled, nextPermissions, personCode);
+        return new Account(username, password, role, enabled, nextPermissions, personCode, mustChangePassword);
     }
 
     public Account withEnabled(boolean nextEnabled) {
-        return new Account(username, passwordHash, role, nextEnabled, permissions, personCode);
+        return new Account(username, password, role, nextEnabled, permissions, personCode, mustChangePassword);
+    }
+
+    public Account withMustChangePassword(boolean nextMustChangePassword) {
+        return new Account(username, password, role, enabled, permissions, personCode, nextMustChangePassword);
     }
 
     public Account withPassword(String password) {
-        return new Account(username, PasswordHelper.hash(password), role, enabled, permissions, personCode);
+        return new Account(username, PasswordHelper.hash(password), role, enabled, permissions, personCode, false);
+    }
+
+    public Account withResetPassword(String password) {
+        return new Account(username, PasswordHelper.hash(password), role, enabled, permissions, personCode, true);
     }
 
     public String toCsvLine() {
@@ -167,7 +199,7 @@ public final class Account {
             names.append(permission.name());
         }
         return CsvHelper.toCsvLine(
-                username, passwordHash, role.name(), Boolean.toString(enabled), names.toString(), personCode
+                username, password, role.name(), Boolean.toString(enabled), names.toString(), personCode
         );
     }
 

@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Scanner;
 import java.util.Set;
-import model.Account;
-import model.Permission;
+import model.auth.Account;
+import model.auth.Permission;
 import service.AuthenticationService;
 import util.InputHelper;
 import view.ConsoleTheme;
@@ -27,12 +27,12 @@ public final class AccountController {
 
     public boolean signIn(Scanner scanner) {
         ConsoleScreen.identityBoundary();
-        ConsoleTheme.title("STAFF SIGN IN");
+        ConsoleTheme.breadcrumb("SECURITY / STAFF SIGN IN");
         int attempt = 0;
         while (attempt < 3) {
             String username;
             try {
-                username = InputHelper.readLine(scanner, "Username (Enter or 0-Exit): ").trim();
+                username = InputHelper.readLine(scanner, "Username (0-Exit): ").trim();
             } catch (exception.InputCancelledException e) {
                 return false;
             }
@@ -66,8 +66,10 @@ public final class AccountController {
     public void handleMenu(Scanner scanner) {
         while (authentication.isLoggedIn()) {
             authentication.require(Permission.MANAGE_ACCOUNTS);
-            ConsoleTheme.menu(
-                    "ACCOUNT ADMINISTRATION", "List accounts", "Create account", "Assign role",
+            ConsoleTheme.menuWithDescription(
+                    "ACCOUNT MANAGEMENT",
+                    "Manage user accounts, system permissions and access credentials.",
+                    "List accounts", "Create account", "Assign role",
                     "Edit permissions", "Enable or disable account", "Reset password", "Link personnel record"
             );
             int choice = InputHelper.getMenuChoice(scanner, "Choice (0-7): ", 7);
@@ -78,20 +80,34 @@ public final class AccountController {
             try {
                 if (choice == 1) {
                     view.ListView.show(scanner, "ACCOUNTS", authentication.listAccounts(),
-                            Account::toString, Account::toString, java.util.Comparator.comparing(Account::getUsername),
+                            a -> a.getUsername() + " | " + a.getRole() + " | " + (a.isEnabled() ? "Enabled" : "Disabled")
+                                    + " | Person: " + (a.getPersonCode().isEmpty() ? "(None)" : a.getPersonCode())
+                                    + " | " + (a.getRole() == Account.Role.ADMIN ? "ALL (17 permissions)" : a.getPermissions()),
+                            Account::toString, java.util.Comparator.comparing(Account::getUsername),
                             event -> authentication.audit(event, "LIST", "", "SUCCESS", "Navigated list."));
                     continue;
                 }
+                if (choice == 2) {
+                    String username = InputHelper.getString(scanner, "Account username: ");
+                    if (authentication.listAccounts().stream().anyMatch(a -> a.getUsername().equalsIgnoreCase(username))) {
+                        ConsoleTheme.error("Username already in use.");
+                        continue;
+                    }
+                    Account.Role role = selectRole(scanner);
+                    String code = "";
+                    if (role != Account.Role.ADMIN) {
+                        code = InputHelper.getString(scanner, "Linked person code: ");
+                    }
+                    authentication.createAccount(username, confirmedPassword(scanner), role, code);
+                    ConsoleTheme.success("Account saved.");
+                    continue;
+                }
                 String username = InputHelper.getString(scanner, "Account username: ");
+                if (authentication.listAccounts().stream().noneMatch(a -> a.getUsername().equalsIgnoreCase(username))) {
+                    ConsoleTheme.error("Account does not exist.");
+                    continue;
+                }
                 switch (choice) {
-                    case 2:
-                        Account.Role role = selectRole(scanner);
-                        String code = "";
-                        if (role != Account.Role.ADMIN) {
-                            code = InputHelper.getString(scanner, "Linked person code: ");
-                        }
-                        authentication.createAccount(username, confirmedPassword(scanner), role, code);
-                        break;
                     case 3:
                         authentication.changeRole(username, selectRole(scanner));
                         break;
