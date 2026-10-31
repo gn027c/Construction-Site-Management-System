@@ -65,7 +65,7 @@ lớn càng tốt":
 ## Thứ tự nhiệm vụ tiếp theo
 
 1. **Đồng bộ hồ sơ nộp bài:** cập nhật Workshop 6 và Final Report, hai AI Audit
-   Log theo code hiện tại (271 ca kiểm thử, cấp an toàn, ngày hẹn, gỡ PBKDF2,
+   Log theo code hiện tại (267 ca kiểm thử, bỏ menu CSV validation, cấp an toàn, ngày hẹn, gỡ PBKDF2,
    atomic move, activity log, thông báo và migration). Render lại DOCX/PDF.
 2. **Slide thuyết trình Final** sau khi hồ sơ đã khớp code.
 3. **Nếu mở rộng triển khai:** SQLite cho một máy hoặc DB server cho nhiều

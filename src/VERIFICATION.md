@@ -6,7 +6,7 @@ uses CSV storage and console/terminal interaction.
 ## Automated verification
 
 Run `./scripts/test.ps1` from the project root. The latest complete run passed
-**271 checks in 27 suites, with zero failures**. The original workshop matrix
+**267 checks in 26 suites, with zero failures**. The original workshop matrix
 (`HistoricalMatrixTest`) accounts for 25 of these checks.
 
 | Suite | Passed |
@@ -20,7 +20,6 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
 | CsvPersistenceTest | 10 |
-| CsvValidationConsoleTest | 4 |
 | DateTimeHelperTest | 4 |
 | DomainBehaviorTest | 12 |
 | DomainViewsTest | 7 |
@@ -38,7 +37,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | VisitorDateTest | 11 |
 | WorkflowIntegrationTest | 9 |
 | ZoneTest | 12 |
-| Total | 271 |
+| Total | 267 |
 
 What the newer checks cover:
 
@@ -59,12 +58,16 @@ What the newer checks cover:
 - Privacy: anonymous output for healthy and rejected business data, administrator-
   only diagnostics, personal accounts trying hidden menu numbers, and fatal
   credential errors.
+- Rejected data: a reload of a still-invalid file keeps data blocked and leaves the
+  source bytes unchanged; a corrected file reloads and activates the data.
+- Certificates: only numbers ending in `_SAFE` are valid, and a worker may be
+  registered without a certificate.
 
 ## Terminal walkthrough
 
 On a copy of the shipped `data/` directory, `admin`/`admin` signed in, the home
-menu showed options 0-11 including menu 6 (CSV validation), and business data
-loaded without rejection. Through menu 3, option 1:
+menu showed options 0-10, and business data loaded without rejection. Through
+menu 3, option 1:
 
 | Swipe | Result |
 | --- | --- |

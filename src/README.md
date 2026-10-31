@@ -136,12 +136,11 @@ because nothing prevents two sessions from overwriting each other's files.
 | 3 | Attendance | any attendance permission |
 | 4 | Safety incidents | any incident permission |
 | 5 | CSV data and export (reload, save, export) | RELOAD_DATA or EXPORT_REPORTS |
-| 6 | CSV validation (read only) | ADMIN |
-| 7 | Attendance report | EXPORT_REPORTS |
-| 8 | Incident report | EXPORT_REPORTS |
-| 9 | Manage accounts | ADMIN |
-| 10 | Change my password | everyone |
-| 11 | Sign out | everyone |
+| 6 | Attendance report | EXPORT_REPORTS |
+| 7 | Incident report | EXPORT_REPORTS |
+| 8 | Manage accounts | ADMIN |
+| 9 | Change my password | everyone |
+| 10 | Sign out | everyone |
 | 0 | Save and exit | everyone |
 
 Hidden numbers are still checked at the service boundary, so typing a number
@@ -168,14 +167,15 @@ passwords close the sign-in screen.
 
 ## People, accounts and permissions
 
-Person subclasses are `Worker`, `Staff`, `Contractor` and `Visitor`. Staff have a
-required position and an optional safety certificate. They follow the same
-check-in, check-out and zone rules as other personnel. Their position alone does
-not grant application access. Personnel can be deactivated; an inactive person
+Person subclasses are `Worker`, `Staff`, `Contractor` and `Visitor`. Workers have a
+required trade and team; staff have a required position. Both have an optional safety
+certificate: a worker waiting for training has none and cannot enter restricted zones.
+Staff follow the same check-in, check-out and zone rules as other personnel; their
+position alone does not grant application access. Personnel can be deactivated; an inactive person
 cannot check in again but can check out of an already-open visit.
 
 Accounts are separate from people. A person can be linked to at most one account.
-Menu 9 creates accounts, assigns roles and permissions, changes account status,
+Menu 8 creates accounts, assigns roles and permissions, changes account status,
 resets passwords and links personnel. Adding a worker, staff member or contractor
 also creates a linked account named from the person's name and code (for example
 `LoiNTW99`) with the initial password `0`; staff whose position mentions safety
@@ -184,7 +184,7 @@ SITE_USER. Visitors get no account.
 
 | Account role | Default access |
 | --- | --- |
-| ADMIN | Everything, including account administration and read-only CSV validation |
+| ADMIN | Everything, including account administration |
 | SITE_MANAGER | Personnel and zones, attendance and incident viewing, occupancy, reports, personal attendance |
 | SAFETY_OFFICER | Incident reporting, assignment and resolution, occupancy, personal attendance |
 | SITE_USER | Personal attendance and personal attendance history |
@@ -192,7 +192,7 @@ SITE_USER. Visitors get no account.
 Personal attendance derives identity from the signed-in account; it never accepts
 a substitute person code. Staff accounts without a personnel link can still use
 their management operations but must be linked before using personal attendance.
-Account administration and CSV validation cannot be granted to non-admin roles.
+Account administration cannot be granted to non-admin roles.
 No account can bypass attendance order, restricted-zone rules or visit dates.
 
 Passwords are stored as plain text in `accounts.csv`, which Git and business
@@ -256,7 +256,7 @@ A denied check-in names the first rule that failed, for example
 the add and edit forms ask for the level only when the credential is valid.
 Visitors are always `NONE`.
 
-## Attendance, visit dates and CSV validation
+## Attendance, visit dates and rejected data
 
 The attendance menu (3) offers staff entry and history at options 1/2, personal
 entry and history at 3/4, and occupancy at 5/6. Staff entry on behalf of others
@@ -281,19 +281,19 @@ next start then rejects it instead of guessing the missing rows.
 
 Attendance fields cannot be edited after construction. CSV loading validates the
 whole staged history before replacing active records, stopping at the first
-invalid row. Saving the complete business set checks history before writing any
-business file.
+invalid row. Because every load and every new swipe is checked, the history in
+memory is always valid, and writing `attendance.csv` checks it once more.
 
 Occupancy is derived from the last successful swipe for each person, including
 inactive people who have not checked out. Global occupancy requires its own
 permission; personal occupancy includes only the linked person.
 
-Menu 6 is read-only CSV validation. It displays rejected-row diagnostics and never
-edits attendance or guesses missing checkouts. A failed reload retains active data.
-Invalid startup data leaves business operations blocked, and the administrator is
-pointed to menu 6. Only a signed-in administrator sees diagnostics; other accounts
-receive a generic availability message. Correct a source file outside the
-application using verified information, then reload it or run validation again.
+Invalid startup data leaves business operations blocked; nothing is repaired or
+guessed. After signing in, an administrator sees the first rejected file and row
+(for example `Invalid attendance.csv: row 7 / ATT6: ...`); other accounts receive a
+generic availability message. Correct the source file outside the application using
+verified information, then reload it with menu 5, option 1. A reload that still
+fails keeps the data blocked, and a failed reload of active data retains it.
 To work with an empty registry independently of the sample, use
 `./scripts/run.ps1 -DataDirectory D:/SmartSiteData` with a new directory. A CSV
 inconsistency is not proof of misconduct.
@@ -310,7 +310,7 @@ Incident menu option 5 archives resolved incidents instead of deleting history;
 option 6 includes archived records. Archived incidents remain in reports. Resolving
 an incident stamps its resolution time; reporting stamps its creation time.
 
-Menus 7 and 8 generate attendance and incident summaries by day, Monday-based week
+Menus 6 and 7 generate attendance and incident summaries by day, Monday-based week
 or calendar month, with inclusive from/to dates. Attendance reports can filter
 person and zone; incident reports include unknown historical dates in a separate
 row. Exports contain the filtered report and do not include accounts. Menu 5

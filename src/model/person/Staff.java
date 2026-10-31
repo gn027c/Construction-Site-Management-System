@@ -13,7 +13,7 @@ public class Staff extends Person {
     public Staff(String id, String code, String name, String phoneNumber, String position, String safetyCertId) {
         super(id, code, name, phoneNumber, Role.STAFF);
         this.position = requiredText(position, "position");
-        this.safetyCertificate = SafetyCertificate.fromRaw(optionalText(safetyCertId));
+        this.safetyCertificate = new SafetyCertificate(optionalText(safetyCertId));
     }
 
     public Staff(String id, String code, String name, String phoneNumber, String position, SafetyCertificate safetyCertificate) {
@@ -35,7 +35,7 @@ public class Staff extends Person {
     }
 
     public void setSafetyCertId(String safetyCertId) {
-        this.safetyCertificate = SafetyCertificate.fromRaw(optionalText(safetyCertId));
+        this.safetyCertificate = new SafetyCertificate(optionalText(safetyCertId));
     }
 
     public SafetyCertificate getSafetyCertificate() {

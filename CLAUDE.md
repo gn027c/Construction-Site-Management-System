@@ -35,7 +35,7 @@ things to keep in sync: the **code**, the **Project Report** and the **AI Audit 
 
 Layered flow: **Main -> controller -> service -> repository -> CSV** (`util.CsvHelper`).
 
-- `Main` only signs in, shows `MenuView.showMainMenu` (home menu 0-11) and dispatches menu numbers
+- `Main` only signs in, shows `MenuView.showMainMenu` (home menu 0-10) and dispatches menu numbers
   to `SiteManagerController` (facade). The facade owns the four business services (personnel, zone,
   attendance, incident), the per-module controllers and `AuthenticationService`, and does
   load/save/reload of all data. Every facade operation goes through `operation(permission, body,
@@ -60,8 +60,9 @@ Layered flow: **Main -> controller -> service -> repository -> CSV** (`util.CsvH
 - Attendance write path: validate against the person's previous event -> write the whole
   `attendance.csv` -> add to memory. Files are overwritten directly with `Files.write`; there is no
   atomic move, file lock, `synchronized` or multi-file transaction (single-user console by design).
-- Invalid CSV on startup blocks business operations rather than being repaired; admin menu 6 is
-  read-only validation. Files with an old header or column count are rejected, never converted.
+- Invalid CSV on startup blocks business operations rather than being repaired; the admin sees the
+  first rejected row after sign-in, fixes the file outside the app and reloads with menu 5 -> 1.
+  There is no separate validation menu. Files with an old header or column count are rejected.
   Tests that need files use temp directories or copies of `data/`; the shipped sample must stay valid
   (`ZoneTest` and `HistoricalMatrixTest` read it).
 - Passwords are plain text in `accounts.csv` (git-ignored). There is no activity log, notification

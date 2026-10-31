@@ -5,8 +5,9 @@ import static model.common.ModelValidation.*;
 /**
  * Represents a worker with a trade, safety certificate and assigned team.
  *
- * <p>All worker fields are required. Safety credentials are encapsulated
- * in an immutable {@link SafetyCertificate} Value Object.
+ * <p>Trade and team are required. The safety certificate is optional: a worker
+ * waiting for training has none and cannot enter restricted zones. Credentials are
+ * encapsulated in an immutable {@link SafetyCertificate} value object.
  */
 public class Worker extends Person {
     private String trade;
@@ -24,8 +25,7 @@ public class Worker extends Person {
     ) {
         super(id, code, name, phoneNumber, Role.WORKER);
         this.trade = requiredText(trade, "trade");
-        String certRaw = requiredText(safetyCertId, "safetyCertId");
-        this.safetyCertificate = SafetyCertificate.fromRaw(certRaw);
+        this.safetyCertificate = new SafetyCertificate(optionalText(safetyCertId));
         this.assignedTeam = requiredText(assignedTeam, "assignedTeam");
     }
 
@@ -57,8 +57,7 @@ public class Worker extends Person {
     }
 
     public void setSafetyCertId(String safetyCertId) {
-        String certRaw = requiredText(safetyCertId, "safetyCertId");
-        this.safetyCertificate = SafetyCertificate.fromRaw(certRaw);
+        this.safetyCertificate = new SafetyCertificate(optionalText(safetyCertId));
     }
 
     public SafetyCertificate getSafetyCertificate() {
