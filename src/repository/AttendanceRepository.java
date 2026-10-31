@@ -21,7 +21,7 @@ public class AttendanceRepository {
     /**
      * Stores a record only after its identifier and transition from the previous event are valid.
      */
-    public synchronized boolean save(AttendanceRecord record) {
+    public boolean save(AttendanceRecord record) {
         if (!canAppend(record)) {
             return false;
         }
@@ -48,9 +48,9 @@ public class AttendanceRepository {
 
     /**
      * Validates and persists a candidate before publishing it to readers of this repository.
-     * The same monitor protects validation, file replacement and publication against competing appends.
+     * A failed write leaves the in-memory history unchanged.
      */
-    public synchronized boolean saveAndPersist(AttendanceRecord record, String filePath) {
+    public boolean saveAndPersist(AttendanceRecord record, String filePath) {
         if (!canAppend(record)) {
             return false;
         }
@@ -68,7 +68,7 @@ public class AttendanceRepository {
      *
      * <p>Insertion order defines the preceding swipe. Records are not sorted by timestamp.
      */
-    public synchronized AttendanceRecord findLastByPersonCode(String personCode) {
+    public AttendanceRecord findLastByPersonCode(String personCode) {
         String cleanCode = util.IdentifierHelper.normalizeForLookup(personCode);
         if (cleanCode == null) {
             return null;
@@ -88,11 +88,11 @@ public class AttendanceRepository {
      * <p>Changing the returned list does not change this repository's collection.
      * Stored attendance events are immutable.
      */
-    public synchronized List<AttendanceRecord> findAll() {
+    public List<AttendanceRecord> findAll() {
         return new ArrayList<>(attendanceList);
     }
 
-    public synchronized String getLastLoadError() {
+    public String getLastLoadError() {
         return lastLoadError;
     }
 
@@ -100,7 +100,7 @@ public class AttendanceRepository {
      * Loads CSV into a temporary repository before replacing active data.
      * A read or validation failure returns false and retains the current collection.
      */
-    public synchronized boolean loadFromCsv(String filePath) {
+    public boolean loadFromCsv(String filePath) {
         AttendanceRepository staged = new AttendanceRepository();
         lastLoadError = "";
         String location = "header";
@@ -142,9 +142,9 @@ public class AttendanceRepository {
     }
 
     /**
-     * Serializes current data and requests an atomic replacement of one CSV file.
+     * Serializes current data and overwrites one CSV file.
      */
-    public synchronized boolean saveToCsv(String filePath) {
+    public boolean saveToCsv(String filePath) {
         return writeRecords(filePath, attendanceList);
     }
 

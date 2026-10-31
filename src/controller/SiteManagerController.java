@@ -155,7 +155,7 @@ public class SiteManagerController {
     /**
      * Validates references and saves each of the four CSV files independently.
      *
-     * <p>Each file replacement is atomic, but the complete set is not a transaction.
+     * <p>Each file is overwritten separately; the complete set is not a transaction.
      * A failure may leave some files saved; the exception names the failed files.
      */
     public void saveAllData() throws IOException {
@@ -671,7 +671,7 @@ public class SiteManagerController {
                 existingIds.add(p.getId().toUpperCase());
             }
         }
-        Random random = new java.security.SecureRandom();
+        Random random = new Random();
         String candidate;
         do {
             int num = 10000 + random.nextInt(90000);

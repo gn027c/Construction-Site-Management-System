@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import model.attendance.AttendanceRecord;
 import model.zone.RestrictedZone;
 import model.person.Staff;
@@ -103,37 +101,16 @@ public class IdentifierStaffTest {
             equal("REC1", attendance.getAllAttendanceRecords().get(0).getRecordId());
             equal("REC2", attendance.getAllAttendanceRecords().get(1).getRecordId());
         });
-        test("Competing check-ins share one validation-and-save boundary", () -> {
+        test("A repeated check-in through an alias code is rejected", () -> {
             PersonnelService people = new PersonnelService();
             ZoneService zones = new ZoneService();
             people.addPerson(new Staff("P1", "S1", "Staff", "0901234567", "Manager", ""));
             zones.addZone(new Zone("Z1", "Regular"));
             AttendanceService attendance = new AttendanceService(people, zones);
-            AtomicInteger succeeded = new AtomicInteger();
-            AtomicInteger rejected = new AtomicInteger();
-            CountDownLatch ready = new CountDownLatch(1);
-            Runnable swipe = () -> {
-                try {
-                    ready.await();
-                    if (attendance.recordAttendance("s01", "z01", AttendanceRecord.CheckType.CHECK_IN)) {
-                        succeeded.incrementAndGet();
-                    }
-                } catch (exception.AttendanceOrderException e) {
-                    rejected.incrementAndGet();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            };
-            Thread first = new Thread(swipe);
-            Thread second = new Thread(swipe);
-            first.start();
-            second.start();
-            ready.countDown();
-            first.join(3000);
-            second.join(3000);
-            require(!first.isAlive() && !second.isAlive());
-            equal(1, succeeded.get());
-            equal(1, rejected.get());
+            require(attendance.recordAttendance("s01", "z01", AttendanceRecord.CheckType.CHECK_IN));
+            throwsType(exception.AttendanceOrderException.class, () -> attendance.recordAttendance(
+                    "S1", "Z1", AttendanceRecord.CheckType.CHECK_IN
+            ));
             equal(1, attendance.getAllAttendanceRecords().size());
         });
         test("A timestamp older than the preceding swipe is rejected", () -> {

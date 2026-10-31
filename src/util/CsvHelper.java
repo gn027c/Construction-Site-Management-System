@@ -9,7 +9,7 @@ import java.util.*;
  * Encodes and decodes UTF-8 CSV, including quoted multiline fields.
  *
  * <p>The codec preserves empty fields, commas, escaped quotes and embedded line
- * breaks. Writes use a sibling temporary file followed by atomic replacement.
+ * breaks. Writes overwrite the target file directly.
  */
 public final class CsvHelper {
     public static final String UTF8_BOM = "\uFEFF";
@@ -146,46 +146,24 @@ public final class CsvHelper {
     }
 
     /**
-     * Writes UTF-8 with a byte order mark using a temporary file and atomic replacement.
+     * Writes UTF-8 with a byte order mark, replacing the whole file.
      *
-     * <p>The sibling temporary file is flushed before replacement. If the filesystem
-     * cannot perform an atomic move, the write fails rather than using a non-atomic
-     * fallback. Temporary-file cleanup is attempted on success and failure.
+     * <p>The file is overwritten directly. If the program stops while writing,
+     * the file may be incomplete; the next load then rejects it instead of
+     * guessing the missing rows.
      */
     public static boolean writeAllLines(String filePath, List<String> lines) {
         if (lines == null || lines.contains(null)) {
             return false;
         }
-        Path temporary = null;
         try {
             Path target = Paths.get(filePath).toAbsolutePath();
             Files.createDirectories(target.getParent());
-            temporary = Files.createTempFile(target.getParent(), ".smartsite-", ".tmp");
             byte[] bytes = (UTF8_BOM + String.join("\r\n", lines)).getBytes(StandardCharsets.UTF_8);
-            try (
-                    java.nio.channels.FileChannel channel = java.nio.channels.FileChannel.open(
-                            temporary,
-                            StandardOpenOption.WRITE
-                    )
-            ) {
-                java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
-                while (buffer.hasRemaining()) {
-                    channel.write(buffer);
-                }
-                channel.force(true);
-            }
-            Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(target, bytes);
             return true;
         } catch (IOException | RuntimeException e) {
             return false;
-        } finally {
-            if (temporary != null) {
-                try {
-                    Files.deleteIfExists(temporary);
-                } catch (IOException ignored) {
-                    // Cleanup is best-effort; preserve the write operation result.
-                }
-            }
         }
     }
 }

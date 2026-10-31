@@ -107,7 +107,7 @@ public class IncidentRepository {
     }
 
     /**
-     * Serializes current data and requests an atomic replacement of one CSV file.
+     * Serializes current data and overwrites one CSV file.
      */
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();

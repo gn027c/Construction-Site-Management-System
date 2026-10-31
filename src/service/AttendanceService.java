@@ -57,7 +57,7 @@ public class AttendanceService {
      * <p>Zone access is verified on check-in. The sequence advances only when
      * the repository accepts the new record.
      */
-    public synchronized boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
+    public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
         AttendanceRecord record = createRecord(personCode, zoneId, type);
         if (record == null || !attendanceRepository.save(record)) {
@@ -107,7 +107,7 @@ public class AttendanceService {
      * Commits one validated swipe to CSV before publishing it or consuming its identifier.
      * A failed validation or file replacement leaves the collection and sequence unchanged.
      */
-    public synchronized boolean recordAttendanceAndSave(
+    public boolean recordAttendanceAndSave(
             String personCode, String zoneId, AttendanceRecord.CheckType type, String file
     ) {
         AttendanceRecord record = createRecord(personCode, zoneId, type);
@@ -131,7 +131,7 @@ public class AttendanceService {
         return loadFromCsv("data/attendance.csv");
     }
 
-    public synchronized boolean loadFromCsv(String filePath) {
+    public boolean loadFromCsv(String filePath) {
         boolean loaded = attendanceRepository.loadFromCsv(filePath);
         if (loaded) {
             syncRecordCounter();
@@ -143,7 +143,7 @@ public class AttendanceService {
         return saveToCsv("data/attendance.csv");
     }
 
-    public synchronized boolean saveToCsv(String filePath) {
+    public boolean saveToCsv(String filePath) {
         return attendanceRepository.saveToCsv(filePath);
     }
 
