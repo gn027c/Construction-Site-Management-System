@@ -45,10 +45,7 @@ public class AttendanceController {
                     }
                     String zone = InputHelper.getString(scanner, "Zone ID: ");
                     try {
-                        site.zones().stream()
-                                .filter(z -> z.getZoneId().equalsIgnoreCase(zone))
-                                .findFirst()
-                                .orElseThrow(() -> new exception.ZoneNotFoundException("Zone '" + zone + "' not found."));
+                        site.attendanceZone(zone);
                     } catch (exception.ZoneNotFoundException e) {
                         ConsoleTheme.error(e.getMessage());
                         break;

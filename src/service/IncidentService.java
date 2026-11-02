@@ -59,10 +59,16 @@ public class IncidentService {
         if (personnelService == null) {
             return false;
         }
+        model.person.Person assignee;
         try {
-            personnelService.findPersonByCode(assigneeCode.trim());
+            assignee = personnelService.findPersonByCode(assigneeCode.trim());
         } catch (exception.PersonNotFoundException e) {
             return false;
+        }
+        if (!assignee.canHandleIncidents()) {
+            throw new exception.DataValidationException(
+                    "assignedTo", assignee.getCode() + " cannot handle incidents; choose active site personnel."
+            );
         }
         inc.assignTo(assigneeCode);
         return true;

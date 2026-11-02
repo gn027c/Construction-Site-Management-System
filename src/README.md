@@ -116,7 +116,8 @@ that is not shown is refused.
 
 ## Leaving menus and cancelling input
 
-At navigation menus, Enter or 0 chooses Back; at Home it saves and exits.
+At navigation menus, 0 chooses Back; at Home it saves and exits. A blank menu
+choice is refused with a warning so that a stray Enter never leaves a menu.
 Lists also accept Enter, 0 or `/cancel` to return. At an entry field, `/cancel`
 abandons the current entry and returns to Home. Numeric selections also accept
 Enter to cancel.
@@ -141,6 +142,15 @@ certificate: a worker waiting for training has none and cannot enter restricted 
 Staff follow the same check-in, check-out and zone rules as other personnel; their
 position alone does not grant application access. Personnel can be deactivated; an inactive person
 cannot check in again but can check out of an already-open visit.
+
+Menu 1, option 2 opens a person (`E` in the list) and edits every field except the
+codes: name, phone, then the fields of that type (worker trade, team and certificate;
+staff position and certificate; contractor company and contract; visitor purpose,
+host and visit date), then the safety level when the new credential is valid. Enter
+keeps a value; `-` clears an optional one (a certificate or a visit date). The
+model checks all values before changing any of them, so a rejected edit changes
+nothing. Without a valid credential the safety level returns to `NONE`. Changing a
+staff position does not change the role of the linked account; use menu 8.
 
 Accounts are separate from people. A person can be linked to at most one account.
 Menu 8 creates accounts, assigns roles and permissions, changes account status,
@@ -175,7 +185,8 @@ Stored identifiers use an uppercase prefix and a positive, unpadded number:
 `P1`, `W1`, `S2`, `Z10`, `INC101`, `ATT1`, `REC1`. Input such as `w01`, `W001`
 or `w-001` resolves to `W1`. Prefix-only values, zero and malformed numbers are
 rejected. Natural sorting places `S2` before `S10`. All references, including
-whitelists and linked accounts, use the same normalizer.
+whitelists and linked accounts, use the same normalizer, and so does every
+console prompt for a person, zone or incident code.
 
 The number is limited to nine digits (`999,999,999`), which fits in an `int`.
 That is far more than ten years of use needs: 2,000 people swiping four times a
@@ -213,6 +224,8 @@ admits anyone. A restricted zone requires `LOW`, `MEDIUM`, `HIGH` or `CRITICAL`
 and admits a person only when all three rules hold, checked in this order:
 
 1. The person's code is on the zone's allowed list (menu 2, grant/revoke).
+   Visitors cannot be granted access. A visitor already listed in `zones.csv`
+   is kept on load and can be revoked, but is still refused by rule 2.
 2. The person has a valid credential for their type: a worker or staff
    certificate ending in `_SAFE`, or a contractor contract starting with `CTR-`.
    Visitors never have one.
@@ -223,6 +236,12 @@ A denied check-in names the first rule that failed, for example
 `Safety level HIGH is below the required CRITICAL.` New personnel start at `NONE`;
 the add and edit forms ask for the level only when the credential is valid.
 Visitors are always `NONE`.
+
+Menu 2 option 5 edits a zone: a regular zone changes only its name; a restricted
+zone changes its name and required level (`LOW` to `CRITICAL`). A zone cannot change
+between regular and restricted, and zones are not deleted because attendance
+history refers to them. Granting a listed person or revoking an unlisted one
+reports that nothing changed.
 
 ## Attendance, visit dates and rejected data
 
@@ -273,6 +292,11 @@ F to filter, R to clear filters, D to open a record and 0 to return. Filter term
 combine with AND; identifiers accept canonical aliases. Status words such as
 active/inactive are matched as whole words. Authorization limits the collection
 before searching or paging.
+
+Incident menu option 3 assigns an OPEN incident or reassigns an ASSIGNED one to a
+different person, for example when the handler leaves. Only active personnel who
+are not visitors can handle incidents, and only they are listed. A RESOLVED incident
+cannot be reassigned; the history keeps the final handler only.
 
 Incident menu option 5 archives resolved incidents instead of deleting history;
 option 6 includes archived records. Archived incidents remain in reports. Resolving

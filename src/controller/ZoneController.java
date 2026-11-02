@@ -25,7 +25,7 @@ public class ZoneController {
         site.getAuthentication().require(Permission.MANAGE_ZONES);
         while (true) {
             MenuView.showZoneMenu();
-            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-4): ", 4);
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-5): ", 5);
             view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
@@ -37,6 +37,9 @@ public class ZoneController {
                 case 3:
                 case 4:
                     changeAccessFlow(scanner, choice == 3);
+                    break;
+                case 5:
+                    editZoneFlow(scanner);
                     break;
                 case 0:
                     return;
@@ -55,9 +58,7 @@ public class ZoneController {
                     .collect(java.util.stream.Collectors.joining(", ")));
         }
         String zoneId = InputHelper.getString(scanner, "Zone ID: ");
-        Zone targetZone = site.zones().stream()
-                .filter(z -> z.getZoneId().equalsIgnoreCase(zoneId))
-                .findFirst().orElse(null);
+        Zone targetZone = findZone(zoneId);
         if (targetZone == null) {
             view.ConsoleTheme.error("Zone '" + zoneId + "' not found.");
             return;
@@ -71,21 +72,79 @@ public class ZoneController {
             System.out.println("Currently authorized personnel: " + String.join(", ", rz.getAllowedPersonCodes()));
         }
         String personCode = InputHelper.getString(scanner, "Person code: ");
+        model.person.Person person;
         try {
-            site.person(personCode);
+            person = site.person(personCode);
         } catch (exception.PersonNotFoundException e) {
             view.ConsoleTheme.error(e.getMessage());
             return;
         }
-        if (!grant && !InputHelper.confirm(scanner, "Are you sure you want to revoke access for '" + personCode + "' from zone '" + zoneId + "'?")) {
+        boolean listed = rz.getAllowedPersonCodes().contains(person.getCode());
+        if (grant && listed) {
+            view.ConsoleTheme.warning(person.getCode() + " is already on the allowed list of " + rz.getZoneId() + ".");
+            return;
+        }
+        if (!grant && !listed) {
+            view.ConsoleTheme.warning(person.getCode() + " is not on the allowed list of " + rz.getZoneId() + ".");
+            return;
+        }
+        if (!grant && !InputHelper.confirm(scanner, "Are you sure you want to revoke access for '"
+                + person.getCode() + "' from zone '" + rz.getZoneId() + "'?")) {
             view.ConsoleTheme.warning("Revocation cancelled.");
             return;
         }
-        boolean changed = site.changeAccess(zoneId, personCode, grant);
-        if (changed) {
-            view.ConsoleTheme.success("Access list updated.");
-        } else {
-            view.ConsoleTheme.warning("Choose a restricted zone.");
+        try {
+            site.changeAccess(rz.getZoneId(), person.getCode(), grant);
+            view.ConsoleTheme.success("Access list updated: " + person.getCode()
+                    + (grant ? " granted " : " revoked from ") + rz.getZoneId() + ".");
+        } catch (exception.DataValidationException e) {
+            view.ConsoleTheme.error(e.getMessage());
+        }
+    }
+
+    private Zone findZone(String zoneId) {
+        String key = util.IdentifierHelper.normalizeForLookup(zoneId);
+        return site.zones().stream()
+                .filter(z -> z.getZoneId().equals(key))
+                .findFirst().orElse(null);
+    }
+
+    private void editZoneFlow(Scanner scanner) {
+        view.ConsoleTheme.breadcrumb("ZONES / EDIT ZONE");
+        String zoneId = InputHelper.getString(scanner, "Zone ID: ");
+        Zone zone = findZone(zoneId);
+        if (zone == null) {
+            view.ConsoleTheme.error("Zone '" + zoneId + "' not found.");
+            return;
+        }
+        String name = InputHelper.readLine(scanner, "New Zone Name [" + zone.getZoneName() + "]: ").trim();
+        if (name.isEmpty()) {
+            name = zone.getZoneName();
+        }
+        model.common.SafetyLevel level = model.common.SafetyLevel.NONE;
+        if (zone instanceof RestrictedZone) {
+            level = selectZoneLevel(scanner, ((RestrictedZone) zone).getRequiredSafetyLevel());
+        }
+        try {
+            site.updateZone(zone.getZoneId(), name, level);
+            view.ConsoleTheme.success("Zone " + zone.getZoneId() + " updated.");
+        } catch (exception.DataValidationException e) {
+            view.ConsoleTheme.error(e.getMessage());
+        }
+    }
+
+    private model.common.SafetyLevel selectZoneLevel(Scanner scanner, model.common.SafetyLevel current) {
+        model.common.SafetyLevel[] levels = model.common.SafetyLevel.values();
+        System.out.println("Required safety level: 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");
+        while (true) {
+            String input = InputHelper.readLine(scanner, "Choice (1-4) [" + current + "]: ").trim();
+            if (input.isEmpty()) {
+                return current;
+            }
+            if (input.matches("[1-4]")) {
+                return levels[Integer.parseInt(input)];
+            }
+            view.ConsoleTheme.warning("Choose a number from 1 to 4, or press Enter to keep " + current + ".");
         }
     }
 

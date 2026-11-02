@@ -51,6 +51,21 @@ public class ZoneService {
         return false;
     }
 
+    public boolean grantZoneAccess(String zoneId, Person person) throws ZoneNotFoundException {
+        Zone zone = findZoneById(zoneId);
+        if (zone instanceof RestrictedZone) {
+            ((RestrictedZone) zone).grantAccess(person);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updateZone(String zoneId, String zoneName, model.common.SafetyLevel level)
+            throws ZoneNotFoundException {
+        findZoneById(zoneId).updateDetails(zoneName, level);
+        return true;
+    }
+
     public boolean revokeZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
         Zone zone = findZoneById(zoneId);
         if (zone instanceof RestrictedZone) {

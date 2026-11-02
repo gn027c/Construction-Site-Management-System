@@ -54,6 +54,47 @@ public class Visitor extends Person {
     }
 
     @Override
+    public String[] detailLabels() {
+        return new String[] { "Visit purpose", "Host", "Visit date (" + util.DateTimeHelper.DATE_FORMAT + ")" };
+    }
+
+    @Override
+    public String[] detailValues() {
+        return new String[] { purpose, hostPersonName, entryDate };
+    }
+
+    @Override
+    public String validateDetail(int index, String value) {
+        switch (index) {
+            case 0:
+                return requiredText(value, "purpose");
+            case 1:
+                return requiredText(value, "hostPersonName");
+            case 2:
+                return optionalDate(optionalText(value), "entryDate");
+            default:
+                throw unknownDetail(index);
+        }
+    }
+
+    @Override
+    protected void applyDetails(String[] validDetails) {
+        purpose = validDetails[0];
+        hostPersonName = validDetails[1];
+        entryDate = validDetails[2];
+    }
+
+    @Override
+    public boolean hasValidSafetyCredential(String[] details) {
+        return false;
+    }
+
+    @Override
+    public boolean canHandleIncidents() {
+        return false;
+    }
+
+    @Override
     public String checkInDenialReason(java.time.LocalDate day) {
         if (entryDate.isEmpty()) {
             return "Visit date is not set; record the visit date before check-in.";

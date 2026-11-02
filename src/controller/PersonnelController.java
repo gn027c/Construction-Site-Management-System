@@ -168,23 +168,47 @@ public class PersonnelController {
         System.out.println("Enter new details for " + p.getName() + " (" + p.getCode() + ") [press Enter to keep current value]:");
         String newName = getUpdatedPersonName(scanner, p.getName());
         String newPhone = getUpdatedPhoneNumber(scanner, p.getPhoneNumber());
-        model.common.SafetyLevel newLevel = p.hasValidSafetyCredential()
+        String[] labels = p.detailLabels();
+        String[] details = p.detailValues();
+        for (int i = 0; i < labels.length; i++) {
+            details[i] = getUpdatedDetail(scanner, p, i, labels[i], details[i]);
+        }
+        model.common.SafetyLevel newLevel = p.hasValidSafetyCredential(details)
                 ? selectSafetyLevel(scanner, p.getSafetyLevel())
                 : model.common.SafetyLevel.NONE;
-        String newVisitDate = p instanceof Visitor ? getUpdatedVisitDate(scanner, ((Visitor) p).getEntryDate()) : "";
+        if (!p.hasValidSafetyCredential(details) && p.getSafetyLevel() != model.common.SafetyLevel.NONE) {
+            view.ConsoleTheme.warning("No valid safety credential: safety level returns to NONE.");
+        }
         try {
-            site.updatePerson(p.getCode(), newName, newPhone);
-            if (newLevel != p.getSafetyLevel()) {
-                site.setPersonSafetyLevel(p.getCode(), newLevel);
-            }
-            if (p instanceof Visitor && !newVisitDate.equals(((Visitor) p).getEntryDate())) {
-                site.setVisitDate(p.getCode(), newVisitDate);
-            }
+            site.updatePersonProfile(p.getCode(), newName, newPhone, details, newLevel);
             view.ConsoleTheme.success("Success: Person '" + p.getCode() + "' has been updated.");
         } catch (PersonNotFoundException e) {
             view.ConsoleTheme.error("Error: Person not found. " + e.getMessage());
-        } catch (InvalidPhoneNumberException e) {
-            view.ConsoleTheme.error("Error: Invalid phone number. " + e.getMessage());
+        } catch (exception.DataValidationException e) {
+            view.ConsoleTheme.error("Error: " + e.getMessage());
+        }
+    }
+
+    private String getUpdatedDetail(Scanner scanner, Person p, int index, String label, String current) {
+        String shown = current.isEmpty() ? "not set" : current;
+        boolean clearable;
+        try {
+            p.validateDetail(index, "");
+            clearable = true;
+        } catch (exception.DataValidationException e) {
+            clearable = false;
+        }
+        String prompt = "New " + label + " [" + shown + "]" + (clearable ? " (- clears)" : "") + ": ";
+        while (true) {
+            String input = InputHelper.readLine(scanner, prompt).trim();
+            if (input.isEmpty()) {
+                return current;
+            }
+            try {
+                return p.validateDetail(index, input.equals("-") ? "" : input);
+            } catch (exception.DataValidationException e) {
+                view.ConsoleTheme.warning(e.getMessage());
+            }
         }
     }
 
@@ -220,24 +244,6 @@ public class PersonnelController {
                 continue;
             }
             return input;
-        }
-    }
-
-    private String getUpdatedVisitDate(Scanner scanner, String currentDate) {
-        String shown = currentDate.isEmpty() ? "not set" : currentDate;
-        while (true) {
-            String input = InputHelper.readLine(
-                    scanner, "New visit date (" + util.DateTimeHelper.DATE_FORMAT + ") [" + shown + "]: "
-            ).trim();
-            if (input.isEmpty()) {
-                return currentDate;
-            }
-            try {
-                InputHelper.validateDate(input, "visitDate");
-                return input;
-            } catch (exception.DataValidationException e) {
-                view.ConsoleTheme.warning(e.getMessage());
-            }
         }
     }
 

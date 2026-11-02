@@ -9,7 +9,9 @@ package `algorithm` chỉ để chuyển nguyên phương thức sang file khác
 | Thành phần | Vị trí hiện tại | Lý do |
 | --- | --- | --- |
 | Chu kỳ vào/ra | AttendanceRecord.assertCanFollow; AttendanceService điều phối | Model kiểm tra quy tắc, Service tìm nhân sự/khu vực và bản ghi trước rồi lưu |
-| OPEN → ASSIGNED → RESOLVED | Incident.assignTo/resolve | Model tự giữ vòng đời; Service tìm sự cố và kiểm tra nhân sự tồn tại |
+| OPEN → ASSIGNED → RESOLVED | Incident.assignTo/resolve, Person/Visitor.canHandleIncidents | Model tự giữ vòng đời (ASSIGNED được giao lại cho người khác đến khi RESOLVED); Service tìm sự cố và chỉ nhận người đang hoạt động, không phải khách |
+| Sửa hồ sơ theo loại người | Person.updateProfile, detailLabels/validateDetail ở Worker, Staff, Contractor, Visitor | Đa hình: controller hỏi chung một form; mỗi lớp con tự kiểm tra trường của mình, cập nhật tất cả hoặc không gì cả, mất chứng chỉ hợp lệ thì cấp an toàn về NONE |
+| Sửa khu vực | Zone/RestrictedZone.updateDetails | Khu thường chỉ đổi tên; khu hạn chế đổi tên và cấp an toàn (không được NONE) |
 | Kiểm tra quyền vào khu | Zone/RestrictedZone.accessDenialReason, Person.hasValidSafetyCredential, SafetyLevel.covers | Đa hình: khu thường nhận mọi người; khu hạn chế xét whitelist, chứng chỉ theo loại người và cấp an toàn |
 | Ngày hẹn của khách | Person/Visitor.checkInDenialReason | Đa hình: nhân sự vào ngày nào cũng được, khách chỉ đúng ngày hẹn |
 | Parse và ghi CSV | CsvHelper | Dùng lại bởi bốn repository; phải có một bộ codec dùng chung |

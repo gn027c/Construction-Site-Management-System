@@ -64,6 +64,51 @@ public abstract class Person {
         this.phoneNumber = validPhone;
     }
 
+    public void updateProfile(String name, String phoneNumber, String[] details, SafetyLevel safetyLevel) {
+        String validName = requiredText(name, "name");
+        String validPhone = phoneNumber(phoneNumber);
+        SafetyLevel requestedLevel = requiredValue(safetyLevel, "safetyLevel");
+        String[] validDetails = validatedDetails(details);
+        SafetyLevel validLevel = hasValidSafetyCredential(validDetails) ? requestedLevel : SafetyLevel.NONE;
+        applyDetails(validDetails);
+        this.name = validName;
+        this.phoneNumber = validPhone;
+        this.safetyLevel = validLevel;
+    }
+
+    private String[] validatedDetails(String[] details) {
+        requiredValue(details, "details");
+        String[] labels = detailLabels();
+        if (details.length != labels.length) {
+            throw new exception.DataValidationException(
+                    "details", "Expected " + labels.length + " values for " + role + "."
+            );
+        }
+        String[] valid = new String[details.length];
+        for (int i = 0; i < details.length; i++) {
+            valid[i] = validateDetail(i, details[i]);
+        }
+        return valid;
+    }
+
+    protected static exception.DataValidationException unknownDetail(int index) {
+        return new exception.DataValidationException("details", "No detail at position " + index + ".");
+    }
+
+    public abstract String[] detailLabels();
+
+    public abstract String[] detailValues();
+
+    public abstract String validateDetail(int index, String value);
+
+    protected abstract void applyDetails(String[] validDetails);
+
+    public abstract boolean hasValidSafetyCredential(String[] details);
+
+    public boolean canHandleIncidents() {
+        return active;
+    }
+
     public abstract boolean hasValidSafetyCredential();
 
     public SafetyLevel getSafetyLevel() {

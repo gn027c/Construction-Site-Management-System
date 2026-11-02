@@ -154,14 +154,17 @@ public class Incident {
     }
 
     public void assignTo(String code) {
-        if (!isOpen()) {
+        if (isResolved()) {
             throw new exception.InvalidIncidentStateException(
                     incidentId,
                     status.name(),
-                    "Only OPEN incidents can be assigned."
+                    "Only OPEN or ASSIGNED incidents can be assigned."
             );
         }
         String assignee = personCode(code, "assignedTo");
+        if (assignee.equals(assignedTo)) {
+            throw new DataValidationException("assignedTo", "The incident is already assigned to " + assignee + ".");
+        }
         assignedTo = assignee;
         status = IncidentStatus.ASSIGNED;
     }

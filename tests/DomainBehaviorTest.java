@@ -31,9 +31,12 @@ public class DomainBehaviorTest {
             Incident i = report(); throwsType(InvalidIncidentStateException.class, i::resolve);
             require(i.isOpen()); equal("", i.getAssignedTo());
         });
-        test("Reassignment and repeated resolution are rejected by the entity", () -> {
+        test("Reassignment is allowed until resolution; repeated resolution is rejected", () -> {
             Incident i = report(); i.assignTo("W1");
-            throwsType(InvalidIncidentStateException.class, () -> i.assignTo("W2"));
+            throwsType(DataValidationException.class, () -> i.assignTo("w01"));
+            i.assignTo("W2");
+            equal(Incident.IncidentStatus.ASSIGNED, i.getStatus()); equal("W2", i.getAssignedTo());
+            i.assignTo("W1");
             equal("W1", i.getAssignedTo()); i.resolve();
             throwsType(InvalidIncidentStateException.class, i::resolve);
             throwsType(InvalidIncidentStateException.class, () -> i.assignTo("W2"));

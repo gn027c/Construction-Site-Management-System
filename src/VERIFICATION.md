@@ -1,12 +1,12 @@
 # Implementation verification
 
-Verified on 31 October 2026 with Java 8 (OpenJDK 1.8.0_504). The implementation
+Verified on 2 November 2026 with Java 8 (OpenJDK 1.8.0_504). The implementation
 uses CSV storage and console/terminal interaction.
 
 ## Automated verification
 
 Run `./scripts/test.ps1` from the project root. The latest complete run passed
-**267 checks in 26 suites, with zero failures**. The original workshop matrix
+**279 checks in 27 suites, with zero failures**. The original workshop matrix
 (`HistoricalMatrixTest`) accounts for 25 of these checks.
 
 | Suite | Passed |
@@ -16,6 +16,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | AttendanceTimestampTest | 8 |
 | AuthenticationConsoleTest | 10 |
 | AuthenticationTest | 27 |
+| BusinessCompletionTest | 12 |
 | ConsoleScreenTest | 8 |
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
@@ -37,9 +38,20 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | VisitorDateTest | 11 |
 | WorkflowIntegrationTest | 9 |
 | ZoneTest | 12 |
-| Total | 267 |
+| Total | 279 |
 
 What the newer checks cover:
+
+- Business completion (`BusinessCompletionTest`): a worker registered without a
+  certificate is certified later and then enters a restricted zone (`TC-PERS-07`);
+  a rejected profile edit changes nothing; losing a credential returns the level to
+  `NONE`; the console renews a contractor contract and clears a certificate with
+  `-`; incidents go only to active non-visitor personnel (`TC-INC-05`) and can be
+  reassigned until resolved (`TC-INC-06`); zone and incident prompts accept aliases
+  such as `z03` and `inc0103`; visitors cannot be granted restricted access;
+  granting a listed person reports no change; zone name and level can be edited
+  (`TC-ZONE-06`); and a `SITE_USER` records personal attendance from the console,
+  which previously failed because the zone check required `MANAGE_ZONES`.
 
 - Attendance rules: invalid first exits, repeated entries and exits, wrong-zone
   exits, backwards timestamps, direct repository callers, staged CSV load
@@ -88,3 +100,16 @@ were redrawn, Figure 6.1 (CSV load and write paths), Figures 7.1-7.4 (console ou
 of the real runs), Figure 7.5 (results per suite) and Figure 8.1 (problem
 decomposition) were added. The AI Audit Logs keep every earlier entry unchanged and
 now hold 14 core entries and 3 hallucination cases.
+
+A second walkthrough on a fresh copy of `data/` (2 November 2026), after W4 was
+deactivated through menu 1:
+
+| Action | Result |
+| --- | --- |
+| Menu 2, grant `z03` to `w03` | `Access list updated: W3 granted Z3.` |
+| Menu 2, grant Z3 to V1 | Refused: `Visitors cannot enter restricted zones, so they cannot be granted access.` |
+| Menu 2, grant Z3 to W1 | `W1 is already on the allowed list of Z3.` |
+| Menu 4, assign `inc0103` to inactive W4, then to V1 | Refused; neither appears in the assignee list |
+| Menu 4, assign `inc0103` to `w2`, then reassign to W1 | `INC103` assigned to W2, then to W1 |
+| Menu 1, edit W4: trade, team, certificate `CERT_W4_SAFE`, level 3 | Saved as `Steel Fixer`, `Team C`, `HIGH` |
+| Menu 2 option 5, edit `z04` to level 3 | Z4 renamed, required level `HIGH` |

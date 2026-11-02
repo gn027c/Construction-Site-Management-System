@@ -41,6 +41,13 @@ public class PersonnelService {
         return true;
     }
 
+    public boolean updateProfile(
+            String code, String name, String phone, String[] details, model.common.SafetyLevel level
+    ) throws PersonNotFoundException {
+        findPersonByCode(code).updateProfile(name, phone, details, level);
+        return true;
+    }
+
     public boolean deletePerson(String code) throws PersonNotFoundException {
         return personRepository.deleteByCode(code);
     }

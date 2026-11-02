@@ -57,6 +57,23 @@ public class RestrictedZone extends Zone {
         allowedPersonCodes = validatedCodes(codes);
     }
 
+    @Override
+    public void updateDetails(String zoneName, SafetyLevel level) {
+        SafetyLevel validLevel = zoneLevel(level);
+        super.updateDetails(zoneName, SafetyLevel.NONE);
+        requiredSafetyLevel = validLevel;
+    }
+
+    public boolean grantAccess(Person person) {
+        requiredValue(person, "person");
+        if (person.getRole() == model.person.Role.VISITOR) {
+            throw new exception.DataValidationException(
+                    "personCode", "Visitors cannot enter restricted zones, so they cannot be granted access."
+            );
+        }
+        return grantAccess(person.getCode());
+    }
+
     public boolean grantAccess(String code) {
         return allowedPersonCodes.add(personCode(code, "personCode"));
     }

@@ -24,6 +24,16 @@ public class Zone {
         this.zoneName = requiredText(zoneName, "zoneName");
     }
 
+    public void updateDetails(String zoneName, model.common.SafetyLevel level) {
+        String validName = requiredText(zoneName, "zoneName");
+        if (requiredValue(level, "requiredSafetyLevel") != model.common.SafetyLevel.NONE) {
+            throw new exception.DataValidationException(
+                    "requiredSafetyLevel", "A regular zone has no safety level; it admits everyone."
+            );
+        }
+        this.zoneName = validName;
+    }
+
     public boolean checkAccess(Person person) {
         return accessDenialReason(person).isEmpty();
     }

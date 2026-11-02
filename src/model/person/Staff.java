@@ -48,6 +48,39 @@ public class Staff extends Person {
     }
 
     @Override
+    public String[] detailLabels() {
+        return new String[] { "Position", "Safety certificate" };
+    }
+
+    @Override
+    public String[] detailValues() {
+        return new String[] { position, getSafetyCertId() };
+    }
+
+    @Override
+    public String validateDetail(int index, String value) {
+        switch (index) {
+            case 0:
+                return requiredText(value, "position");
+            case 1:
+                return optionalText(value);
+            default:
+                throw unknownDetail(index);
+        }
+    }
+
+    @Override
+    protected void applyDetails(String[] validDetails) {
+        position = validDetails[0];
+        safetyCertificate = new SafetyCertificate(validDetails[1]);
+    }
+
+    @Override
+    public boolean hasValidSafetyCredential(String[] details) {
+        return new SafetyCertificate(details[1]).isValid();
+    }
+
+    @Override
     public boolean shouldProvisionAccount() {
         return true;
     }

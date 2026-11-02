@@ -140,7 +140,7 @@ public class VisitorDateTest {
             SiteManagerController site = new SiteManagerController(root);
             site.loadAllData();
             site.getAuthentication().login("admin", "admin");
-            site.handlePersonMenu(new Scanner("2\ne\nV1\n\n\n31/02/2026\n15/11/2026\n0\n0\n"));
+            site.handlePersonMenu(new Scanner("2\ne\nV1\n\n\n\n\n31/02/2026\n15/11/2026\n0\n0\n"));
             PersonRepository repo = new PersonRepository();
             require(repo.loadFromCsv(root.resolve("persons.csv").toString()));
             equal("15/11/2026", ((Visitor) repo.findByCode("V1")).getEntryDate());

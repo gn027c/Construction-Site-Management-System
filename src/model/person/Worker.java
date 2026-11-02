@@ -75,6 +75,42 @@ public class Worker extends Person {
     }
 
     @Override
+    public String[] detailLabels() {
+        return new String[] { "Trade", "Assigned team", "Safety certificate" };
+    }
+
+    @Override
+    public String[] detailValues() {
+        return new String[] { trade, assignedTeam, getSafetyCertId() };
+    }
+
+    @Override
+    public String validateDetail(int index, String value) {
+        switch (index) {
+            case 0:
+                return requiredText(value, "trade");
+            case 1:
+                return requiredText(value, "assignedTeam");
+            case 2:
+                return optionalText(value);
+            default:
+                throw unknownDetail(index);
+        }
+    }
+
+    @Override
+    protected void applyDetails(String[] validDetails) {
+        trade = validDetails[0];
+        assignedTeam = validDetails[1];
+        safetyCertificate = new SafetyCertificate(validDetails[2]);
+    }
+
+    @Override
+    public boolean hasValidSafetyCredential(String[] details) {
+        return new SafetyCertificate(details[2]).isValid();
+    }
+
+    @Override
     public boolean shouldProvisionAccount() {
         return true;
     }

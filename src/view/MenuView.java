@@ -82,7 +82,7 @@ public final class MenuView {
         ConsoleTheme.menuWithDescription(
                 "ZONES",
                 "Manage site zones, restricted boundaries and entry permissions.",
-                "Add zone", "View zones", "Grant access", "Revoke access"
+                "Add zone", "View zones", "Grant access", "Revoke access", "Edit zone"
         );
     }
 

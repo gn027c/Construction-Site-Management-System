@@ -34,6 +34,39 @@ public class Contractor extends Person {
     }
 
     @Override
+    public String[] detailLabels() {
+        return new String[] { "Company", "Contract ID" };
+    }
+
+    @Override
+    public String[] detailValues() {
+        return new String[] { companyName, contractId };
+    }
+
+    @Override
+    public String validateDetail(int index, String value) {
+        switch (index) {
+            case 0:
+                return requiredText(value, "companyName");
+            case 1:
+                return requiredText(value, "contractId");
+            default:
+                throw unknownDetail(index);
+        }
+    }
+
+    @Override
+    protected void applyDetails(String[] validDetails) {
+        companyName = validDetails[0];
+        contractId = validDetails[1];
+    }
+
+    @Override
+    public boolean hasValidSafetyCredential(String[] details) {
+        return optionalText(details[1]).startsWith("CTR-");
+    }
+
+    @Override
     public boolean shouldProvisionAccount() {
         return true;
     }

@@ -376,22 +376,11 @@ public class SiteManagerController {
                 () -> personnelService.updatePerson(code, name, phone), true);
     }
 
-    public void setPersonSafetyLevel(String code, model.common.SafetyLevel level) {
-        operation(Permission.MANAGE_PERSONNEL, () -> {
-            personnelService.findPersonByCode(code).setSafetyLevel(level);
-            return true;
-        }, true);
-    }
-
-    public void setVisitDate(String code, String visitDate) {
-        operation(Permission.MANAGE_PERSONNEL, () -> {
-            Person person = personnelService.findPersonByCode(code);
-            if (!(person instanceof Visitor)) {
-                throw new exception.DataValidationException("visitDate", "Only visitors have a visit date.");
-            }
-            ((Visitor) person).setEntryDate(visitDate);
-            return true;
-        }, true);
+    public boolean updatePersonProfile(
+            String code, String name, String phone, String[] details, model.common.SafetyLevel level
+    ) {
+        return operation(Permission.MANAGE_PERSONNEL,
+                () -> personnelService.updateProfile(code, name, phone, details, level), true);
     }
 
     public void setPersonActive(String code, boolean active) {
@@ -433,10 +422,20 @@ public class SiteManagerController {
         return operation(Permission.MANAGE_ZONES, () -> zoneService.addZone(zone), true);
     }
 
+    public Zone attendanceZone(String zoneId) {
+        authentication.requireAny(Permission.RECORD_ATTENDANCE, Permission.RECORD_OWN_ATTENDANCE);
+        requireReady();
+        return zoneService.findZoneById(zoneId);
+    }
+
+    public boolean updateZone(String zoneId, String zoneName, SafetyLevel level) {
+        return operation(Permission.MANAGE_ZONES, () -> zoneService.updateZone(zoneId, zoneName, level), true);
+    }
+
     public boolean changeAccess(String zoneId, String personCode, boolean grant) {
         return operation(Permission.MANAGE_ZONES, () -> {
-            personnelService.findPersonByCode(personCode);
-            return grant ? zoneService.grantZoneAccess(zoneId, personCode)
+            Person person = personnelService.findPersonByCode(personCode);
+            return grant ? zoneService.grantZoneAccess(zoneId, person)
                     : zoneService.revokeZoneAccess(zoneId, personCode);
         }, true);
     }
@@ -529,8 +528,15 @@ public class SiteManagerController {
     }
 
     public List<Person> candidateAssignees() {
-        return operation(Permission.ASSIGN_INCIDENTS,
-                personnelService::getAllPersons, false);
+        return operation(Permission.ASSIGN_INCIDENTS, () -> {
+            List<Person> result = new ArrayList<>();
+            for (Person person : personnelService.getAllPersons()) {
+                if (person.canHandleIncidents()) {
+                    result.add(person);
+                }
+            }
+            return result;
+        }, false);
     }
 
     public boolean resolveIncident(String id) {

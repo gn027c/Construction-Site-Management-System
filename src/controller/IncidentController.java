@@ -97,9 +97,7 @@ public class IncidentController {
     private void assignIncidentFlow(Scanner scanner) {
         view.ConsoleTheme.breadcrumb("INCIDENTS / ASSIGN HANDLER");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
-        Incident target = site.incidents(false).stream()
-                .filter(i -> i.getIncidentId().equalsIgnoreCase(incidentId))
-                .findFirst().orElse(null);
+        Incident target = findActiveIncident(incidentId);
         if (target == null) {
             view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
             return;
@@ -108,32 +106,46 @@ public class IncidentController {
             view.ConsoleTheme.warning("Incident '" + incidentId + "' is already resolved.");
             return;
         }
-        java.util.List<model.person.Person> activePeople = site.candidateAssignees().stream()
-                .filter(model.person.Person::isActive)
-                .collect(java.util.stream.Collectors.toList());
-        if (!activePeople.isEmpty()) {
-            System.out.println("Available assignees: " + activePeople.stream()
-                    .map(p -> p.getCode() + " (" + p.getName() + " - " + p.getRole() + ")")
-                    .collect(java.util.stream.Collectors.joining(", ")));
+        if (target.getStatus() == Incident.IncidentStatus.ASSIGNED) {
+            System.out.println(
+                    "Currently assigned to " + target.getAssignedTo() + "; choose another person to reassign."
+            );
         }
-        String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
+        java.util.List<model.person.Person> candidates = site.candidateAssignees();
+        if (candidates.isEmpty()) {
+            view.ConsoleTheme.warning("No active site personnel can handle incidents.");
+            return;
+        }
+        System.out.println("Available assignees: " + candidates.stream()
+                .map(p -> p.getCode() + " (" + p.getName() + " - " + p.getRole() + ")")
+                .collect(java.util.stream.Collectors.joining(", ")));
+        String assigneeCode = InputHelper.getString(
+                scanner, "Enter Assignee Person Code (e.g., " + candidates.get(0).getCode() + "): "
+        );
+        String assignee = util.IdentifierHelper.normalizeForLookup(assigneeCode);
+        if (candidates.stream().noneMatch(p -> p.getCode().equals(assignee))) {
+            view.ConsoleTheme.warning("Choose an active person from the list of available assignees.");
+            return;
+        }
         try {
-            if (site.assignIncident(incidentId, assigneeCode)) {
-                view.ConsoleTheme.success("Incident assigned.");
-            } else {
-                view.ConsoleTheme.warning("Assignee must be an existing person.");
-            }
-        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
+            site.assignIncident(target.getIncidentId(), assignee);
+            view.ConsoleTheme.success("Incident " + target.getIncidentId() + " assigned to " + assignee + ".");
+        } catch (exception.SiteManagementException e) {
             view.ConsoleTheme.warning("Assignment Error: " + e.getMessage());
         }
+    }
+
+    private Incident findActiveIncident(String incidentId) {
+        String key = util.IdentifierHelper.normalizeForLookup(incidentId);
+        return site.incidents(false).stream()
+                .filter(i -> i.getIncidentId().equals(key))
+                .findFirst().orElse(null);
     }
 
     private void resolveIncidentFlow(Scanner scanner) {
         view.ConsoleTheme.breadcrumb("INCIDENTS / RESOLVE INCIDENT");
         String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
-        Incident target = site.incidents(false).stream()
-                .filter(i -> i.getIncidentId().equalsIgnoreCase(incidentId))
-                .findFirst().orElse(null);
+        Incident target = findActiveIncident(incidentId);
         if (target == null) {
             view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
             return;
@@ -142,7 +154,7 @@ public class IncidentController {
             view.ConsoleTheme.warning("Only ASSIGNED incidents can be resolved. Current status: " + target.getStatus());
             return;
         }
-        if (site.resolveIncident(incidentId)) {
+        if (site.resolveIncident(target.getIncidentId())) {
             view.ConsoleTheme.success("Incident resolved.");
         } else {
             view.ConsoleTheme.warning("Invalid incident ID.");
