@@ -16,7 +16,7 @@ public final class MenuView {
         add(operations, 1, "Personnel", authentication, Permission.MANAGE_PERSONNEL);
         add(operations, 2, "Zones and permissions", authentication, Permission.MANAGE_ZONES);
         add(operations, 3, "Attendance", authentication, Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE,
-                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE);
+                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE, Permission.VIEW_OCCUPANCY);
         add(operations, 4, "Safety incidents", authentication,
                 Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
                 Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS);

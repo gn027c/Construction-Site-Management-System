@@ -97,7 +97,9 @@ public final class AccountController {
                     view.ListView.show(scanner, "ACCOUNTS", authentication.listAccounts(),
                             a -> a.getUsername() + " | " + a.getRole() + " | " + (a.isEnabled() ? "Enabled" : "Disabled")
                                     + " | Person: " + (a.getPersonCode().isEmpty() ? "(None)" : a.getPersonCode())
-                                    + " | " + (a.getRole() == Account.Role.ADMIN ? "ALL (17 permissions)" : a.getPermissions()),
+                                    + " | " + (a.getRole() == Account.Role.ADMIN
+                                            ? "ALL (" + Permission.values().length + " permissions)"
+                                            : a.getPermissions()),
                             Account::toString, java.util.Comparator.comparing(Account::getUsername));
                     continue;
                 }

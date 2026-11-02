@@ -173,9 +173,12 @@ Accounts are separate from people. A person can be linked to at most one account
 Menu 8 creates accounts, assigns roles and permissions, changes account status,
 resets passwords and links personnel. Adding a worker, staff member or contractor
 also creates a linked account named from the person's name and code (for example
-`LoiNTW99`) with the initial password `0`; staff whose position mentions safety
-become SAFETY_OFFICER, managers and supervisors become SITE_MANAGER, everyone else
-SITE_USER. Visitors get no account.
+`LoiNTW99`) with the initial password `0`. When an administrator adds the person,
+staff whose position mentions safety become SAFETY_OFFICER, managers and supervisors
+become SITE_MANAGER, everyone else SITE_USER. An account without `MANAGE_ACCOUNTS`
+(a site manager) always provisions SITE_USER, so nobody can create an account with
+more access than their own; only an administrator changes the role (menu 8).
+Visitors get no account, and no account can be created for or linked to a visitor.
 
 | Account role | Default access |
 | --- | --- |
@@ -187,7 +190,11 @@ SITE_USER. Visitors get no account.
 Personal attendance derives identity from the signed-in account; it never accepts
 a substitute person code. Staff accounts without a personnel link can still use
 their management operations but must be linked before using personal attendance.
-Account administration cannot be granted to non-admin roles.
+Account administration cannot be granted to non-admin roles. Each menu option needs
+only its own permission, so administrator-defined permission sets work: granting zone
+access needs `MANAGE_ZONES` alone, staff check-in for others `RECORD_ATTENDANCE`,
+reporting, assigning and resolving incidents their own incident permission, and
+`VIEW_OCCUPANCY` alone opens the attendance menu with occupancy.
 No account can bypass attendance order, restricted-zone rules or visit dates.
 
 Passwords are stored as plain text in `accounts.csv`, which Git and business
@@ -290,7 +297,8 @@ invalid row. Because every load and every new swipe is checked, the history in
 memory is always valid, and writing `attendance.csv` checks it once more.
 
 Occupancy is derived from the last successful swipe for each person, including
-inactive people who have not checked out. Global occupancy requires its own
+inactive people who have not checked out. The table lists zone, person, name, type,
+check-in time and status, ordered by zone and code, with a total row per zone. Global occupancy requires its own
 permission; personal occupancy includes only the linked person.
 
 Invalid startup data leaves business operations blocked; nothing is repaired or
@@ -328,7 +336,7 @@ an incident stamps its resolution time; reporting stamps its creation time.
 
 Menus 6 and 7 generate attendance and incident summaries by day, Monday-based week
 or calendar month, with inclusive from/to dates. Attendance reports can filter
-person and zone; incident reports include unknown historical dates in a separate
+person and zone (an invalid code is refused and the previous filter kept); incident reports include unknown historical dates in a separate
 row. In the attendance report, option 3 switches to working hours: each check-in is
 paired with the same person's next check-out, the session is counted on its check-in
 date, and the table shows sessions, hours (two decimals) and still-open sessions per

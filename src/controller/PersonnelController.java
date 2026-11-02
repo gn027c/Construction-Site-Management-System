@@ -216,7 +216,12 @@ public class PersonnelController {
                     try {
                         Account account = site.provisionAccount(newPerson);
                         view.ConsoleTheme.success("Account provisioned: " + account.getUsername()
-                                + " (Initial password: 0, mustChangePassword: true)");
+                                + " (role " + account.getRole() + ", initial password: 0, mustChangePassword: true)");
+                        if (!authentication.allows(Permission.MANAGE_ACCOUNTS)) {
+                            view.ConsoleTheme.warning(
+                                    "Only an administrator can give this account another role (menu 8)."
+                            );
+                        }
                     } catch (Exception e) {
                         view.ConsoleTheme.warning("Could not auto-provision account: " + e.getMessage());
                     }

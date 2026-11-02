@@ -154,10 +154,7 @@ public class IncidentController {
     }
 
     private Incident findActiveIncident(String incidentId) {
-        String key = util.IdentifierHelper.normalizeForLookup(incidentId);
-        return site.incidents(false).stream()
-                .filter(i -> i.getIncidentId().equals(key))
-                .findFirst().orElse(null);
+        return site.incidentForAction(incidentId);
     }
 
     private void resolveIncidentFlow(Scanner scanner) {
@@ -188,8 +185,7 @@ public class IncidentController {
             }
             try {
                 String normalized = util.IdentifierHelper.normalize(input, "incidentId");
-                boolean duplicate = site.incidents(true).stream().anyMatch(i -> i.getIncidentId().equalsIgnoreCase(normalized));
-                if (duplicate) {
+                if (site.isIncidentIdTaken(normalized)) {
                     view.ConsoleTheme.warning("Incident ID '" + normalized + "' already exists. Please choose a different ID.");
                     continue;
                 }

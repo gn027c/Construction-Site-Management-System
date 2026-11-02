@@ -17,6 +17,7 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import model.attendance.AttendanceRecord;
 import model.auth.Account;
+import model.auth.Permission;
 import model.common.SafetyLevel;
 import model.incident.Incident;
 import model.person.Contractor;
@@ -361,6 +362,80 @@ public class BusinessCompletionTest {
             equal(2, filtered.size());
             equal("2026-10-12,W1,1,3.50,0", String.join(",", filtered.get(1)));
             equal(1, site.workingHours(day.plusDays(1), day.plusDays(1), service.ReportService.Period.DAY, "", "").size());
+        });
+        test("TC-AUTH-03 Each visible menu option works with only its own permission", () -> {
+            Object[][] cases = {
+                    { Permission.MANAGE_ZONES, "zones", "3\nZ3\nW3\n0\n" },
+                    { Permission.RECORD_ATTENDANCE, "attendance", "1\nW3\nZ2\n2\n0\n" },
+                    { Permission.VIEW_OCCUPANCY, "attendance", "5\n0\n0\n" },
+                    { Permission.REPORT_INCIDENTS, "incidents", "1\n\nTitle\nDescription\n2\nZ1\n0\n" },
+                    { Permission.ASSIGN_INCIDENTS, "incidents", "3\nINC103\nW1\n0\n" },
+                    { Permission.RESOLVE_INCIDENTS, "incidents", "4\nINC101\nPump installed\n0\n" },
+            };
+            for (Object[] item : cases) {
+                SiteManagerController site = open(sample());
+                AuthenticationService auth = site.getAuthentication();
+                auth.createAccount("probe", "secret", Account.Role.SITE_MANAGER, "W2");
+                auth.changePermissions("probe", java.util.EnumSet.of((Permission) item[0]));
+                auth.login("probe", "secret");
+                Scanner input = new Scanner((String) item[2]);
+                String output = capture(() -> {
+                    if (item[1].equals("zones")) {
+                        site.handleZoneMenu(input);
+                    } else if (item[1].equals("attendance")) {
+                        site.handleAttendanceMenu(input);
+                    } else {
+                        site.handleIncidentMenu(input);
+                    }
+                });
+                require(!output.contains("Access denied"));
+                require(!output.contains("[ERROR]"));
+            }
+        });
+        test("TC-AUTH-04 A personnel manager provisions only SITE_USER accounts", () -> {
+            SiteManagerController site = empty();
+            site.getAuthentication().createAccount("manager", "secret", Account.Role.SITE_MANAGER);
+            site.getAuthentication().login("manager", "secret");
+            model.person.Staff staff = new model.person.Staff(
+                    "P1", "S1", "Lead", "0901234567", "Project Manager", ""
+            );
+            site.addPerson(staff);
+            Account account = site.provisionAccount(staff);
+            equal(Account.Role.SITE_USER, account.getRole());
+            equal("S1", account.getPersonCode());
+            throwsType(exception.AccessDeniedException.class, () -> site.getAuthentication().provisionPersonnelAccount(
+                    "boss", "0", Account.Role.SITE_MANAGER, "S1"
+            ));
+            throwsType(exception.AccessDeniedException.class, () -> site.getAuthentication().createAccount(
+                    "other", "0", Account.Role.SITE_USER, "S1"
+            ));
+        });
+        test("TC-AUTH-05 Accounts cannot be linked to visitors", () -> {
+            SiteManagerController site = open(sample());
+            AuthenticationService auth = site.getAuthentication();
+            throwsType(DataValidationException.class, () -> auth.createAccount("guest", "0", Account.Role.SITE_USER, "V1"));
+            auth.createAccount("staff", "0", Account.Role.SAFETY_OFFICER);
+            throwsType(DataValidationException.class, () -> auth.linkPerson("staff", "V2"));
+            equal("", auth.getAccount("staff").getPersonCode());
+        });
+        test("An invalid report filter keeps the report screen and the previous filter", () -> {
+            SiteManagerController site = open(sample());
+            String output = capture(() -> new controller.WorkspaceController(site).attendanceReport(
+                    new Scanner("1\n01/10/2026\n31/10/2026\n1\nabc\n\n0\n")
+            ));
+            require(output.contains("the previous filter was kept"));
+            require(!output.contains("[ERROR]"));
+        });
+        test("Occupancy rows keep names with separators intact", () -> {
+            SiteManagerController site = empty();
+            site.addZone(new Zone("Z1", "Gate"));
+            site.addPerson(new Worker("P1", "W1", "An | Binh", "0901234567", "Welder", "", "Team A"));
+            site.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN, false);
+            List<String> row = site.occupancy(false).get(0);
+            equal(Arrays.asList("Z1", "W1", "An | Binh", "WORKER"), row.subList(0, 4));
+            equal("Active", row.get(5));
+            String output = capture(() -> site.handleAttendanceMenu(new Scanner("5\n0\n0\n")));
+            require(output.contains("[TOTAL OCCUPANTS: 1]"));
         });
         test("An incident file with the old nine-column header is rejected", () -> {
             Path csv = Files.createTempFile("smartsite-old-incidents-", ".csv");

@@ -6,7 +6,7 @@ uses CSV storage and console/terminal interaction.
 ## Automated verification
 
 Run `./scripts/test.ps1` from the project root. The latest complete run passed
-**289 checks in 27 suites, with zero failures**. The original workshop matrix
+**294 checks in 27 suites, with zero failures**. The original workshop matrix
 (`HistoricalMatrixTest`) accounts for 25 of these checks.
 
 | Suite | Passed |
@@ -16,7 +16,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | AttendanceTimestampTest | 8 |
 | AuthenticationConsoleTest | 10 |
 | AuthenticationTest | 27 |
-| BusinessCompletionTest | 22 |
+| BusinessCompletionTest | 27 |
 | ConsoleScreenTest | 8 |
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
@@ -38,7 +38,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | VisitorDateTest | 11 |
 | WorkflowIntegrationTest | 9 |
 | ZoneTest | 12 |
-| Total | 289 |
+| Total | 294 |
 
 What the newer checks cover:
 
@@ -64,6 +64,12 @@ What the newer checks cover:
   a note that survives reload (`TC-INC-08`); the old 9-column `incidents.csv` is
   rejected; and working hours pair check-ins with check-outs (`TC-REP-01`: on the
   sample day W1 has 3 sessions and 8.67 hours, C1 one open session).
+- Permission review (`BusinessCompletionTest`): an account holding only one permission
+  completes the menu option that permission shows, for zone grants, staff check-out,
+  occupancy, and reporting, assigning and resolving incidents (`TC-AUTH-03`); a site
+  manager provisions only SITE_USER accounts (`TC-AUTH-04`); accounts cannot be
+  created for or linked to visitors (`TC-AUTH-05`); an invalid report filter keeps the
+  report screen; and occupancy rows keep a name containing `|` intact.
 
 - Attendance rules: invalid first exits, repeated entries and exits, wrong-zone
   exits, backwards timestamps, direct repository callers, staged CSV load

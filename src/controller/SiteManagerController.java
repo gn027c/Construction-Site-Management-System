@@ -213,7 +213,7 @@ public class SiteManagerController {
     public void handleAttendanceMenu(Scanner scanner) {
         authentication.requireAny(
                 Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE,
-                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE
+                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE, Permission.VIEW_OCCUPANCY
         );
         attendanceController.handleMenu(scanner);
     }
@@ -285,7 +285,10 @@ public class SiteManagerController {
     }
 
     public Account provisionAccount(Person person, String initialPassword) throws IOException {
-        return provisionAccount(person, initialPassword, resolveAccountRole(person));
+        Account.Role role = authentication.allows(Permission.MANAGE_ACCOUNTS)
+                ? resolveAccountRole(person)
+                : Account.Role.SITE_USER;
+        return provisionAccount(person, initialPassword, role);
     }
 
     private Account provisionAccount(Person person, String initialPassword, Account.Role role) throws IOException {
@@ -301,7 +304,7 @@ public class SiteManagerController {
         String username = generateProvisionedUsername(person);
         String pass = (initialPassword == null || initialPassword.trim().isEmpty()) ? "0" : initialPassword;
 
-        authentication.createAccount(username, pass, role, normalizedCode, true);
+        authentication.provisionPersonnelAccount(username, pass, role, normalizedCode);
         return authentication.getAccount(username);
     }
 
@@ -514,6 +517,27 @@ public class SiteManagerController {
         return operation(Permission.MANAGE_ZONES, () -> zoneService.addZone(zone), true);
     }
 
+    public Person zoneAccessPerson(String code) {
+        return operation(Permission.MANAGE_ZONES, () -> personnelService.findPersonByCode(code), false);
+    }
+
+    public Person attendancePerson(String code) {
+        return operation(Permission.RECORD_ATTENDANCE, () -> personnelService.findPersonByCode(code), false);
+    }
+
+    public boolean isIncidentIdTaken(String incidentId) {
+        authentication.require(Permission.REPORT_INCIDENTS);
+        requireReady();
+        return incidentService.findIncidentById(incidentId) != null;
+    }
+
+    public Incident incidentForAction(String incidentId) {
+        authentication.requireAny(Permission.ASSIGN_INCIDENTS, Permission.RESOLVE_INCIDENTS);
+        requireReady();
+        Incident incident = incidentService.findIncidentById(incidentId);
+        return incident == null || incident.isArchived() ? null : incident;
+    }
+
     public Zone attendanceZone(String zoneId) {
         authentication.requireAny(Permission.RECORD_ATTENDANCE, Permission.RECORD_OWN_ATTENDANCE);
         requireReady();
@@ -555,46 +579,33 @@ public class SiteManagerController {
                 }, false);
     }
 
-    public List<String> occupancy(boolean personal) {
+    public List<List<String>> occupancy(boolean personal) {
         return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_OCCUPANCY, () -> {
-                    Map<String, AttendanceRecord> latest = new LinkedHashMap<>();
-                    for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
-                        latest.put(record.getPersonCode(), record);
-                    }
-                    List<String> result = new ArrayList<>();
-                    String own = personal ? authentication.currentPersonCode() : "";
-                    Map<String, Integer> counts = new TreeMap<>(util.IdentifierHelper.NATURAL_ORDER);
-                    for (AttendanceRecord record : latest.values()) {
-                        if (record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN
-                                && (!personal || own.equals(record.getPersonCode()))) {
-                            Person person = personnelService.findPersonByCode(record.getPersonCode());
-                            result.add(record.getZoneId() + " | " + person.getCode() + " | " + person.getName()
-                                    + " | " + person.getRole() + " | " + record.getTimestamp()
-                                    + (person.isActive() ? "" : " | Inactive"));
-                            counts.put(record.getZoneId(), counts.getOrDefault(record.getZoneId(), 0) + 1);
-                        }
-                    }
-                    for (Map.Entry<String, Integer> entry : counts.entrySet()) {
-                        result.add("TOTAL " + entry.getKey() + " = " + entry.getValue());
-                    }
-                    result.sort((first, second) -> {
-                        String firstZone = first.startsWith("TOTAL ") ? first.split(" ")[1]
-                                : first.split("\\|")[0].trim();
-                        String secondZone = second.startsWith("TOTAL ") ? second.split(" ")[1]
-                                : second.split("\\|")[0].trim();
-                        int zoneOrder = util.IdentifierHelper.NATURAL_ORDER.compare(firstZone, secondZone);
-                        if (zoneOrder != 0) {
-                            return zoneOrder;
-                        }
-                        if (first.startsWith("TOTAL ") || second.startsWith("TOTAL ")) {
-                            return Boolean.compare(first.startsWith("TOTAL "), second.startsWith("TOTAL "));
-                        }
-                        return util.IdentifierHelper.NATURAL_ORDER.compare(
-                                first.split("\\|")[1].trim(), second.split("\\|")[1].trim()
-                        );
-                    });
-                    return result;
-                }, false);
+            Map<String, AttendanceRecord> latest = new LinkedHashMap<>();
+            for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
+                latest.put(record.getPersonCode(), record);
+            }
+            String own = personal ? authentication.currentPersonCode() : "";
+            List<List<String>> rows = new ArrayList<>();
+            for (AttendanceRecord record : latest.values()) {
+                if (record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN
+                        && (!personal || own.equals(record.getPersonCode()))) {
+                    Person person = personnelService.findPersonByCode(record.getPersonCode());
+                    rows.add(Arrays.asList(
+                            record.getZoneId(), person.getCode(), person.getName(), person.getRole().name(),
+                            record.getTimestamp(), person.isActive() ? "Active" : "Inactive"
+                    ));
+                }
+            }
+            rows.sort((first, second) -> {
+                int zoneOrder = util.IdentifierHelper.NATURAL_ORDER.compare(first.get(0), second.get(0));
+                if (zoneOrder != 0) {
+                    return zoneOrder;
+                }
+                return util.IdentifierHelper.NATURAL_ORDER.compare(first.get(1), second.get(1));
+            });
+            return rows;
+        }, false);
     }
 
     public List<Incident> incidents(boolean archived) {

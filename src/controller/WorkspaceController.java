@@ -94,6 +94,10 @@ public final class WorkspaceController {
                 if (type == 1) {
                     newPerson = InputHelper.readLine(scanner, "Person code filter (blank-All): ").trim();
                     newZone = InputHelper.readLine(scanner, "Zone ID filter (blank-All): ").trim();
+                    if (!validFilter(newPerson) || !validFilter(newZone)) {
+                        ConsoleTheme.warning("Codes look like W1 or Z3; the previous filter was kept.");
+                        continue;
+                    }
                 }
                 from = newFrom;
                 to = newTo;
@@ -109,5 +113,9 @@ public final class WorkspaceController {
                 }
             }
         }
+    }
+
+    private static boolean validFilter(String code) {
+        return code.isEmpty() || util.IdentifierHelper.normalizeForLookup(code) != null;
     }
 }

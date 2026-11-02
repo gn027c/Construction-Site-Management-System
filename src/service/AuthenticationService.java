@@ -114,6 +114,26 @@ public final class AuthenticationService {
             String username, String password, Account.Role role, String personCode, boolean mustChangePassword
     ) throws IOException {
         require(Permission.MANAGE_ACCOUNTS);
+        addAccount(username, password, role, personCode, mustChangePassword);
+    }
+
+    public void provisionPersonnelAccount(String username, String password, Account.Role role, String personCode)
+            throws IOException {
+        if (!allows(Permission.MANAGE_ACCOUNTS)) {
+            require(Permission.MANAGE_PERSONNEL);
+            if (role != Account.Role.SITE_USER) {
+                throw new AccessDeniedException(Permission.MANAGE_ACCOUNTS.name());
+            }
+        }
+        if (personCode == null || personCode.trim().isEmpty()) {
+            throw new DataValidationException("personCode", "A personnel account must be linked to a person.");
+        }
+        addAccount(username, password, role, personCode, true);
+    }
+
+    private void addAccount(
+            String username, String password, Account.Role role, String personCode, boolean mustChangePassword
+    ) throws IOException {
         String normalized = Account.normalizeUsername(username);
         if (repository.find(normalized) != null) {
             throw new DataValidationException("username", "Already exists.");
@@ -218,7 +238,9 @@ public final class AuthenticationService {
             if (personnel == null) {
                 throw new DataValidationException("personCode", "Personnel must be loaded before linking accounts.");
             }
-            personnel.findPersonByCode(account.getPersonCode());
+            if (!personnel.findPersonByCode(account.getPersonCode()).shouldProvisionAccount()) {
+                throw new DataValidationException("personCode", "Visitors cannot have an account.");
+            }
         }
     }
 

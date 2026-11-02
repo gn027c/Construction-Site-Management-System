@@ -37,7 +37,7 @@ public class AttendanceController {
                             : InputHelper.getString(scanner, "Person code: ");
                     if (!personal) {
                         try {
-                            site.person(person);
+                            site.attendancePerson(person);
                         } catch (exception.PersonNotFoundException e) {
                             ConsoleTheme.error(e.getMessage());
                             break;
@@ -76,24 +76,20 @@ public class AttendanceController {
                     break;
                 case 5:
                 case 6:
-                    java.util.List<String> rawOccupancy = site.occupancy(choice == 6);
                     java.util.List<java.util.List<String>> occRows = new java.util.ArrayList<>();
-                    for (String line : rawOccupancy) {
-                        if (line.startsWith("TOTAL ")) {
-                            String[] parts = line.split(" = ");
-                            String zoneName = parts[0].substring(6).trim();
-                            String count = parts.length > 1 ? parts[1].trim() : "";
-                            occRows.add(java.util.Arrays.asList(zoneName, "-", "[TOTAL OCCUPANTS: " + count + "]", "-", "-", "-"));
-                        } else {
-                            String[] parts = line.split(" \\| ");
-                            String zoneName = parts.length > 0 ? parts[0].trim() : "";
-                            String pCode = parts.length > 1 ? parts[1].trim() : "";
-                            String pName = parts.length > 2 ? parts[2].trim() : "";
-                            String pRole = parts.length > 3 ? parts[3].trim() : "";
-                            String pTime = parts.length > 4 ? parts[4].trim() : "";
-                            String pStatus = parts.length > 5 ? parts[5].trim() : "Active";
-                            occRows.add(java.util.Arrays.asList(zoneName, pCode, pName, pRole, pTime, pStatus));
+                    String previousZone = null;
+                    int count = 0;
+                    for (java.util.List<String> row : site.occupancy(choice == 6)) {
+                        if (previousZone != null && !previousZone.equals(row.get(0))) {
+                            occRows.add(totalRow(previousZone, count));
+                            count = 0;
                         }
+                        occRows.add(row);
+                        previousZone = row.get(0);
+                        count++;
+                    }
+                    if (previousZone != null) {
+                        occRows.add(totalRow(previousZone, count));
                     }
                     ListView.showTable(
                             scanner,
@@ -107,5 +103,9 @@ public class AttendanceController {
                     break;
             }
         }
+    }
+
+    private static java.util.List<String> totalRow(String zoneId, int count) {
+        return java.util.Arrays.asList(zoneId, "-", "[TOTAL OCCUPANTS: " + count + "]", "-", "-", "-");
     }
 }

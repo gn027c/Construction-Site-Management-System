@@ -74,7 +74,7 @@ public class ZoneController {
         String personCode = InputHelper.getString(scanner, "Person code: ");
         model.person.Person person;
         try {
-            person = site.person(personCode);
+            person = site.zoneAccessPerson(personCode);
         } catch (exception.PersonNotFoundException e) {
             view.ConsoleTheme.error(e.getMessage());
             return;
