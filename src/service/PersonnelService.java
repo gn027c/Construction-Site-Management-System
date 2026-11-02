@@ -48,6 +48,30 @@ public class PersonnelService {
         return true;
     }
 
+    public Person changeType(String code, Person replacement) throws PersonNotFoundException {
+        Person existing = findPersonByCode(code);
+        if (replacement == null || !replacement.getCode().equals(existing.getCode())) {
+            throw new exception.DataValidationException("code", "A type change must keep the person code.");
+        }
+        if (replacement.getRole() == existing.getRole()) {
+            throw new exception.DataValidationException(
+                    "type", "Choose a type different from " + existing.getRole() + "."
+            );
+        }
+        if (!replacement.shouldProvisionAccount()) {
+            throw new exception.DataValidationException(
+                    "type", "A person cannot become a visitor; deactivate the record instead."
+            );
+        }
+        replacement.setActive(existing.isActive());
+        personRepository.replace(replacement);
+        return existing;
+    }
+
+    public void restorePerson(Person original) throws PersonNotFoundException {
+        personRepository.replace(original);
+    }
+
     public boolean deletePerson(String code) throws PersonNotFoundException {
         return personRepository.deleteByCode(code);
     }

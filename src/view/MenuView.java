@@ -43,6 +43,10 @@ public final class MenuView {
     }
 
     public static void showPersonMenu(java.util.List<model.person.Person> people) {
+        showPersonMenu(people, false);
+    }
+
+    public static void showPersonMenu(java.util.List<model.person.Person> people, boolean canChangeType) {
         ConsoleScreen.begin();
         System.out.println();
         ConsoleTheme.breadcrumb("PERSONNEL", "Manage personnel records, roles and site access status.");
@@ -69,6 +73,9 @@ public final class MenuView {
         System.out.println("  " + ConsoleTheme.color("36", " [2]") + " View and update personnel");
         System.out.println("  " + ConsoleTheme.color("36", " [3]") + " Activate or deactivate");
         System.out.println("  " + ConsoleTheme.color("36", " [4]") + " Delete unreferenced person");
+        if (canChangeType) {
+            System.out.println("  " + ConsoleTheme.color("36", " [5]") + " Change type and account role");
+        }
         System.out.println();
         System.out.println("  " + ConsoleTheme.color("33", " [0]") + " Back");
         System.out.println();

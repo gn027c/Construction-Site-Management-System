@@ -102,7 +102,7 @@ public class PersonnelViewTest {
             String output = ConsoleTest.launch(
                     root,
                     "1\n1\n4\nStaff A\n0901234567\nPlanner\n\n"
-                            + "2\nf\ns01 active planner\ne\ns01\nUpdated Staff\n\n0\n0\n",
+                            + "2\nf\ns01 active planner\ne\ns01\nUpdated Staff\n\n\n\n0\n0\n",
                     0,
                     false
             );

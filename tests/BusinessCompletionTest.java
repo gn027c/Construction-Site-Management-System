@@ -1,6 +1,7 @@
 import static support.Checks.*;
 
 import controller.SiteManagerController;
+import exception.AuthenticationException;
 import exception.DataValidationException;
 import exception.InvalidIncidentStateException;
 import exception.RestrictedZoneViolationException;
@@ -27,6 +28,7 @@ import model.zone.Zone;
 import repository.IncidentRepository;
 import repository.PersonRepository;
 import repository.ZoneRepository;
+import service.AuthenticationService;
 
 public class BusinessCompletionTest {
     private static SiteManagerController empty() throws Exception {
@@ -234,6 +236,84 @@ public class BusinessCompletionTest {
             List<AttendanceRecord> own = site.attendance(true);
             equal(1, own.size());
             equal("Z1", own.get(0).getZoneId());
+        });
+        test("TC-AUTH-01 A deactivated person cannot sign in until reactivated", () -> {
+            SiteManagerController site = empty();
+            Worker worker = new Worker("P1", "W1", "Worker", "0901234567", "Welder", "", "Team A");
+            site.addPerson(worker);
+            String username = site.provisionAccount(worker).getUsername();
+            site.setPersonActive("W1", false);
+            throwsType(AuthenticationException.class, () -> site.getAuthentication().login(username, "0"));
+            site.getAuthentication().login("admin", "admin");
+            site.setPersonActive("W1", true);
+            equal(username, site.getAuthentication().login(username, "0").getUsername());
+        });
+        test("TC-AUTH-02 The first administrator must choose a new password", () -> {
+            AuthenticationService auth = new AuthenticationService(Files.createTempDirectory("smartsite-first-admin-"));
+            require(auth.login("admin", "admin").mustChangePassword());
+        });
+        test("TC-PERS-08 An administrator deletes an unused person together with the linked account", () -> {
+            Path root = sample();
+            SiteManagerController site = open(root);
+            Worker worker = new Worker("P1", "W9", "New Worker", "0901234567", "Welder", "", "Team A");
+            site.addPerson(worker);
+            String username = site.provisionAccount(worker).getUsername();
+            String output = capture(() -> site.handlePersonMenu(new Scanner("4\nw09\ny\n0\n")));
+            require(output.contains("linked account '" + username + "'"));
+            equal(null, storedPerson(root, "W9"));
+            equal(null, new AuthenticationService(root).getAccount(username));
+        });
+        test("TC-PERS-09 Changing a worker into staff keeps the code and requires an account role", () -> {
+            SiteManagerController site = empty();
+            site.addZone(new Zone("Z1", "Gate"));
+            Worker worker = new Worker("P1", "W1", "Worker", "0901234567", "Welder", "", "Team A");
+            site.addPerson(worker);
+            String username = site.provisionAccount(worker).getUsername();
+            site.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_IN, false);
+            model.person.Staff staff = new model.person.Staff(
+                    "P1", "W1", "Worker", "0901234567", "Safety Officer", "CERT_W1_SAFE"
+            );
+            throwsType(DataValidationException.class, () -> site.changePersonType("W1", staff, Account.Role.ADMIN));
+            equal(username, site.changePersonType("w01", staff, Account.Role.SAFETY_OFFICER));
+            require(site.person("W1") instanceof model.person.Staff);
+            equal(Account.Role.SAFETY_OFFICER, site.getAuthentication().getAccount(username).getRole());
+            equal("W1", site.attendance(false).get(0).getPersonCode());
+            require(site.recordAttendance("W1", "Z1", AttendanceRecord.CheckType.CHECK_OUT, false));
+            throwsType(DataValidationException.class, () -> site.changePersonType(
+                    "W1", new Visitor("P1", "W1", "Worker", "0901234567", "Survey", "S1", ""), Account.Role.SITE_USER
+            ));
+        });
+        test("TC-PERS-10 A visitor hired from the console gets an account with the chosen role", () -> {
+            Path root = sample();
+            SiteManagerController site = open(root);
+            String output = capture(() -> site.handlePersonMenu(
+                    new Scanner("5\nv01\n1\n1\n1\nTeam V\n1\n1\ny\n0\n")
+            ));
+            Worker hired = (Worker) storedPerson(root, "V1");
+            equal("Welder", hired.getTrade());
+            equal(SafetyLevel.LOW, hired.getSafetyLevel());
+            require(output.contains("Account provisioned"));
+            AuthenticationService auth = new AuthenticationService(root);
+            equal(Account.Role.SITE_USER, auth.getAccount(auth.linkedUsername("V1")).getRole());
+        });
+        test("A staff position change is applied with an explicit account role, or kept for managers", () -> {
+            SiteManagerController site = empty();
+            model.person.Staff staff = new model.person.Staff(
+                    "P1", "S1", "Engineer", "0901234567", "Site Engineer", ""
+            );
+            site.addPerson(staff);
+            String username = site.provisionAccount(staff).getUsername();
+            capture(() -> site.handlePersonMenu(new Scanner("2\ne\nS1\n\n\nSafety Officer\n\n2\n0\n0\n")));
+            equal("Safety Officer", ((model.person.Staff) site.person("S1")).getPosition());
+            equal(Account.Role.SAFETY_OFFICER, site.getAuthentication().getAccount(username).getRole());
+            site.getAuthentication().createAccount("manager", "secret", Account.Role.SITE_MANAGER);
+            site.getAuthentication().login("manager", "secret");
+            String output = capture(() -> site.handlePersonMenu(new Scanner("2\ne\nS1\n\n\nProject Manager\n\n0\n0\n")));
+            require(output.contains("ask an administrator"));
+            equal("Safety Officer", ((model.person.Staff) site.person("S1")).getPosition());
+            throwsType(exception.AccessDeniedException.class, () -> site.changePersonType(
+                    "S1", new Worker("P1", "S1", "Engineer", "0901234567", "Welder", "", "Team"), Account.Role.SITE_USER
+            ));
         });
         finish();
     }

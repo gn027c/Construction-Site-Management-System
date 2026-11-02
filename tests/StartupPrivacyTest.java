@@ -58,7 +58,7 @@ public class StartupPrivacyTest {
         test("Admin receives diagnostics only after successful sign-in", () -> {
             Path root = invalidHistory();
             byte[] original = Files.readAllBytes(root.resolve("attendance.csv"));
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n0\n", 0, false);
+            String output = ConsoleTest.launch(root, "0\n", 0, false);
             int signedIn = output.indexOf("Signed in as admin");
             require(signedIn >= 0);
             assertPrivate(output.substring(0, signedIn));
@@ -79,7 +79,7 @@ public class StartupPrivacyTest {
         test("Logout does not repeat administrator diagnostics to the next personal session", () -> {
             Path root = invalidHistory();
             createWorker(root);
-            String output = ConsoleTest.launchRaw(root, "admin\nadmin\n10\nworker\nsecret\nchosen\nchosen\n0\n", 0, false);
+            String output = ConsoleTest.launch(root, "10\nworker\nsecret\nchosen\nchosen\n0\n", 0, false);
             assertPrivate(output.substring(output.indexOf("Signed out.")));
         });
         test("Anonymous fatal startup errors do not disclose credential filenames or paths", () -> {

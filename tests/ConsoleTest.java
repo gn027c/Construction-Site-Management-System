@@ -8,7 +8,17 @@ import java.util.concurrent.TimeUnit;
 public class ConsoleTest {
  static String javaExecutable() { return Paths.get(System.getProperty("java.home"),"bin","java.exe").toString(); }
  static String launch(Path root, String input, int exit, boolean colors) throws Exception {
-  return launchRaw(root, "admin\nadmin\n" + input, exit, colors);
+  return launchRaw(root, adminSignIn(root) + input, exit, colors);
+ }
+ static final String ADMIN_PASSWORD = "admin-console";
+ static String adminSignIn(Path root) throws IOException {
+  Path accounts = root.resolve("accounts.csv");
+  if (Files.exists(accounts)) {
+   for (String[] row : util.CsvHelper.readRows(accounts.toString())) {
+    if (row[0].equals("admin") && row[6].equals("false")) return "admin\n" + row[1] + "\n";
+   }
+  }
+  return "admin\nadmin\n" + ADMIN_PASSWORD + "\n" + ADMIN_PASSWORD + "\n";
  }
  static String launchRaw(Path root, String input, int exit, boolean colors) throws Exception {
   return launchScreen(root, input, exit, colors, "never");
@@ -61,7 +71,7 @@ public class ConsoleTest {
    Path root=Files.createTempDirectory("smartsite-kill"); Path log=root.resolve("console.txt");
    Process p=new ProcessBuilder(javaExecutable(),"-Dsmartsite.dataDir="+root,"-Dsmartsite.color=never","-cp",System.getProperty("java.class.path"),"Main").redirectErrorStream(true).redirectOutput(log.toFile()).start();
    try {
-    String input="admin\nadmin\n1\n1\n1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n\n";
+    String input=adminSignIn(root)+"1\n1\n1\nCheckpoint worker\n0901234567\nWelder\nX_SAFE\nTeam B\n\n";
     p.getOutputStream().write(input.getBytes(StandardCharsets.UTF_8)); p.getOutputStream().flush();
     long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(10); boolean saved=false;
     while(System.nanoTime()<deadline && p.isAlive()) {

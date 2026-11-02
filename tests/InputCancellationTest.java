@@ -51,7 +51,7 @@ public class InputCancellationTest {
             String output = ConsoleTest.launch(root, "8\n2\nnewuser\n/cancel\n0\n", 0, false);
             require(output.contains("Current entry cancelled"));
             service.AuthenticationService auth = new service.AuthenticationService(root);
-            auth.login("admin", "admin");
+            auth.login("admin", ConsoleTest.ADMIN_PASSWORD);
             equal(1, auth.listAccounts().size());
         });
         test("Cancelling visitor date entry cannot save partially entered personnel", () -> {

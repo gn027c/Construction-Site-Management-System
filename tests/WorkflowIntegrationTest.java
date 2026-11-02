@@ -85,7 +85,7 @@ public class WorkflowIntegrationTest {
             require(site.occupancy(false).isEmpty());
             throwsType(DataValidationException.class, () -> site.deletePerson("W1"));
         });
-        test("A person cannot be linked to two accounts or deleted while linked", () -> {
+        test("A person has one account; only an administrator deletes a linked person with the account", () -> {
             SiteManagerController site = site();
             setup(site);
             AuthenticationService auth = site.getAuthentication();
@@ -93,7 +93,15 @@ public class WorkflowIntegrationTest {
             throwsType(java.io.IOException.class, () -> auth.createAccount(
                     "another", "secret", Account.Role.SITE_USER, "w01"
             ));
+            auth.createAccount("manager", "secret", Account.Role.SITE_MANAGER, "S2");
+            auth.login("manager", "secret");
             throwsType(DataValidationException.class, () -> site.deletePerson("w001"));
+            require(auth.isPersonLinked("W1"));
+            auth.login("admin", "admin");
+            site.deletePerson("w001");
+            require(!auth.isPersonLinked("W1"));
+            require(auth.getAccount("worker") == null);
+            throwsType(exception.PersonNotFoundException.class, () -> site.person("W1"));
         });
         test("Scanning rejects invalid history without activating it and leaves source intact", () -> {
             Path root = Files.createTempDirectory("smartsite-review-");

@@ -44,6 +44,14 @@ public class PersonRepository {
         return person;
     }
 
+    public void replace(Person replacement) throws PersonNotFoundException {
+        Person existing = findByCodeOrThrow(replacement.getCode());
+        if (!existing.getId().equals(replacement.getId())) {
+            throw new exception.DataValidationException("id", "A replacement must keep the internal ID.");
+        }
+        store.put(existing.getCode(), replacement);
+    }
+
     public boolean deleteByCode(String code) throws PersonNotFoundException {
         Person p = findByCodeOrThrow(code);
         return store.remove(p.getCode()) != null;

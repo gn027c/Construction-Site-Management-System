@@ -26,7 +26,7 @@ public final class AuthenticationService {
             List<Account> initial = new ArrayList<>();
             initial.add(new Account(
                     "admin", PasswordHelper.validate("admin"), Account.Role.ADMIN,
-                    true, Account.Role.ADMIN.defaultPermissions(), "", false
+                    true, Account.Role.ADMIN.defaultPermissions(), "", true
             ));
             repository.replaceAll(initial);
         }
@@ -39,11 +39,23 @@ public final class AuthenticationService {
             account = repository.find(Account.normalizeUsername(username));
         } catch (DataValidationException ignored) {
         }
-        if (account == null || !account.isEnabled() || !PasswordHelper.matches(password, account.getPassword())) {
+        if (account == null || !account.isEnabled() || !PasswordHelper.matches(password, account.getPassword())
+                || linksInactivePerson(account)) {
             throw new AuthenticationException();
         }
         currentUsername = account.getUsername();
         return account;
+    }
+
+    private boolean linksInactivePerson(Account account) {
+        if (account.getPersonCode().isEmpty() || personnel == null) {
+            return false;
+        }
+        try {
+            return !personnel.findPersonByCode(account.getPersonCode()).isActive();
+        } catch (exception.PersonNotFoundException e) {
+            return false;
+        }
     }
 
     public void logout() {
@@ -221,6 +233,30 @@ public final class AuthenticationService {
             throw new DataValidationException("personCode", "Ask an administrator to link your personnel record.");
         }
         return code;
+    }
+
+    public String linkedUsername(String code) {
+        String normalized = util.IdentifierHelper.normalize(code);
+        for (Account account : repository.findAll()) {
+            if (normalized.equals(account.getPersonCode())) {
+                return account.getUsername();
+            }
+        }
+        return "";
+    }
+
+    public void deleteLinkedAccount(String personCode) throws IOException {
+        require(Permission.MANAGE_ACCOUNTS);
+        String username = linkedUsername(personCode);
+        if (username.isEmpty()) {
+            return;
+        }
+        if (username.equals(currentUsername)) {
+            throw new DataValidationException("account", "Cannot delete your own signed-in account.");
+        }
+        List<Account> accounts = repository.findAll();
+        accounts.removeIf(account -> account.getUsername().equals(username));
+        repository.replaceAll(accounts);
     }
 
     public boolean isPersonLinked(String code) {

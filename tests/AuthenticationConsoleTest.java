@@ -26,7 +26,7 @@ public class AuthenticationConsoleTest {
             fixture(root);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n8\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n10\nofficer\nsecret\nchosen\nchosen\n1\n8\n0\n",
+                    "admin\nadmin\nadmin-console\nadmin-console\n8\n2\nofficer\n3\nw01\nsecret\nsecret\n0\n10\nofficer\nsecret\nchosen\nchosen\n1\n8\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
@@ -57,7 +57,7 @@ public class AuthenticationConsoleTest {
         test("Changed admin credentials are used after logout and process restart", () -> {
             Path root = root();
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n9\nadmin\nnew-secret\nnew-secret\n10\nadmin\nnew-secret\n0\n", 0, false
+                    root, "admin\nadmin\nfirst-secret\nfirst-secret\n9\nfirst-secret\nnew-secret\nnew-secret\n10\nadmin\nnew-secret\n0\n", 0, false
             );
             require(output.contains("Password changed."));
             require(output.contains("Signed out."));
@@ -102,7 +102,7 @@ public class AuthenticationConsoleTest {
             require(Arrays.equals(before, Files.readAllBytes(file)));
         });
         test("Account lists show account details without passwords", () -> {
-            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\n8\n1\n0\n0\n0\n", 0, false);
+            String output = ConsoleTest.launchRaw(root(), "admin\nadmin\nadmin-console\nadmin-console\n8\n1\n0\n0\n0\n", 0, false);
             require(output.contains("admin | ADMIN | Enabled"));
             require(!output.contains("admin | admin"));
         });
@@ -113,13 +113,13 @@ public class AuthenticationConsoleTest {
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             String output = ConsoleTest.launchRaw(
                     root,
-                    "admin\nadmin\n8\n4\nofficer\n4\n5\nofficer\n0\n0\n10\nofficer\nsecret\n0\n",
+                    "admin\nadmin\nadmin-console\nadmin-console\n8\n4\nofficer\n4\n5\nofficer\n0\n0\n10\nofficer\nsecret\n0\n",
                     0, false
             );
             require(output.contains("Account saved."));
             require(output.contains("Invalid username or password, or account disabled."));
             AuthenticationService restarted = new AuthenticationService(root);
-            restarted.login("admin", "admin");
+            restarted.login("admin", ConsoleTest.ADMIN_PASSWORD);
             for (Account account : restarted.listAccounts()) {
                 if (account.getUsername().equals("officer")) {
                     require(!account.isEnabled());
@@ -131,11 +131,11 @@ public class AuthenticationConsoleTest {
             Path root = root();
             fixture(root);
             String output = ConsoleTest.launchRaw(
-                    root, "admin\nadmin\n8\n2\nofficer\n3\nW1\nsecret\nwrong\n0\n0\n", 0, false
+                    root, "admin\nadmin\nadmin-console\nadmin-console\n8\n2\nofficer\n3\nW1\nsecret\nwrong\n0\n0\n", 0, false
             );
             require(output.contains("Confirmation does not match."));
             AuthenticationService restarted = new AuthenticationService(root);
-            restarted.login("admin", "admin");
+            restarted.login("admin", ConsoleTest.ADMIN_PASSWORD);
             equal(1, restarted.listAccounts().size());
         });
         finish();

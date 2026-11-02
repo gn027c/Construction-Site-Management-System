@@ -282,6 +282,10 @@ public class SiteManagerController {
     }
 
     public Account provisionAccount(Person person, String initialPassword) throws IOException {
+        return provisionAccount(person, initialPassword, resolveAccountRole(person));
+    }
+
+    private Account provisionAccount(Person person, String initialPassword, Account.Role role) throws IOException {
         if (!shouldProvisionAccount(person)) {
             throw new exception.DataValidationException(
                     "person", "Account provisioning is not supported for " + (person == null ? "null" : person.getRole())
@@ -292,7 +296,6 @@ public class SiteManagerController {
             throw new exception.DataValidationException("personCode", "Person is already linked to an account.");
         }
         String username = generateProvisionedUsername(person);
-        Account.Role role = resolveAccountRole(person);
         String pass = (initialPassword == null || initialPassword.trim().isEmpty()) ? "0" : initialPassword;
 
         authentication.createAccount(username, pass, role, normalizedCode, true);
@@ -383,6 +386,71 @@ public class SiteManagerController {
                 () -> personnelService.updateProfile(code, name, phone, details, level), true);
     }
 
+    public boolean updatePersonProfile(
+            String code, String name, String phone, String[] details, model.common.SafetyLevel level,
+            Account.Role accountRole
+    ) {
+        if (accountRole == null) {
+            return updatePersonProfile(code, name, phone, details, level);
+        }
+        authentication.require(Permission.MANAGE_ACCOUNTS);
+        requireStaffRole(accountRole);
+        return operation(Permission.MANAGE_PERSONNEL, () -> {
+            String username = authentication.linkedUsername(personnelService.findPersonByCode(code).getCode());
+            if (username.isEmpty()) {
+                throw new exception.DataValidationException("account", "This person has no linked account.");
+            }
+            Account.Role previous = authentication.getAccount(username).getRole();
+            changeRole(username, accountRole);
+            try {
+                return personnelService.updateProfile(code, name, phone, details, level);
+            } catch (RuntimeException e) {
+                changeRole(username, previous);
+                throw e;
+            }
+        }, true);
+    }
+
+    public String changePersonType(String code, Person replacement, Account.Role accountRole) {
+        authentication.require(Permission.MANAGE_ACCOUNTS);
+        requireStaffRole(accountRole);
+        return operation(Permission.MANAGE_PERSONNEL, () -> {
+            String username = authentication.linkedUsername(personnelService.findPersonByCode(code).getCode());
+            Person original = personnelService.changeType(code, replacement);
+            try {
+                if (username.isEmpty()) {
+                    return provisionAccount(replacement, "0", accountRole).getUsername();
+                }
+                changeRole(username, accountRole);
+                return username;
+            } catch (IOException | RuntimeException e) {
+                personnelService.restorePerson(original);
+                throw new exception.SiteManagementException("The type was not changed. " + e.getMessage(), e);
+            }
+        }, true);
+    }
+
+    private void changeRole(String username, Account.Role role) {
+        try {
+            authentication.changeRole(username, role);
+        } catch (IOException e) {
+            throw new exception.SiteManagementException("The account role was not changed. " + e.getMessage(), e);
+        }
+    }
+
+    private static void requireStaffRole(Account.Role role) {
+        if (role == null || role == Account.Role.ADMIN) {
+            throw new exception.DataValidationException(
+                    "role", "Choose SITE_USER, SAFETY_OFFICER or SITE_MANAGER for a personnel account."
+            );
+        }
+    }
+
+    public Account.Role linkedAccountRole(String code) {
+        String username = linkedUsername(code);
+        return username.isEmpty() ? null : authentication.getAccount(username).getRole();
+    }
+
     public void setPersonActive(String code, boolean active) {
         operation(Permission.MANAGE_PERSONNEL, () -> {
             personnelService.findPersonByCode(code).setActive(active);
@@ -390,10 +458,16 @@ public class SiteManagerController {
         }, true);
     }
 
+    public String linkedUsername(String code) {
+        authentication.require(Permission.MANAGE_PERSONNEL);
+        return authentication.linkedUsername(code);
+    }
+
     public void deletePerson(String code) {
         operation(Permission.MANAGE_PERSONNEL, () -> {
             String normalized = util.IdentifierHelper.normalize(code);
-            boolean referenced = authentication.isPersonLinked(code);
+            personnelService.findPersonByCode(normalized);
+            boolean referenced = false;
             for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
                 referenced |= record.getPersonCode().equals(normalized);
             }
@@ -407,10 +481,25 @@ public class SiteManagerController {
             }
             if (referenced) {
                 throw new exception.DataValidationException(
-                        "person", "Referenced records cannot be deleted; deactivate instead."
+                        "person",
+                        "People with attendance, zone access or incidents cannot be deleted; deactivate instead."
                 );
             }
-            return personnelService.deletePerson(code);
+            if (authentication.isPersonLinked(normalized)) {
+                if (!authentication.allows(Permission.MANAGE_ACCOUNTS)) {
+                    throw new exception.DataValidationException(
+                            "person", "This person has a linked account; ask an administrator to delete both."
+                    );
+                }
+                try {
+                    authentication.deleteLinkedAccount(normalized);
+                } catch (IOException e) {
+                    throw new exception.SiteManagementException(
+                            "The linked account was not deleted. " + e.getMessage(), e
+                    );
+                }
+            }
+            return personnelService.deletePerson(normalized);
         }, true);
     }
 

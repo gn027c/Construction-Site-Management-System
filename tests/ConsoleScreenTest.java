@@ -112,7 +112,7 @@ public class ConsoleScreenTest {
         });
         test("Interactive screen mode supports acknowledgement, navigation and clean logout", () -> {
             String output = ConsoleTest.launchScreen(
-                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\n\n10\n0\n", 0, false, "always"
+                    Files.createTempDirectory("smartsite-screen-ui-"), "admin\nadmin\nadmin-console\nadmin-console\n\n10\n0\n", 0, false, "always"
             );
             require(output.contains("Press Enter to continue"));
             require(output.contains("HOME / admin / ADMIN"));
@@ -124,7 +124,7 @@ public class ConsoleScreenTest {
         });
         test("EOF while acknowledging a result exits without a console loop", () -> {
             String output = ConsoleTest.launchScreen(
-                    Files.createTempDirectory("smartsite-screen-eof-"), "admin\nadmin\n", 0, false, "always"
+                    Files.createTempDirectory("smartsite-screen-eof-"), "admin\nadmin\nadmin-console\nadmin-console\n", 0, false, "always"
             );
             require(output.contains("Press Enter to continue"));
             require(output.contains("Input closed. CSV data saved."));

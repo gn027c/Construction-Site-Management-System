@@ -32,8 +32,10 @@ public class PersonnelController {
             if (people != null) {
                 people.sort(java.util.Comparator.comparing(Person::getCode, util.IdentifierHelper.NATURAL_ORDER));
             }
-            MenuView.showPersonMenu(people);
-            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-4): ", 4);
+            boolean canChangeType = authentication.allows(Permission.MANAGE_ACCOUNTS);
+            MenuView.showPersonMenu(people, canChangeType);
+            int max = canChangeType ? 5 : 4;
+            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-" + max + "): ", max);
             view.ConsoleScreen.begin();
             switch (choice) {
                 case 1:
@@ -54,21 +56,106 @@ public class PersonnelController {
                     break;
                 case 4:
                     String deleted = InputHelper.getString(scanner, "Unreferenced person code to delete: ");
-                    if (!InputHelper.confirm(scanner, "Are you sure you want to delete person '" + deleted + "'?")) {
-                        view.ConsoleTheme.warning("Deletion cancelled.");
-                        break;
-                    }
                     try {
+                        String account = site.linkedUsername(deleted);
+                        String target = "person '" + deleted + "'"
+                                + (account.isEmpty() ? "" : " and linked account '" + account + "'");
+                        if (!InputHelper.confirm(scanner, "Are you sure you want to delete " + target + "?")) {
+                            view.ConsoleTheme.warning("Deletion cancelled.");
+                            break;
+                        }
                         site.deletePerson(deleted);
-                        view.ConsoleTheme.success("Person deleted.");
+                        view.ConsoleTheme.success("Deleted " + target + ".");
+                    } catch (exception.InputCancelledException e) {
+                        throw e;
                     } catch (Exception e) {
                         view.ConsoleTheme.error("Could not delete person: " + e.getMessage());
                     }
+                    break;
+                case 5:
+                    changeTypeFlow(scanner);
                     break;
                 case 0:
                     return;
             }
         }
+    }
+
+    private void changeTypeFlow(Scanner scanner) {
+        authentication.require(Permission.MANAGE_ACCOUNTS);
+        view.ConsoleTheme.breadcrumb("PERSONNEL / CHANGE TYPE AND ACCOUNT ROLE");
+        Person p;
+        try {
+            p = site.person(InputHelper.getString(scanner, "Person code: "));
+        } catch (PersonNotFoundException e) {
+            view.ConsoleTheme.error(e.getMessage());
+            return;
+        }
+        Account.Role currentRole = site.linkedAccountRole(p.getCode());
+        System.out.println("Current: " + p.getCode() + " " + p.getName() + " is " + p.getRole()
+                + (currentRole == null ? ", no account." : ", account role " + currentRole + "."));
+        System.out.println("The code " + p.getCode() + " and the history stay unchanged.");
+        System.out.println("New type: 1. Worker │ 2. Contractor │ 3. Staff");
+        int type = InputHelper.getMenuChoice(scanner, "Choice (1-3, 0-Cancel): ", 3);
+        if (type == 0) {
+            return;
+        }
+        Person replacement;
+        switch (type) {
+            case 1:
+                String trade = selectWorkerTrade(scanner);
+                String certId = selectSafetyCertificate(scanner, p.getCode());
+                String team = InputHelper.getString(scanner, "Enter Assigned Team: ");
+                replacement = new Worker(p.getId(), p.getCode(), p.getName(), p.getPhoneNumber(), trade, certId, team);
+                break;
+            case 2:
+                String company = InputHelper.getString(scanner, "Enter Subcontractor Company Name: ");
+                String contractId = InputHelper.getString(scanner, "Enter Contract ID (e.g., CTR-2026-001): ");
+                replacement = new Contractor(
+                        p.getId(), p.getCode(), p.getName(), p.getPhoneNumber(), company, contractId
+                );
+                break;
+            default:
+                String position = selectStaffPosition(scanner);
+                String certificate = selectSafetyCertificate(scanner, p.getCode());
+                replacement = new model.person.Staff(
+                        p.getId(), p.getCode(), p.getName(), p.getPhoneNumber(), position, certificate
+                );
+                break;
+        }
+        if (replacement.getRole() == p.getRole()) {
+            view.ConsoleTheme.warning(p.getCode() + " is already " + p.getRole() + ".");
+            return;
+        }
+        if (replacement.hasValidSafetyCredential()) {
+            replacement.setSafetyLevel(selectSafetyLevel(scanner, model.common.SafetyLevel.NONE));
+        }
+        Account.Role role = selectAccountRole(scanner, currentRole);
+        if (!InputHelper.confirm(scanner, "Change " + p.getCode() + " from " + p.getRole() + " to "
+                + replacement.getRole() + " with account role " + role + "?")) {
+            view.ConsoleTheme.warning("Type change cancelled.");
+            return;
+        }
+        try {
+            String username = site.changePersonType(p.getCode(), replacement, role);
+            view.ConsoleTheme.success(p.getCode() + " is now " + replacement.getRole() + "; account '" + username
+                    + "' has role " + role + " with its default permissions.");
+            if (currentRole == null) {
+                view.ConsoleTheme.success("Account provisioned: " + username
+                        + " (Initial password: 0, mustChangePassword: true)");
+            }
+        } catch (exception.SiteManagementException e) {
+            view.ConsoleTheme.error(e.getMessage());
+        }
+    }
+
+    private Account.Role selectAccountRole(Scanner scanner, Account.Role current) {
+        Account.Role[] roles = { Account.Role.SITE_USER, Account.Role.SAFETY_OFFICER, Account.Role.SITE_MANAGER };
+        System.out.println("Account role (required" + (current == null ? "" : ", current " + current) + "):");
+        for (int i = 0; i < roles.length; i++) {
+            System.out.println((i + 1) + ". " + roles[i]);
+        }
+        return roles[InputHelper.getInt(scanner, "Role (1-3): ", 1, 3) - 1];
     }
 
     private void addPersonFlow(Scanner scanner) {
@@ -173,6 +260,20 @@ public class PersonnelController {
         for (int i = 0; i < labels.length; i++) {
             details[i] = getUpdatedDetail(scanner, p, i, labels[i], details[i]);
         }
+        Account.Role newRole = null;
+        if (p instanceof model.person.Staff && !details[0].equals(((model.person.Staff) p).getPosition())) {
+            Account.Role currentRole = site.linkedAccountRole(p.getCode());
+            if (currentRole != null) {
+                if (authentication.allows(Permission.MANAGE_ACCOUNTS)) {
+                    System.out.println("A new position needs a matching account role.");
+                    newRole = selectAccountRole(scanner, currentRole);
+                } else {
+                    view.ConsoleTheme.warning("A new position also changes the account role; ask an administrator."
+                            + " Position kept: " + ((model.person.Staff) p).getPosition());
+                    details[0] = ((model.person.Staff) p).getPosition();
+                }
+            }
+        }
         model.common.SafetyLevel newLevel = p.hasValidSafetyCredential(details)
                 ? selectSafetyLevel(scanner, p.getSafetyLevel())
                 : model.common.SafetyLevel.NONE;
@@ -180,8 +281,9 @@ public class PersonnelController {
             view.ConsoleTheme.warning("No valid safety credential: safety level returns to NONE.");
         }
         try {
-            site.updatePersonProfile(p.getCode(), newName, newPhone, details, newLevel);
-            view.ConsoleTheme.success("Success: Person '" + p.getCode() + "' has been updated.");
+            site.updatePersonProfile(p.getCode(), newName, newPhone, details, newLevel, newRole);
+            view.ConsoleTheme.success("Success: Person '" + p.getCode() + "' has been updated."
+                    + (newRole == null ? "" : " Account role: " + newRole + "."));
         } catch (PersonNotFoundException e) {
             view.ConsoleTheme.error("Error: Person not found. " + e.getMessage());
         } catch (exception.DataValidationException e) {

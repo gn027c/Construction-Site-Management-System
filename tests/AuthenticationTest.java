@@ -167,7 +167,7 @@ public class AuthenticationTest {
             AuthenticationService authentication = admin(root);
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             require(authentication.getAccount("officer").mustChangePassword());
-            require(!authentication.currentAccount().mustChangePassword());
+            require(authentication.currentAccount().mustChangePassword());
             authentication.resetPassword("officer", "temporary");
             AuthenticationService restarted = new AuthenticationService(root);
             require(restarted.login("officer", "temporary").mustChangePassword());
