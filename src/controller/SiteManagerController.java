@@ -659,6 +659,13 @@ public class SiteManagerController {
                 ), false);
     }
 
+    public List<String[]> workingHours(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,
+            String personCode, String zoneId) {
+        return operation(Permission.EXPORT_REPORTS, () -> ReportService.summarizeHours(
+                attendanceService.getAllAttendanceRecords(), from, to, personCode, zoneId, period
+        ), false);
+    }
+
     public java.time.LocalDate[] getReportDateBounds(boolean incidents) {
         authentication.require(Permission.EXPORT_REPORTS);
         java.time.LocalDate min = null;

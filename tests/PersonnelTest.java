@@ -36,10 +36,12 @@ public class PersonnelTest {
     equal("Company, Inc",((Contractor)loaded.findPersonByCode("C1")).getCompanyName());
    } finally { Files.deleteIfExists(f); }
   });
-  test("Fixture explicitly marks missing personnel information", () -> {
+  test("Fixture carries worker assignments and leaves one visit date unset", () -> {
    PersonnelService fixture=new PersonnelService(); require(fixture.loadFromCsv("data/persons.csv"));
-   equal("Unknown",((Worker)fixture.findPersonByCode("W01")).getTrade());
-   equal("",((Visitor)fixture.findPersonByCode("V01")).getEntryDate());
+   equal("Welder",((Worker)fixture.findPersonByCode("W01")).getTrade());
+   equal("Team A",((Worker)fixture.findPersonByCode("W01")).getAssignedTeam());
+   equal("12/10/2026",((Visitor)fixture.findPersonByCode("V01")).getEntryDate());
+   equal("",((Visitor)fixture.findPersonByCode("V02")).getEntryDate());
   });
   test("Invalid reload preserves personnel", () -> {
    Path f=Files.createTempFile("people-bad", ".csv");

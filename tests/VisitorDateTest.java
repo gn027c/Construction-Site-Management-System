@@ -74,7 +74,7 @@ public class VisitorDateTest {
             for (String[] row : rows) equal(11, row.length);
             PersonRepository repo = new PersonRepository();
             require(repo.loadFromCsv("data/persons.csv"));
-            equal("", ((Visitor) repo.findByCode("V01")).getEntryDate());
+            equal("12/10/2026", ((Visitor) repo.findByCode("V01")).getEntryDate());
             equal("", ((Visitor) repo.findByCode("V02")).getEntryDate());
         });
         test("Visitor console input, CSV save and export share the validated date", () -> {

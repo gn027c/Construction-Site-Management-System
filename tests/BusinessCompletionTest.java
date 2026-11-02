@@ -346,6 +346,22 @@ public class BusinessCompletionTest {
                     "", "", false, "Z1", "admin", "Too early"
             ));
         });
+        test("TC-REP-01 Working hours pair each check-in with its check-out and count open sessions", () -> {
+            SiteManagerController site = open(sample());
+            java.time.LocalDate day = java.time.LocalDate.of(2026, 10, 12);
+            List<String[]> rows = site.workingHours(day, day, service.ReportService.Period.DAY, "", "");
+            equal("period,personCode,sessions,hours,openSessions", String.join(",", rows.get(0)));
+            List<String> lines = rows.stream().map(r -> String.join(",", r)).collect(Collectors.toList());
+            require(lines.contains("2026-10-12,W1,3,8.67,0"));
+            require(lines.contains("2026-10-12,W2,2,8.08,0"));
+            require(lines.contains("2026-10-12,C1,0,0.00,1"));
+            List<String[]> filtered = site.workingHours(
+                    day, day.plusDays(6), service.ReportService.Period.WEEK, "w01", "z03"
+            );
+            equal(2, filtered.size());
+            equal("2026-10-12,W1,1,3.50,0", String.join(",", filtered.get(1)));
+            equal(1, site.workingHours(day.plusDays(1), day.plusDays(1), service.ReportService.Period.DAY, "", "").size());
+        });
         test("An incident file with the old nine-column header is rejected", () -> {
             Path csv = Files.createTempFile("smartsite-old-incidents-", ".csv");
             try {

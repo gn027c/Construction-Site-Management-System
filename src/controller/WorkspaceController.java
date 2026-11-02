@@ -42,10 +42,13 @@ public final class WorkspaceController {
         ReportService.Period period = ReportService.Period.DAY;
         String person = "";
         String zone = "";
+        boolean hours = false;
 
         while (true) {
-            List<String[]> rows = site.report(from, to, period, type == 2, person, zone);
-            ConsoleTheme.breadcrumb("REPORTS / " + title);
+            List<String[]> rows = hours
+                    ? site.workingHours(from, to, period, person, zone)
+                    : site.report(from, to, period, type == 2, person, zone);
+            ConsoleTheme.breadcrumb("REPORTS / " + title + (hours ? " / WORKING HOURS" : ""));
             System.out.println("  Active Filter: " + DateTimeHelper.formatDate(from) + " -> "
                     + DateTimeHelper.formatDate(to) + " | Grouping: " + period
                     + (person.isEmpty() ? "" : " | Person: " + person)
@@ -68,9 +71,13 @@ public final class WorkspaceController {
             Map<Integer, String> options = new LinkedHashMap<>();
             options.put(1, "Filter by date range, grouping or person");
             options.put(2, "Export report to CSV");
+            if (type == 1) {
+                options.put(3, hours ? "Show check-in and check-out counts" : "Show working hours per person");
+            }
             ConsoleTheme.menuOptions(title, "View, filter or export report data.", options, "Back");
 
-            int choice = InputHelper.getMenuChoice(scanner, "Choice (0-2): ", 2);
+            int max = type == 1 ? 3 : 2;
+            int choice = InputHelper.getMenuChoice(scanner, "Choice (0-" + max + "): ", max);
             if (choice == 0) {
                 return;
             } else if (choice == 1) {
@@ -93,6 +100,8 @@ public final class WorkspaceController {
                 period = newPeriod;
                 person = newPerson;
                 zone = newZone;
+            } else if (choice == 3) {
+                hours = !hours;
             } else if (choice == 2) {
                 String destination = InputHelper.readLine(scanner, "Export parent directory (Enter/0-Cancel): ").trim();
                 if (!destination.isEmpty() && !destination.equals("0")) {

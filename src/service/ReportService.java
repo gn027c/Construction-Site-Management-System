@@ -2,11 +2,14 @@ package service;
 
 import exception.DataValidationException;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import model.attendance.AttendanceRecord;
@@ -83,6 +86,79 @@ public final class ReportService {
             });
         }
         return rows;
+    }
+
+    public static List<String[]> summarizeHours(
+            List<AttendanceRecord> records,
+            LocalDate from,
+            LocalDate to,
+            String personCode,
+            String zoneId,
+            Period period
+    ) {
+        checkRange(from, to);
+        checkPeriod(period);
+        String person = optionalCode(personCode);
+        String zone = optionalCode(zoneId);
+        List<AttendanceRecord> ordered = new ArrayList<>(records);
+        ordered.sort(
+                Comparator.comparing(AttendanceRecord::getTimestamp)
+                        .thenComparing(AttendanceRecord::getRecordId, IdentifierHelper.NATURAL_ORDER)
+        );
+        Map<String, AttendanceRecord> openEntries = new HashMap<>();
+        Map<String, long[]> totals = new TreeMap<>(
+                Comparator.comparing((String key) -> key.split("\\|", -1)[0])
+                        .thenComparing(key -> key.split("\\|", -1)[1], IdentifierHelper.NATURAL_ORDER)
+        );
+        for (AttendanceRecord record : ordered) {
+            String code = record.getPersonCode();
+            if (record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
+                openEntries.put(code, record);
+                continue;
+            }
+            AttendanceRecord entry = openEntries.remove(code);
+            if (entry != null && includesSession(entry, from, to, person, zone)) {
+                long[] values = totals.computeIfAbsent(hoursKey(entry, period), ignored -> new long[3]);
+                values[0]++;
+                values[1] += Duration.between(
+                        DateTimeHelper.parseTimestamp(entry.getTimestamp()),
+                        DateTimeHelper.parseTimestamp(record.getTimestamp())
+                ).toMinutes();
+            }
+        }
+        for (AttendanceRecord entry : openEntries.values()) {
+            if (includesSession(entry, from, to, person, zone)) {
+                totals.computeIfAbsent(hoursKey(entry, period), ignored -> new long[3])[2]++;
+            }
+        }
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { "period", "personCode", "sessions", "hours", "openSessions" });
+        for (Map.Entry<String, long[]> entry : totals.entrySet()) {
+            String[] key = entry.getKey().split("\\|", -1);
+            long[] values = entry.getValue();
+            rows.add(new String[] {
+                    key[0],
+                    key[1],
+                    Long.toString(values[0]),
+                    String.format(Locale.ROOT, "%.2f", values[1] / 60.0),
+                    Long.toString(values[2])
+            });
+        }
+        return rows;
+    }
+
+    private static boolean includesSession(
+            AttendanceRecord entry, LocalDate from, LocalDate to, String person, String zone
+    ) {
+        LocalDate date = DateTimeHelper.parseTimestamp(entry.getTimestamp()).toLocalDate();
+        return within(date, from, to)
+                && (person.isEmpty() || person.equals(entry.getPersonCode()))
+                && (zone.isEmpty() || zone.equals(entry.getZoneId()));
+    }
+
+    private static String hoursKey(AttendanceRecord entry, Period period) {
+        LocalDate date = DateTimeHelper.parseTimestamp(entry.getTimestamp()).toLocalDate();
+        return bucket(date, period) + "|" + entry.getPersonCode();
     }
 
     public static List<String[]> summarizeIncidents(
