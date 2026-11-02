@@ -25,10 +25,10 @@ public class DomainBehaviorTest {
         test("Incident owns assignment and resolution without a service", () -> {
             Incident i = report(); i.assignTo(" W1 ");
             equal(Incident.IncidentStatus.ASSIGNED, i.getStatus()); equal("W1", i.getAssignedTo());
-            i.resolve(); require(i.isResolved()); equal("W1", i.getAssignedTo());
+            i.resolve("Fixed"); require(i.isResolved()); equal("W1", i.getAssignedTo());
         });
         test("Resolving an OPEN incident preserves its status", () -> {
-            Incident i = report(); throwsType(InvalidIncidentStateException.class, i::resolve);
+            Incident i = report(); throwsType(InvalidIncidentStateException.class, () -> i.resolve("Fixed"));
             require(i.isOpen()); equal("", i.getAssignedTo());
         });
         test("Reassignment is allowed until resolution; repeated resolution is rejected", () -> {
@@ -37,8 +37,8 @@ public class DomainBehaviorTest {
             i.assignTo("W2");
             equal(Incident.IncidentStatus.ASSIGNED, i.getStatus()); equal("W2", i.getAssignedTo());
             i.assignTo("W1");
-            equal("W1", i.getAssignedTo()); i.resolve();
-            throwsType(InvalidIncidentStateException.class, i::resolve);
+            equal("W1", i.getAssignedTo()); i.resolve("Fixed");
+            throwsType(InvalidIncidentStateException.class, () -> i.resolve("Fixed"));
             throwsType(InvalidIncidentStateException.class, () -> i.assignTo("W2"));
             require(i.isResolved()); equal("W1", i.getAssignedTo());
         });
@@ -56,11 +56,11 @@ public class DomainBehaviorTest {
             IncidentRepository repo = new IncidentRepository(); repo.save(report());
             Path csv = Files.createTempFile("smartsite-domain-incident-", ".csv");
             try {
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "BROKEN1,Title,Description,LOW,ASSIGNED,,,,false"));
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList(IncidentRepository.HEADER, "BROKEN1,Title,Description,LOW,ASSIGNED,,,,false,,,"));
                 require(!repo.loadFromCsv(csv.toString())); require(repo.findById("I1").isOpen());
-                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived", "RESTORED1,Title,Description,LOW,RESOLVED,W1,,,false"));
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList(IncidentRepository.HEADER, "RESTORED1,Title,Description,LOW,RESOLVED,W1,,,false,,,"));
                 require(repo.loadFromCsv(csv.toString())); require(repo.findById("RESTORED1").isResolved());
-                throwsType(InvalidIncidentStateException.class, () -> repo.findById("RESTORED1").resolve());
+                throwsType(InvalidIncidentStateException.class, () -> repo.findById("RESTORED1").resolve("Fixed"));
             } finally { Files.deleteIfExists(csv); }
         });
         test("Attendance entity rejects checkout without checkin", () -> {

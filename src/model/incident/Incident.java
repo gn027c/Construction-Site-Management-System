@@ -29,6 +29,9 @@ public class Incident {
     private final String reportedAt;
     private String resolvedAt;
     private boolean archived;
+    private final String zoneId;
+    private final String reportedBy;
+    private String resolutionNote;
 
     public Incident(
             String incidentId,
@@ -51,6 +54,26 @@ public class Incident {
             String reportedAt,
             String resolvedAt,
             boolean archived
+    ) {
+        this(
+                incidentId, title, description, severity, status, assignedTo,
+                reportedAt, resolvedAt, archived, "", "", ""
+        );
+    }
+
+    public Incident(
+            String incidentId,
+            String title,
+            String description,
+            IncidentSeverity severity,
+            IncidentStatus status,
+            String assignedTo,
+            String reportedAt,
+            String resolvedAt,
+            boolean archived,
+            String zoneId,
+            String reportedBy,
+            String resolutionNote
     ) {
         this.incidentId = IdentifierHelper.normalize(requiredText(incidentId, "incidentId"));
         this.title = requiredText(title, "title");
@@ -80,6 +103,13 @@ public class Incident {
             throw new DataValidationException("resolvedAt", "Must not precede the reported time.");
         }
         this.archived = archived;
+        String zone = optionalText(zoneId);
+        this.zoneId = zone.isEmpty() ? "" : identifier(zone, "zoneId");
+        this.reportedBy = optionalText(reportedBy);
+        this.resolutionNote = optionalText(resolutionNote);
+        if (status != IncidentStatus.RESOLVED && !this.resolutionNote.isEmpty()) {
+            throw new DataValidationException("resolutionNote", "Only resolved incidents can have a resolution note.");
+        }
     }
 
     private static String optionalTimestamp(String value, String field) {
@@ -95,6 +125,28 @@ public class Incident {
                 id, title, description, severity, IncidentStatus.OPEN, "",
                 DateTimeHelper.formatTimestamp(LocalDateTime.now()), "", false
         );
+    }
+
+    public static Incident report(
+            String id, String title, String description, IncidentSeverity severity, String zoneId, String reportedBy
+    ) {
+        return new Incident(
+                id, title, description, severity, IncidentStatus.OPEN, "",
+                DateTimeHelper.formatTimestamp(LocalDateTime.now()), "", false,
+                identifier(requiredText(zoneId, "zoneId"), "zoneId"), requiredText(reportedBy, "reportedBy"), ""
+        );
+    }
+
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    public String getReportedBy() {
+        return reportedBy;
+    }
+
+    public String getResolutionNote() {
+        return resolutionNote;
     }
 
     public String getIncidentId() {
@@ -169,7 +221,7 @@ public class Incident {
         status = IncidentStatus.ASSIGNED;
     }
 
-    public void resolve() {
+    public void resolve(String note) {
         if (status != IncidentStatus.ASSIGNED) {
             throw new exception.InvalidIncidentStateException(
                     incidentId,
@@ -177,12 +229,14 @@ public class Incident {
                     "Only ASSIGNED incidents can be resolved."
             );
         }
+        String validNote = requiredText(note, "resolutionNote");
         String resolutionTime = DateTimeHelper.formatTimestamp(LocalDateTime.now());
         if (!reportedAt.isEmpty()
                 && DateTimeHelper.parseTimestamp(resolutionTime).isBefore(DateTimeHelper.parseTimestamp(reportedAt))) {
             throw new DataValidationException("resolvedAt", "System time precedes the incident reporting time.");
         }
         resolvedAt = resolutionTime;
+        resolutionNote = validNote;
         status = IncidentStatus.RESOLVED;
     }
 
@@ -202,7 +256,7 @@ public class Incident {
     public String toCsvLine() {
         return util.CsvHelper.toCsvLine(
                 incidentId, title, description, severity.name(), status.name(), assignedTo,
-                reportedAt, resolvedAt, Boolean.toString(archived)
+                reportedAt, resolvedAt, Boolean.toString(archived), zoneId, reportedBy, resolutionNote
         );
     }
 

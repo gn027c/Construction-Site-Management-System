@@ -9,7 +9,7 @@ import model.incident.Incident;
 
 public final class IncidentView {
     public static final List<String> TABLE_HEADERS = Arrays.asList(
-            "Incident ID", "Title", "Severity", "Status", "Assigned To", "Reported", "Archived"
+            "Incident ID", "Zone", "Title", "Severity", "Status", "Assigned To", "Reported", "Archived"
     );
 
     private IncidentView() {
@@ -18,6 +18,7 @@ public final class IncidentView {
     public static List<String> tableRow(Incident incident) {
         return Arrays.asList(
                 incident.getIncidentId(),
+                incident.getZoneId().isEmpty() ? "-" : incident.getZoneId(),
                 incident.getTitle(),
                 incident.getSeverity().name(),
                 incident.getStatus().name(),
@@ -45,15 +46,23 @@ public final class IncidentView {
     private static Map<String, String> fields(Incident incident) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Incident ID", incident.getIncidentId());
+        fields.put("Zone", incident.getZoneId().isEmpty() ? "Not recorded" : incident.getZoneId());
         fields.put("Title", incident.getTitle());
+        fields.put("Description", incident.getDescription());
         fields.put("Severity", incident.getSeverity().name());
         fields.put("Status", incident.getStatus().name());
         fields.put("Assigned to", incident.getAssignedTo().isEmpty() ? "Unassigned" : incident.getAssignedTo());
         if (!incident.getReportedAt().isEmpty()) {
             fields.put("Reported", incident.getReportedAt());
         }
+        if (!incident.getReportedBy().isEmpty()) {
+            fields.put("Reported by", incident.getReportedBy());
+        }
         if (!incident.getResolvedAt().isEmpty()) {
             fields.put("Resolved", incident.getResolvedAt());
+        }
+        if (!incident.getResolutionNote().isEmpty()) {
+            fields.put("Resolution", incident.getResolutionNote());
         }
         fields.put("Archived", incident.isArchived() ? "Yes" : "No");
         return fields;

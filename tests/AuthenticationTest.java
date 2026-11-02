@@ -270,7 +270,7 @@ public class AuthenticationTest {
             authentication.createAccount("officer", "secret", Account.Role.SAFETY_OFFICER);
             authentication.login("officer", "secret");
             controller.handleIncidentMenu(new Scanner(
-                    "1\nINC201\nSafety hazard\nLoose handrail\n3\n3\nINC201\nW01\n4\nINC201\n0\n"
+                    "1\nINC201\nSafety hazard\nLoose handrail\n3\nZ3\n3\nINC201\nW01\n4\nINC201\nHandrail fixed\n0\n"
             ));
             IncidentRepository incidents = new IncidentRepository();
             require(incidents.loadFromCsv(root.resolve("incidents.csv").toString()));

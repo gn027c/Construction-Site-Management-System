@@ -87,7 +87,8 @@ public class IncidentController {
                 severity = Incident.IncidentSeverity.CRITICAL;
                 break;
         }
-        if (site.reportIncident(id, title, description, severity)) {
+        String zoneId = selectIncidentZone(scanner);
+        if (site.reportIncident(id, title, description, severity, zoneId)) {
             view.ConsoleTheme.success("Incident reported with status OPEN.");
         } else {
             view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
@@ -135,6 +136,23 @@ public class IncidentController {
         }
     }
 
+    private String selectIncidentZone(Scanner scanner) {
+        java.util.List<model.zone.Zone> zones = site.incidentZones();
+        System.out.println("Zones: " + zones.stream()
+                .map(z -> z.getZoneId() + " (" + z.getZoneName() + ")")
+                .collect(java.util.stream.Collectors.joining(", ")));
+        while (true) {
+            String input = InputHelper.getString(scanner, "Zone ID where it happened: ");
+            String key = util.IdentifierHelper.normalizeForLookup(input);
+            for (model.zone.Zone zone : zones) {
+                if (zone.getZoneId().equals(key)) {
+                    return zone.getZoneId();
+                }
+            }
+            view.ConsoleTheme.warning("Choose a zone from the list.");
+        }
+    }
+
     private Incident findActiveIncident(String incidentId) {
         String key = util.IdentifierHelper.normalizeForLookup(incidentId);
         return site.incidents(false).stream()
@@ -154,7 +172,8 @@ public class IncidentController {
             view.ConsoleTheme.warning("Only ASSIGNED incidents can be resolved. Current status: " + target.getStatus());
             return;
         }
-        if (site.resolveIncident(target.getIncidentId())) {
+        String note = InputHelper.getString(scanner, "Resolution note (what was done): ");
+        if (site.resolveIncident(target.getIncidentId(), note)) {
             view.ConsoleTheme.success("Incident resolved.");
         } else {
             view.ConsoleTheme.warning("Invalid incident ID.");

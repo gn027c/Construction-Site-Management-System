@@ -188,9 +188,9 @@ public class HistoricalMatrixTest {
         tc("TC-INC-03", "Incident Lifecycle", "Exceptional", "Resolve INC-201, then resolve it a second time",
            "First call -> RESOLVED; second call -> InvalidIncidentStateException",
            () -> {
-               is.resolveIncident("INC-201");
+               is.resolveIncident("INC-201", "Railing fixed");
                System.out.println("After first resolve: " + is.findIncidentById("INC-201").getStatus());
-               is.resolveIncident("INC-201");
+               is.resolveIncident("INC-201", "Railing fixed");
                return "Second resolve accepted (unexpected)";
            }, false);
         tc("TC-INC-04", "Incident Lifecycle", "Normal", "archiveResolvedIncidents() with INC102, INC105, INC201 RESOLVED",

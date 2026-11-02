@@ -160,7 +160,8 @@ public class BusinessCompletionTest {
             site.addPerson(new Worker("P2", "W2", "Former", "0901234568", "Welder", "", "Team A"));
             site.addPerson(new Visitor("P3", "V1", "Guest", "0901234569", "Survey", "W1", ""));
             site.setPersonActive("W2", false);
-            site.reportIncident("INC101", "Cable", "Broken cable", Incident.IncidentSeverity.CRITICAL);
+            site.addZone(new Zone("Z1", "Gate"));
+            site.reportIncident("INC101", "Cable", "Broken cable", Incident.IncidentSeverity.CRITICAL, "Z1");
             throwsType(DataValidationException.class, () -> site.assignIncident("INC101", "W2"));
             throwsType(DataValidationException.class, () -> site.assignIncident("INC101", "V1"));
             equal(Arrays.asList("W1"), site.candidateAssignees().stream()
@@ -172,7 +173,8 @@ public class BusinessCompletionTest {
             SiteManagerController site = empty();
             site.addPerson(new Worker("P1", "W1", "First", "0901234567", "Welder", "", "Team A"));
             site.addPerson(new Worker("P2", "W2", "Second", "0901234568", "Welder", "", "Team A"));
-            site.reportIncident("INC101", "Cable", "Broken cable", Incident.IncidentSeverity.HIGH);
+            site.addZone(new Zone("Z1", "Gate"));
+            site.reportIncident("INC101", "Cable", "Broken cable", Incident.IncidentSeverity.HIGH, "Z1");
             site.assignIncident("INC101", "W1");
             throwsType(DataValidationException.class, () -> site.assignIncident("INC101", "W1"));
             site.setPersonActive("W1", false);
@@ -180,7 +182,7 @@ public class BusinessCompletionTest {
             Incident incident = site.incidents(false).get(0);
             equal("W2", incident.getAssignedTo());
             equal(Incident.IncidentStatus.ASSIGNED, incident.getStatus());
-            site.resolveIncident("INC101");
+            site.resolveIncident("INC101", "Cable replaced");
             throwsType(InvalidIncidentStateException.class, () -> site.assignIncident("INC101", "W2"));
         });
         test("Zone and incident console flows accept canonical identifier aliases", () -> {
@@ -190,7 +192,7 @@ public class BusinessCompletionTest {
             require(((RestrictedZone) storedZone(root, "Z3")).getAllowedPersonCodes().contains("W3"));
             capture(() -> site.handleIncidentMenu(new Scanner("3\ninc0103\nw002\n0\n")));
             equal("W2", storedIncident(root, "INC103").getAssignedTo());
-            capture(() -> site.handleIncidentMenu(new Scanner("4\ninc0103\n0\n")));
+            capture(() -> site.handleIncidentMenu(new Scanner("4\ninc0103\nCable replaced\n0\n")));
             equal(Incident.IncidentStatus.RESOLVED, storedIncident(root, "INC103").getStatus());
         });
         test("Visitors cannot be granted restricted-zone access", () -> {
@@ -314,6 +316,47 @@ public class BusinessCompletionTest {
             throwsType(exception.AccessDeniedException.class, () -> site.changePersonType(
                     "S1", new Worker("P1", "S1", "Engineer", "0901234567", "Welder", "", "Team"), Account.Role.SITE_USER
             ));
+        });
+        test("TC-INC-07 A safety officer reports an incident with its zone; the reporter is recorded", () -> {
+            Path root = sample();
+            SiteManagerController site = open(root);
+            site.getAuthentication().createAccount("officer", "secret", Account.Role.SAFETY_OFFICER, "W3");
+            site.getAuthentication().login("officer", "secret");
+            capture(() -> site.handleIncidentMenu(new Scanner("1\n\nLoose railing\nLevel 3 railing\n3\nz09\nz02\n0\n")));
+            Incident stored = storedIncident(root, "INC106");
+            equal("Z2", stored.getZoneId());
+            equal("officer", stored.getReportedBy());
+            equal(Incident.IncidentStatus.OPEN, stored.getStatus());
+            throwsType(exception.ZoneNotFoundException.class, () -> site.reportIncident(
+                    "INC107", "Spill", "Oil", Incident.IncidentSeverity.LOW, "Z99"
+            ));
+        });
+        test("TC-INC-08 Resolving requires a note, which is saved and reloaded", () -> {
+            Path root = sample();
+            SiteManagerController site = open(root);
+            throwsType(DataValidationException.class, () -> site.resolveIncident("INC101", " "));
+            equal(Incident.IncidentStatus.ASSIGNED, site.incidents(false).get(0).getStatus());
+            site.resolveIncident("inc101", "Pump installed, water removed");
+            Incident stored = storedIncident(root, "INC101");
+            equal(Incident.IncidentStatus.RESOLVED, stored.getStatus());
+            equal("Pump installed, water removed", stored.getResolutionNote());
+            equal("Z3", stored.getZoneId());
+            throwsType(DataValidationException.class, () -> new Incident(
+                    "I1", "T", "D", Incident.IncidentSeverity.LOW, Incident.IncidentStatus.OPEN, "",
+                    "", "", false, "Z1", "admin", "Too early"
+            ));
+        });
+        test("An incident file with the old nine-column header is rejected", () -> {
+            Path csv = Files.createTempFile("smartsite-old-incidents-", ".csv");
+            try {
+                util.CsvHelper.writeAllLines(csv.toString(), Arrays.asList(
+                        "incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived",
+                        "INC1,Title,Description,LOW,OPEN,,,,false"
+                ));
+                require(!new IncidentRepository().loadFromCsv(csv.toString()));
+            } finally {
+                Files.deleteIfExists(csv);
+            }
         });
         finish();
     }

@@ -121,6 +121,9 @@ public class SiteManagerController {
                 if (!incident.getAssignedTo().isEmpty()) {
                     people.findPersonByCode(incident.getAssignedTo());
                 }
+                if (!incident.getZoneId().isEmpty()) {
+                    zones.findZoneById(incident.getZoneId());
+                }
             }
         } catch (RuntimeException e) {
             throw new IOException("Invalid CSV references: " + e.getMessage(), e);
@@ -188,7 +191,7 @@ public class SiteManagerController {
         }
         tables.put(FILES[2], attendance);
         List<String> incidents = new ArrayList<>(
-                Arrays.asList("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived")
+                Arrays.asList(repository.IncidentRepository.HEADER)
         );
         for (Incident incident : incidentService.getAllIncidents()) {
             incidents.add(incident.toCsvLine());
@@ -606,9 +609,18 @@ public class SiteManagerController {
         }, false);
     }
 
-    public boolean reportIncident(String id, String title, String description, Incident.IncidentSeverity severity) {
-        return operation(Permission.REPORT_INCIDENTS,
-                () -> incidentService.reportIncident(id, title, description, severity), true);
+    public boolean reportIncident(
+            String id, String title, String description, Incident.IncidentSeverity severity, String zoneId
+    ) {
+        return operation(Permission.REPORT_INCIDENTS, () -> {
+            Zone zone = zoneService.findZoneById(zoneId);
+            String reporter = authentication.currentAccount().getUsername();
+            return incidentService.reportIncident(id, title, description, severity, zone.getZoneId(), reporter);
+        }, true);
+    }
+
+    public List<Zone> incidentZones() {
+        return operation(Permission.REPORT_INCIDENTS, zoneService::getAllZones, false);
     }
 
     public boolean assignIncident(String id, String code) {
@@ -628,9 +640,9 @@ public class SiteManagerController {
         }, false);
     }
 
-    public boolean resolveIncident(String id) {
+    public boolean resolveIncident(String id, String note) {
         return operation(Permission.RESOLVE_INCIDENTS,
-                () -> incidentService.resolveIncident(id), true);
+                () -> incidentService.resolveIncident(id, note), true);
     }
 
     public int archiveIncidents() {

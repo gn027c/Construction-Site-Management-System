@@ -38,7 +38,7 @@ public class ReportArchiveTest {
             DateTimeHelper.parseTimestamp(incident.getReportedAt());
             equal("", incident.getResolvedAt());
             incident.assignTo("w01");
-            incident.resolve();
+            incident.resolve("Fixed");
             DateTimeHelper.parseTimestamp(incident.getResolvedAt());
             require(!DateTimeHelper.parseTimestamp(incident.getResolvedAt()).isBefore(
                     DateTimeHelper.parseTimestamp(incident.getReportedAt())
@@ -60,7 +60,7 @@ public class ReportArchiveTest {
             require(!open.isArchived());
             open.assignTo("W1");
             throwsType(InvalidIncidentStateException.class, open::archive);
-            open.resolve();
+            open.resolve("Fixed");
             require(open.archive());
             require(!open.archive());
             equal(Incident.IncidentStatus.RESOLVED, open.getStatus());
@@ -88,13 +88,16 @@ public class ReportArchiveTest {
             equal(1, service.getActiveIncidents().size());
             require(service.findIncidentById("INC1").isArchived());
         });
-        test("Incident serialization keeps all nine columns including unknown historical dates", () -> {
+        test("Incident serialization keeps all twelve columns including unknown historical values", () -> {
             Incident incident = saved("INC1", Incident.IncidentStatus.RESOLVED, "", "", true);
             String[] fields = CsvHelper.parseLine(incident.toCsvLine());
-            equal(9, fields.length);
+            equal(12, fields.length);
             equal("", fields[6]);
             equal("", fields[7]);
             equal("true", fields[8]);
+            equal("", fields[9]);
+            equal("", fields[10]);
+            equal("", fields[11]);
         });
         test("Attendance filtering includes both date endpoints and normalized person and zone codes", () -> {
             List<AttendanceRecord> records = Arrays.asList(

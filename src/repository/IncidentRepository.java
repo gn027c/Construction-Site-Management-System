@@ -44,6 +44,9 @@ public class IncidentRepository {
         return count;
     }
 
+    public static final String HEADER = "incidentId,title,description,severity,status,assignedTo,"
+            + "reportedAt,resolvedAt,archived,zoneId,reportedBy,resolutionNote";
+
     public List<Incident> findAll() {
         return new ArrayList<>(incidentList);
     }
@@ -52,10 +55,7 @@ public class IncidentRepository {
         IncidentRepository staged = new IncidentRepository();
         try {
             List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), new String[] {
-                    "incidentId", "title", "description", "severity", "status", "assignedTo",
-                    "reportedAt", "resolvedAt", "archived"
-            })) {
+            if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), HEADER.split(",", -1))) {
                 return false;
             }
             for (int i = 1; i < rows.size(); i++) {
@@ -63,7 +63,7 @@ public class IncidentRepository {
                 if (util.CsvHelper.isBlankRow(p)) {
                     continue;
                 }
-                if (p.length != 9 || !(p[8].equals("true") || p[8].equals("false"))) {
+                if (p.length != 12 || !(p[8].equals("true") || p[8].equals("false"))) {
                     return false;
                 }
                 Incident.IncidentStatus status = Incident.IncidentStatus.valueOf(p[4]);
@@ -71,7 +71,7 @@ public class IncidentRepository {
                         !staged.save(
                                 new Incident(
                                         p[0], p[1], p[2], Incident.IncidentSeverity.valueOf(p[3]), status,
-                                        p[5], p[6], p[7], Boolean.parseBoolean(p[8])
+                                        p[5], p[6], p[7], Boolean.parseBoolean(p[8]), p[9], p[10], p[11]
                                 )
                         )
                 ) {
@@ -88,7 +88,7 @@ public class IncidentRepository {
 
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived");
+        lines.add(HEADER);
         for (Incident inc : incidentList) {
             lines.add(inc.toCsvLine());
         }

@@ -36,6 +36,17 @@ public class IncidentService {
         return reportIncident(Incident.report(incidentId, title, description, severity));
     }
 
+    public boolean reportIncident(
+            String incidentId,
+            String title,
+            String description,
+            Incident.IncidentSeverity severity,
+            String zoneId,
+            String reportedBy
+    ) {
+        return reportIncident(Incident.report(incidentId, title, description, severity, zoneId, reportedBy));
+    }
+
     public PersonnelService getPersonnelService() {
         return personnelService;
     }
@@ -74,7 +85,7 @@ public class IncidentService {
         return true;
     }
 
-    public boolean resolveIncident(String incidentId)
+    public boolean resolveIncident(String incidentId, String note)
             throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
         if (incidentId == null || incidentId.trim().isEmpty()) {
             return false;
@@ -83,7 +94,7 @@ public class IncidentService {
         if (inc == null) {
             throw new exception.IncidentNotFoundException(incidentId.trim());
         }
-        inc.resolve();
+        inc.resolve(note);
         return true;
     }
 

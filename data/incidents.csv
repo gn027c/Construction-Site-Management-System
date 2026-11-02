@@ -1,6 +1,6 @@
-﻿incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived
-INC101,Ro ri nuoc ham mong,Nuoc tran tai khu vuc ham B2 can xu ly hut nuoc,HIGH,ASSIGNED,W1,,,false
-INC102,Khong deo quai mu bao ho,Phat hien 2 cong nhan khong cai quai mu,LOW,RESOLVED,W2,,,false
-INC103,Dut cap phu can cau,Cap phu so 2 bi tuoc soi thep can thay the ngay,CRITICAL,OPEN,,,,false
-INC104,Chao dien nhe tu hop cap,Hop dau noi khu vuc Z03 phat tia lua dien,MEDIUM,ASSIGNED,C1,,,false
-INC105,Mui hoa chat kho vat tu,Canh bao nong do mui dung moi son vuot nguong,LOW,RESOLVED,C2,,,false
+﻿incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived,zoneId,reportedBy,resolutionNote
+INC101,Ro ri nuoc ham mong,Nuoc tran tai khu vuc ham B2 can xu ly hut nuoc,HIGH,ASSIGNED,W1,2026-10-12 08:15:00,,false,Z3,admin,
+INC102,Khong deo quai mu bao ho,Phat hien 2 cong nhan khong cai quai mu,LOW,RESOLVED,W2,2026-10-12 07:50:00,2026-10-12 09:00:00,false,Z1,admin,Nhac nho va kiem tra lai quai mu cho 2 cong nhan
+INC103,Dut cap phu can cau,Cap phu so 2 bi tuoc soi thep can thay the ngay,CRITICAL,OPEN,,2026-10-13 10:20:00,,false,Z4,admin,
+INC104,Chao dien nhe tu hop cap,Hop dau noi khu vuc Z03 phat tia lua dien,MEDIUM,ASSIGNED,C1,2026-10-13 14:05:00,,false,Z3,admin,
+INC105,Mui hoa chat kho vat tu,Canh bao nong do mui dung moi son vuot nguong,LOW,RESOLVED,C2,2026-10-14 09:30:00,2026-10-14 11:45:00,false,Z5,admin,Mo thong gio va do lai nong do dat nguong an toan

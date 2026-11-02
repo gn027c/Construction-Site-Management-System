@@ -62,7 +62,7 @@ public class DomainViewsTest {
             require(!summary.contains("Incident{"));
 
             incident.assignTo("W1");
-            incident.resolve();
+            incident.resolve("Fixed");
             String resolvedSummary = IncidentView.formatSummary(incident);
             require(resolvedSummary.contains("Status: RESOLVED"));
             require(resolvedSummary.contains("Assigned to: W1"));
