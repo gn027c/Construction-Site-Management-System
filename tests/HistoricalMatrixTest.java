@@ -196,7 +196,7 @@ public class HistoricalMatrixTest {
         tc("TC-INC-04", "Incident Lifecycle", "Normal", "archiveResolvedIncidents() with INC102, INC105, INC201 RESOLVED",
            "3 incidents archived; all historical records retained",
            () -> {
-               int removed = is.purgeResolvedIncidents();
+               int removed = is.archiveResolvedIncidents();
                int left = is.getAllIncidents().size();
                check(removed == 3, "removed " + removed);
                check(left == 6, "historical incidents must remain");

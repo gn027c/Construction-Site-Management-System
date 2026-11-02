@@ -30,20 +30,6 @@ public class IncidentRepository {
         return null;
     }
 
-    public int deleteResolved() {
-        return archiveResolved();
-    }
-
-    public int archiveResolved() {
-        int count = 0;
-        for (Incident incident : incidentList) {
-            if (incident.isResolved() && incident.archive()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
     public static final String HEADER = "incidentId,title,description,severity,status,assignedTo,"
             + "reportedAt,resolvedAt,archived,zoneId,reportedBy,resolutionNote";
 

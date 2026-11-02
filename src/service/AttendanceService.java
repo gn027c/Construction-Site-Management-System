@@ -68,14 +68,6 @@ public class AttendanceService {
         return ids;
     }
 
-    public PersonnelService getPersonnelService() {
-        return personnelService;
-    }
-
-    public ZoneService getZoneService() {
-        return zoneService;
-    }
-
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
             throws exception.AttendanceOrderException {
         return processAttendance(personCode, zoneId, type);

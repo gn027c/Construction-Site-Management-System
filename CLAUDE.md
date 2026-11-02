@@ -27,8 +27,9 @@ things to keep in sync: the **code**, the **Project Report** and the **AI Audit 
   non-zero on failure. There is no JUnit. Test IDs such as `TC-ZONE-01` are the ones cited in the
   report's test matrix. `src/VERIFICATION.md` records the latest full run - update it when counts change.
 - Console flows can be driven with piped input for traces: `printf '...\n' | java -cp bin/app Main`.
-  A fresh data directory creates account `admin` / password `admin`. Accounts created or reset by an
-  admin must change their password at the next sign-in, so piped traces need the new password twice.
+  A fresh data directory creates account `admin` / password `admin`, which (like accounts created or
+  reset by an admin) must change its password at the first sign-in, so piped traces need the new
+  password twice. `ConsoleTest.launch` handles this for console tests (`ADMIN_PASSWORD`).
 - If PowerShell refuses to run scripts, use `powershell -ExecutionPolicy Bypass -File scripts/test.ps1`.
 
 ## Architecture

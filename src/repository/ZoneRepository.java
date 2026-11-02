@@ -1,11 +1,9 @@
 package repository;
 
 import exception.DuplicateZoneIdException;
-import exception.ZoneNotFoundException;
 import model.zone.RestrictedZone;
 import model.zone.Zone;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -36,14 +34,6 @@ public class ZoneRepository {
             }
         }
         return null;
-    }
-
-    public Zone findByIdOrThrow(String zoneId) throws ZoneNotFoundException {
-        Zone z = findById(zoneId);
-        if (z == null) {
-            throw new ZoneNotFoundException(zoneId);
-        }
-        return z;
     }
 
     public List<Zone> findAll() {

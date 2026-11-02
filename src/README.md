@@ -91,8 +91,8 @@ for a terminal that supports ANSI but is not detected automatically. The matchin
 Java option is `-Dsmartsite.screen=auto|always|never`.
 
 Select a different directory with `./scripts/run.ps1 -DataDirectory D:/SmartSiteData`.
-The first installation creates `admin` with password `admin`; existing credentials
-are never overwritten. Only one console should use a data directory at a time,
+The first installation creates `admin` with password `admin`, which must be changed
+at the first sign-in; existing credentials are never overwritten. Only one console should use a data directory at a time,
 because nothing prevents two sessions from overwriting each other's files.
 
 ## Home menu
@@ -149,8 +149,25 @@ staff position and certificate; contractor company and contract; visitor purpose
 host and visit date), then the safety level when the new credential is valid. Enter
 keeps a value; `-` clears an optional one (a certificate or a visit date). The
 model checks all values before changing any of them, so a rejected edit changes
-nothing. Without a valid credential the safety level returns to `NONE`. Changing a
-staff position does not change the role of the linked account; use menu 8.
+nothing. Without a valid credential the safety level returns to `NONE`.
+
+A staff position and the linked account role change together. When the position of a
+staff member with an account changes, the edit form requires choosing the account role
+(SITE_USER, SAFETY_OFFICER or SITE_MANAGER) in the same step; an account without
+`MANAGE_ACCOUNTS` keeps the old position and is told to ask an administrator.
+
+Menu 1, option 5 (shown only with `MANAGE_ACCOUNTS`) changes a person's type, for
+example a worker promoted to staff or a visitor hired as a worker. The code and the
+internal ID stay the same, so attendance, zone access and incidents still refer to the
+person; the code keeps its original prefix. The form asks for the new type's fields
+and safety level, then requires the account role. An existing account gets that role
+with its default permissions; a person without an account gets a new one (initial
+password `0`). Nobody can become a visitor; deactivate the record instead.
+
+Deactivating a person also blocks sign-in for the linked account until the person is
+reactivated. Menu 1, option 4 deletes a person who has no attendance, zone access or
+incidents. If the person has a linked account, the confirmation names it and an
+administrator deletes both together; other accounts are told to ask an administrator.
 
 Accounts are separate from people. A person can be linked to at most one account.
 Menu 8 creates accounts, assigns roles and permissions, changes account status,
@@ -174,9 +191,9 @@ Account administration cannot be granted to non-admin roles.
 No account can bypass attendance order, restricted-zone rules or visit dates.
 
 Passwords are stored as plain text in `accounts.csv`, which Git and business
-exports exclude; keep the data directory private. Every account created by an
-administrator or by personnel provisioning, and every reset password, must be
-changed at the next sign-in before the home menu opens. A new password must
+exports exclude; keep the data directory private. The initial `admin` account,
+every account created by an administrator or by personnel provisioning, and every
+reset password must be changed at the next sign-in before the home menu opens. A new password must
 differ from the current one. Cancelling the change signs the account out again.
 
 ## Canonical identifiers
@@ -207,14 +224,15 @@ their own case-insensitive rules.
 | persons.csv | type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel |
 | zones.csv | type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes |
 | attendance.csv | recordId,personCode,zoneId,timestamp,checkType |
-| incidents.csv | incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived |
+| incidents.csv | incidentId,title,description,severity,status,assignedTo,reportedAt,resolvedAt,archived,zoneId,reportedBy,resolutionNote |
 | accounts.csv | username,password,role,enabled,permissions,personCode,mustChangePassword |
 
 Worker extras are certificate/trade/team; Staff extras are certificate/position/
 empty; Contractor extras are contract/company/empty; Visitor extras are purpose/
 host/visit date. Dates use `dd/MM/yyyy`; timestamps use `yyyy-MM-dd HH:mm:ss`.
-Unknown historical incident timestamps and unknown visit dates remain empty; the
-loader does not invent values. Files with a different header or column count are
+Unknown historical incident timestamps, zones, reporters and resolution notes, and
+unknown visit dates, remain empty; the loader does not invent values. A resolution
+note is allowed only on a RESOLVED incident. Files with a different header or column count are
 rejected rather than converted.
 
 ## Safety levels and restricted zones
@@ -293,6 +311,12 @@ combine with AND; identifiers accept canonical aliases. Status words such as
 active/inactive are matched as whole words. Authorization limits the collection
 before searching or paging.
 
+Incident menu option 1 reports an incident: title, description, severity and the
+zone where it happened (chosen from the zone list, so a reporter does not need
+`MANAGE_ZONES`). The signed-in username is recorded as the reporter. Option 4
+resolves an ASSIGNED incident and requires a resolution note describing what was
+done.
+
 Incident menu option 3 assigns an OPEN incident or reassigns an ASSIGNED one to a
 different person, for example when the handler leaves. Only active personnel who
 are not visitors can handle incidents, and only they are listed. A RESOLVED incident
@@ -305,5 +329,8 @@ an incident stamps its resolution time; reporting stamps its creation time.
 Menus 6 and 7 generate attendance and incident summaries by day, Monday-based week
 or calendar month, with inclusive from/to dates. Attendance reports can filter
 person and zone; incident reports include unknown historical dates in a separate
-row. Exports contain the filtered report and do not include accounts. Menu 5
+row. In the attendance report, option 3 switches to working hours: each check-in is
+paired with the same person's next check-out, the session is counted on its check-in
+date, and the table shows sessions, hours (two decimals) and still-open sessions per
+person and period. Option 3 again returns to check-in and check-out counts. Exports contain the filtered report and do not include accounts. Menu 5
 reloads, saves and exports business CSV data according to account permissions.

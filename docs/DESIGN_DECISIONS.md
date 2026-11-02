@@ -12,6 +12,8 @@ package `algorithm` chỉ để chuyển nguyên phương thức sang file khác
 | OPEN → ASSIGNED → RESOLVED | Incident.assignTo/resolve, Person/Visitor.canHandleIncidents | Model tự giữ vòng đời (ASSIGNED được giao lại cho người khác đến khi RESOLVED); Service tìm sự cố và chỉ nhận người đang hoạt động, không phải khách |
 | Sửa hồ sơ theo loại người | Person.updateProfile, detailLabels/validateDetail ở Worker, Staff, Contractor, Visitor | Đa hình: controller hỏi chung một form; mỗi lớp con tự kiểm tra trường của mình, cập nhật tất cả hoặc không gì cả, mất chứng chỉ hợp lệ thì cấp an toàn về NONE |
 | Sửa khu vực | Zone/RestrictedZone.updateDetails | Khu thường chỉ đổi tên; khu hạn chế đổi tên và cấp an toàn (không được NONE) |
+| Đổi loại người, đổi chức vụ | PersonnelService.changeType, facade changePersonType/updatePersonProfile | Giữ nguyên mã và ID để lịch sử vẫn trỏ đúng người; vai trò tài khoản bắt buộc chọn trong cùng thao tác, không tự suy từ chức vụ; chỉ người có MANAGE_ACCOUNTS |
+| Giờ công | ReportService.summarizeHours | Ghép mỗi CHECK_IN với CHECK_OUT kế tiếp của cùng người; tính theo ngày check-in; ca chưa ra đếm riêng, không đoán giờ ra |
 | Kiểm tra quyền vào khu | Zone/RestrictedZone.accessDenialReason, Person.hasValidSafetyCredential, SafetyLevel.covers | Đa hình: khu thường nhận mọi người; khu hạn chế xét whitelist, chứng chỉ theo loại người và cấp an toàn |
 | Ngày hẹn của khách | Person/Visitor.checkInDenialReason | Đa hình: nhân sự vào ngày nào cũng được, khách chỉ đúng ngày hẹn |
 | Parse và ghi CSV | CsvHelper | Dùng lại bởi bốn repository; phải có một bộ codec dùng chung |

@@ -6,7 +6,7 @@ uses CSV storage and console/terminal interaction.
 ## Automated verification
 
 Run `./scripts/test.ps1` from the project root. The latest complete run passed
-**279 checks in 27 suites, with zero failures**. The original workshop matrix
+**289 checks in 27 suites, with zero failures**. The original workshop matrix
 (`HistoricalMatrixTest`) accounts for 25 of these checks.
 
 | Suite | Passed |
@@ -16,7 +16,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | AttendanceTimestampTest | 8 |
 | AuthenticationConsoleTest | 10 |
 | AuthenticationTest | 27 |
-| BusinessCompletionTest | 12 |
+| BusinessCompletionTest | 22 |
 | ConsoleScreenTest | 8 |
 | ConsoleTest | 7 |
 | CsvHelperTest | 4 |
@@ -38,7 +38,7 @@ Run `./scripts/test.ps1` from the project root. The latest complete run passed
 | VisitorDateTest | 11 |
 | WorkflowIntegrationTest | 9 |
 | ZoneTest | 12 |
-| Total | 279 |
+| Total | 289 |
 
 What the newer checks cover:
 
@@ -52,6 +52,18 @@ What the newer checks cover:
   granting a listed person reports no change; zone name and level can be edited
   (`TC-ZONE-06`); and a `SITE_USER` records personal attendance from the console,
   which previously failed because the zone check required `MANAGE_ZONES`.
+- Accounts and personnel (`BusinessCompletionTest`): a deactivated person cannot
+  sign in until reactivated (`TC-AUTH-01`); the first administrator must choose a
+  new password (`TC-AUTH-02`); an administrator deletes an unused person together
+  with the linked account (`TC-PERS-08`); a worker becomes staff with the same code,
+  history and a required account role (`TC-PERS-09`); a visitor hired from the
+  console gets an account with the chosen role (`TC-PERS-10`); and a staff position
+  change requires a role, while a manager keeps the old position.
+- Incidents and reports (`BusinessCompletionTest`): a safety officer reports an
+  incident with its zone and is recorded as reporter (`TC-INC-07`); resolving needs
+  a note that survives reload (`TC-INC-08`); the old 9-column `incidents.csv` is
+  rejected; and working hours pair check-ins with check-outs (`TC-REP-01`: on the
+  sample day W1 has 3 sessions and 8.67 hours, C1 one open session).
 
 - Attendance rules: invalid first exits, repeated entries and exits, wrong-zone
   exits, backwards timestamps, direct repository callers, staged CSV load
@@ -77,15 +89,15 @@ What the newer checks cover:
 
 ## Terminal walkthrough
 
-On a copy of the shipped `data/` directory, `admin`/`admin` signed in, the home
-menu showed options 0-10, and business data loaded without rejection. Through
-menu 3, option 1:
+On a copy of the shipped `data/` directory (2 November 2026), `admin`/`admin` signed
+in, was asked for a new password, the home menu showed options 0-10, and business
+data loaded without rejection. Through menu 3, option 1:
 
 | Swipe | Result |
 | --- | --- |
 | W1 check-in at Z4 | Refused: `Safety level HIGH is below the required CRITICAL.` |
 | W1 check-in at Z3 | Recorded as `REC1` in `attendance.csv` |
-| V1 check-in at Z1 | Refused: `Visit date is not set; record the visit date before check-in.` |
+| V1 check-in at Z1 | Refused: `Visit is booked for 12/10/2026, not 02/11/2026.` |
 | W3 check-in at Z4 | Refused: `Safety level MEDIUM is below the required CRITICAL.` |
 
 The shipped `data/` files were not changed by the walkthrough.

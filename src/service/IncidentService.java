@@ -47,10 +47,6 @@ public class IncidentService {
         return reportIncident(Incident.report(incidentId, title, description, severity, zoneId, reportedBy));
     }
 
-    public PersonnelService getPersonnelService() {
-        return personnelService;
-    }
-
     public Incident findIncidentById(String incidentId) {
         return incidentRepository.findById(incidentId);
     }
@@ -96,10 +92,6 @@ public class IncidentService {
         }
         inc.resolve(note);
         return true;
-    }
-
-    public int purgeResolvedIncidents() {
-        return archiveResolvedIncidents();
     }
 
     public int archiveResolvedIncidents() {

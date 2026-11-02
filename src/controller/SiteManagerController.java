@@ -598,15 +598,8 @@ public class SiteManagerController {
     }
 
     public List<Incident> incidents(boolean archived) {
-        return operation(Permission.VIEW_INCIDENTS, () -> {
-            List<Incident> result = new ArrayList<>();
-            for (Incident incident : incidentService.getAllIncidents()) {
-                if (archived || !incident.isArchived()) {
-                    result.add(incident);
-                }
-            }
-            return result;
-        }, false);
+        return operation(Permission.VIEW_INCIDENTS,
+                () -> archived ? incidentService.getAllIncidents() : incidentService.getActiveIncidents(), false);
     }
 
     public boolean reportIncident(
