@@ -119,6 +119,15 @@ of the real runs), Figure 7.5 (results per suite) and Figure 8.1 (problem
 decomposition) were added. The AI Audit Logs keep every earlier entry unchanged and
 now hold 14 core entries and 3 hallucination cases.
 
+On 3 November 2026 the Final report was rebuilt on the PRO192 template (Arial, header
+and footer, lists of figures, tables and listings) after the lecturer's review, and
+matched to main @ a14915f: 294 checks in 27 suites and a 40-case test matrix (the 25
+workshop cases plus 15 from `BusinessCompletionTest`). New content: a use case
+diagram and requirement traceability (Chapter 2), an overall model, a package table
+and the real `tree /F /A src` output for the seven packages (Section 5.1), a two-part
+UML class diagram (Section 5.2) and new console runs (Chapter 7). The Final AI Audit
+Log gained entry 015 and a sheet listing the 40 test cases with their results.
+
 A second walkthrough on a fresh copy of `data/` (2 November 2026), after W4 was
 deactivated through menu 1:
 
