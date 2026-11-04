@@ -56,11 +56,9 @@ public class AttendanceController {
 
         try {
             attendanceService.recordAttendance(personCode, zoneId, type);
-        } catch (exception.AttendanceOrderException e) {
-            System.out.println("Attendance Order Violation: " + e.getMessage());
-        } catch (exception.RestrictedZoneViolationException e) {
-            System.out.println("Restricted Zone Error: " + e.getMessage());
-        } catch (exception.ZoneNotFoundException e) {
+        } catch (exception.AppError e) {
+            System.out.println("Error: " + e.getMessage());
+        } catch (exception.NotFoundException e) {
             System.out.println("Zone Error: " + e.getMessage());
         }
     }

@@ -1,7 +1,7 @@
 package repository;
 
-import exception.DuplicatePersonCodeException;
-import exception.PersonNotFoundException;
+import exception.AppError;
+import exception.NotFoundException;
 import model.Person;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -16,14 +16,14 @@ import java.util.Map;
 public class PersonRepository {
     private final Map<String, Person> store = new LinkedHashMap<>();
 
-    /** Saves a person; throws DuplicatePersonCodeException if the code already exists. */
-    public boolean save(Person person) throws DuplicatePersonCodeException {
+    /** Saves a person; throws AppError if the code already exists. */
+    public boolean save(Person person) throws AppError {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
             return false;
         }
         String code = person.getCode().trim();
         if (store.containsKey(code)) {
-            throw new DuplicatePersonCodeException(code);
+            throw new exception.AppError("Personnel code already exists in the system: " + code);
         }
         store.put(code, person);
         return true;
@@ -37,16 +37,16 @@ public class PersonRepository {
         return store.get(code.trim());
     }
 
-    /** Looks up a person by code; throws PersonNotFoundException if not found. */
-    public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
+    /** Looks up a person by code; throws NotFoundException if not found. */
+    public Person findByCodeOrThrow(String code) throws NotFoundException {
         Person person = findByCode(code);
         if (person == null) {
-            throw new PersonNotFoundException(code != null ? code.trim() : "null");
+            throw new exception.NotFoundException("Personnel record", "code", code != null ? code.trim() : "null");
         }
         return person;
     }
 
-    public boolean deleteByCode(String code) throws PersonNotFoundException {
+    public boolean deleteByCode(String code) throws NotFoundException {
         Person p = findByCodeOrThrow(code);
         return store.remove(p.getCode()) != null;
     }

@@ -1,8 +1,8 @@
 package service;
 
-import exception.DuplicatePersonCodeException;
-import exception.InvalidPhoneNumberException;
-import exception.PersonNotFoundException;
+import exception.AppError;
+import exception.DataValidationException;
+import exception.NotFoundException;
 import model.Person;
 import repository.PersonRepository;
 import java.util.List;
@@ -27,26 +27,26 @@ public class PersonnelService {
     }
 
     // Add a new person
-    public boolean addPerson(Person p) throws DuplicatePersonCodeException, InvalidPhoneNumberException {
+    public boolean addPerson(Person p) throws AppError, DataValidationException {
         if (p == null || p.getCode() == null || p.getCode().trim().isEmpty()) {
             System.out.println("Error: Invalid person data!");
             return false;
         }
 
-        checkPhone(p.getPhoneNumber()); // throws InvalidPhoneNumberException
-        return personRepository.save(p); // throws DuplicatePersonCodeException
+        checkPhone(p.getPhoneNumber()); // throws DataValidationException
+        return personRepository.save(p); // throws AppError
     }
 
     // Find a person by code
-    public Person findPersonByCode(String code) throws PersonNotFoundException {
-        return personRepository.findByCodeOrThrow(code); // throws PersonNotFoundException
+    public Person findPersonByCode(String code) throws NotFoundException {
+        return personRepository.findByCodeOrThrow(code); // throws NotFoundException
     }
 
     // Update name and phone number of a person
     public boolean updatePerson(String code, String newName, String newPhone)
-            throws PersonNotFoundException, InvalidPhoneNumberException {
-        Person p = findPersonByCode(code); // throws PersonNotFoundException
-        checkPhone(newPhone); // throws InvalidPhoneNumberException
+            throws NotFoundException, DataValidationException {
+        Person p = findPersonByCode(code); // throws NotFoundException
+        checkPhone(newPhone); // throws DataValidationException
 
         if (newName != null && !newName.trim().isEmpty()) {
             p.setName(newName.trim());
@@ -56,7 +56,7 @@ public class PersonnelService {
     }
 
     // Delete a person by code
-    public boolean deletePerson(String code) throws PersonNotFoundException {
+    public boolean deletePerson(String code) throws NotFoundException {
         return personRepository.deleteByCode(code);
     }
 
@@ -65,10 +65,10 @@ public class PersonnelService {
         return personRepository.findAll();
     }
 
-    // Throw InvalidPhoneNumberException if the phone number is not valid
-    private void checkPhone(String phone) throws InvalidPhoneNumberException {
+    // Throw DataValidationException if the phone number is not valid
+    private void checkPhone(String phone) throws DataValidationException {
         if (phone == null || !phone.trim().matches(PHONE_REGEX)) {
-            throw new InvalidPhoneNumberException(phone);
+            throw new exception.DataValidationException("Invalid phone number format: " + phone + ". Expected 10 digits starting with 0.");
         }
     }
 

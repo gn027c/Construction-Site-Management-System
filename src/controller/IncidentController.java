@@ -77,7 +77,7 @@ public class IncidentController {
         String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., EMP001): ");
         try {
             incidentService.assignIncident(incidentId, assigneeCode);
-        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
+        } catch (exception.NotFoundException | exception.AppError e) {
             System.out.println("Assignment Error: " + e.getMessage());
         }
     }

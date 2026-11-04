@@ -46,8 +46,12 @@ public class AttendanceService {
         this.recordCounter = maxNumber + 1;
     }
 
+    private static exception.AppError orderViolation(String personCode, String detail) {
+        return new exception.AppError("Attendance FSM Violation for Person [" + personCode + "]: " + detail);
+    }
+
     public boolean processAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
-            throws exception.AttendanceOrderException {
+            throws exception.AppError {
         if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty()
                 || type == null) {
             return false;
@@ -61,20 +65,20 @@ public class AttendanceService {
         // FSM: Chặn CHECK_IN khi đang ở trong; Chặn CHECK_OUT khi chưa vào hoặc sai khu vực
         if (type == AttendanceRecord.CheckType.CHECK_IN) {
             if (lastRecord != null && lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
+                throw orderViolation(cleanPersonCode,
                         "Already CHECKED_IN at zone '" + lastRecord.getZoneId() + "'. Cannot CHECK_IN twice sequentially.");
             }
         } else if (type == AttendanceRecord.CheckType.CHECK_OUT) {
             if (lastRecord == null) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
+                throw orderViolation(cleanPersonCode,
                         "Cannot CHECK_OUT without prior CHECK_IN record.");
             }
             if (lastRecord.getCheckType() == AttendanceRecord.CheckType.CHECK_OUT) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
+                throw orderViolation(cleanPersonCode,
                         "Already CHECKED_OUT. Cannot CHECK_OUT again without CHECK_IN.");
             }
             if (!lastRecord.getZoneId().equalsIgnoreCase(cleanZoneId)) {
-                throw new exception.AttendanceOrderException(cleanPersonCode,
+                throw orderViolation(cleanPersonCode,
                         "Zone mismatch on CHECK_OUT! Currently inside zone '" + lastRecord.getZoneId() + "', but attempting to CHECK_OUT at zone '" + cleanZoneId + "'.");
             }
         }
@@ -94,7 +98,7 @@ public class AttendanceService {
     }
 
     public boolean recordAttendance(String personCode, String zoneId, AttendanceRecord.CheckType type)
-            throws exception.AttendanceOrderException {
+            throws exception.AppError {
         if (personCode == null || personCode.trim().isEmpty() || zoneId == null || zoneId.trim().isEmpty() || type == null) {
             System.out.println("Error: Invalid attendance parameters!");
             return false;
@@ -104,7 +108,7 @@ public class AttendanceService {
         model.Person person;
         try {
             person = personnelService.findPersonByCode(personCode.trim());
-        } catch (exception.PersonNotFoundException e) {
+        } catch (exception.NotFoundException e) {
             System.out.println("Error: " + e.getMessage());
             return false;
         }
@@ -117,7 +121,7 @@ public class AttendanceService {
             }
         }
 
-        // 3. Cập nhật trạng thái máy FSM (ném AttendanceOrderException khi vi phạm thứ tự vào/ra)
+        // 3. Cập nhật trạng thái máy FSM (ném AppError khi vi phạm thứ tự vào/ra)
         boolean success = processAttendance(personCode, zoneId, type);
         if (!success) {
             return false;

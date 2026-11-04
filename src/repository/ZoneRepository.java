@@ -1,7 +1,7 @@
 package repository;
 
-import exception.DuplicateZoneIdException;
-import exception.ZoneNotFoundException;
+import exception.AppError;
+import exception.NotFoundException;
 import model.RestrictedZone;
 import model.Zone;
 
@@ -21,12 +21,12 @@ import java.util.Set;
 public class ZoneRepository {
     private final List<Zone> zoneList = new ArrayList<>();
 
-    public boolean save(Zone zone) throws DuplicateZoneIdException {
+    public boolean save(Zone zone) throws AppError {
         if (zone == null || zone.getZoneId() == null || zone.getZoneId().trim().isEmpty()) {
             return false;
         }
         if (findById(zone.getZoneId()) != null) {
-            throw new DuplicateZoneIdException(zone.getZoneId());
+            throw new exception.AppError("Zone ID already exists in the system: " + zone.getZoneId());
         }
         return zoneList.add(zone);
     }
@@ -43,10 +43,10 @@ public class ZoneRepository {
         return null;
     }
 
-    public Zone findByIdOrThrow(String zoneId) throws ZoneNotFoundException {
+    public Zone findByIdOrThrow(String zoneId) throws NotFoundException {
         Zone z = findById(zoneId);
         if (z == null) {
-            throw new ZoneNotFoundException(zoneId);
+            throw new exception.NotFoundException("Construction zone", "ID", zoneId);
         }
         return z;
     }

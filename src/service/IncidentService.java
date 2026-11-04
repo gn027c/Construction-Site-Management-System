@@ -55,8 +55,15 @@ public class IncidentService {
         return incidentRepository.findById(incidentId);
     }
 
+    private static exception.AppError invalidTransition(String incidentId, String state, String reason) {
+        return new exception.AppError(
+                "Invalid State Transition for Incident [" + incidentId + "] currently in state [" + state + "]: "
+                        + reason
+        );
+    }
+
     public boolean assignIncident(String incidentId, String assigneeCode)
-            throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
+            throws exception.NotFoundException, exception.AppError {
         if (incidentId == null || incidentId.trim().isEmpty() || assigneeCode == null || assigneeCode.trim().isEmpty()) {
             System.out.println("Error: Incident ID and Assignee Code cannot be empty!");
             return false;
@@ -64,19 +71,18 @@ public class IncidentService {
 
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
-            throw new exception.IncidentNotFoundException(incidentId.trim());
+            throw new exception.NotFoundException("Incident record", "ID", incidentId.trim());
         }
 
         if (inc.getStatus() != Incident.IncidentStatus.OPEN) {
-            throw new exception.InvalidIncidentStateException(incidentId.trim(),
-                    inc.getStatus().name(), "Only OPEN incidents can be assigned to personnel.");
+            throw invalidTransition(incidentId.trim(), inc.getStatus().name(), "Only OPEN incidents can be assigned to personnel.");
         }
 
         // Xác thực nhân sự phụ trách tồn tại qua personnelService
         if (personnelService != null) {
             try {
                 personnelService.findPersonByCode(assigneeCode.trim());
-            } catch (exception.PersonNotFoundException e) {
+            } catch (exception.NotFoundException e) {
                 System.out.println("Error: Person with code '" + assigneeCode + "' not found in personnel registry!");
                 return false;
             }
@@ -89,19 +95,18 @@ public class IncidentService {
     }
 
     public boolean resolveIncident(String incidentId)
-            throws exception.IncidentNotFoundException, exception.InvalidIncidentStateException {
+            throws exception.NotFoundException, exception.AppError {
         if (incidentId == null || incidentId.trim().isEmpty()) {
             return false;
         }
 
         Incident inc = findIncidentById(incidentId.trim());
         if (inc == null) {
-            throw new exception.IncidentNotFoundException(incidentId.trim());
+            throw new exception.NotFoundException("Incident record", "ID", incidentId.trim());
         }
 
         if (inc.getStatus() != Incident.IncidentStatus.ASSIGNED) {
-            throw new exception.InvalidIncidentStateException(incidentId.trim(),
-                    inc.getStatus().name(), "Only ASSIGNED incidents can be transitioned to RESOLVED.");
+            throw invalidTransition(incidentId.trim(), inc.getStatus().name(), "Only ASSIGNED incidents can be transitioned to RESOLVED.");
         }
 
         inc.setStatus(Incident.IncidentStatus.RESOLVED);
@@ -114,7 +119,7 @@ public class IncidentService {
                 System.out.println("Incident resolved.");
                 return true;
             }
-        } catch (exception.IncidentNotFoundException | exception.InvalidIncidentStateException e) {
+        } catch (exception.NotFoundException | exception.AppError e) {
             System.out.println("Incident State Error: " + e.getMessage());
         }
         return false;

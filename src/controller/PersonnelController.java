@@ -1,8 +1,8 @@
 package controller;
 
-import exception.DuplicatePersonCodeException;
-import exception.InvalidPhoneNumberException;
-import exception.PersonNotFoundException;
+import exception.AppError;
+import exception.DataValidationException;
+import exception.NotFoundException;
 import model.Contractor;
 import model.Person;
 import model.Visitor;
@@ -97,9 +97,9 @@ public class PersonnelController {
                 System.out.println("Could not add the person. Please check the entered data.");
             }
  
-        } catch (DuplicatePersonCodeException e) {
+        } catch (AppError e) {
             System.out.println("Error: Person code '" + code + "' already exists. " + e.getMessage());
-        } catch (InvalidPhoneNumberException e) {
+        } catch (DataValidationException e) {
             System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Error: Invalid input data. " + e.getMessage());
@@ -149,9 +149,9 @@ public class PersonnelController {
            personnelService.updatePerson(code, newName, newPhone);
             System.out.println("Success: Person '" + code + "' has been updated.");
  
-        } catch (PersonNotFoundException e) {
+        } catch (NotFoundException e) {
             System.out.println("Error: No person found with code '" + code + "'. " + e.getMessage());
-        } catch (InvalidPhoneNumberException e) {
+        } catch (DataValidationException e) {
             System.out.println("Error: Invalid phone number. It must have 10 digits and start with 0. " + e.getMessage());
         }
     }

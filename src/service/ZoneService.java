@@ -1,8 +1,8 @@
 package service;
 
-import exception.DuplicateZoneIdException;
-import exception.RestrictedZoneViolationException;
-import exception.ZoneNotFoundException;
+import exception.AppError;
+import exception.AppError;
+import exception.NotFoundException;
 import model.Person;
 import model.RestrictedZone;
 import model.Zone;
@@ -29,7 +29,7 @@ public class ZoneService {
         return zoneRepository.findAll();
     }
 
-    public boolean addZone(Zone z) throws DuplicateZoneIdException {
+    public boolean addZone(Zone z) throws AppError {
         if (z == null || z.getZoneId() == null || z.getZoneId().trim().isEmpty()) {
             System.out.println("Error: Invalid zone data!");
             return false;
@@ -41,15 +41,22 @@ public class ZoneService {
         return false;
     }
 
-    public Zone findZoneById(String zoneId) throws ZoneNotFoundException {
+    public Zone findZoneById(String zoneId) throws NotFoundException {
         Zone zone = zoneRepository.findById(zoneId);
         if (zone == null) {
-            throw new ZoneNotFoundException(zoneId);
+            throw new exception.NotFoundException("Construction zone", "ID", zoneId);
         }
         return zone;
     }
 
-    public boolean grantZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
+    private static exception.AppError accessDenied(String personCode, String zoneId, String reason) {
+        return new exception.AppError(
+                "Access Denied: Person [" + personCode + "] is not permitted to enter Restricted Zone [" + zoneId
+                        + "]. Reason: " + reason
+        );
+    }
+
+    public boolean grantZoneAccess(String zoneId, String personCode) throws NotFoundException {
         Zone zone = findZoneById(zoneId);
         if (zone instanceof RestrictedZone) {
             ((RestrictedZone) zone).grantAccess(personCode);
@@ -58,7 +65,7 @@ public class ZoneService {
         return false;
     }
 
-    public boolean revokeZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
+    public boolean revokeZoneAccess(String zoneId, String personCode) throws NotFoundException {
         Zone zone = findZoneById(zoneId);
         if (zone instanceof RestrictedZone) {
             ((RestrictedZone) zone).revokeAccess(personCode);
@@ -67,7 +74,7 @@ public class ZoneService {
         return false;
     }
 
-    public boolean verifyAccess(String zoneId, Person person) throws ZoneNotFoundException, RestrictedZoneViolationException {
+    public boolean verifyAccess(String zoneId, Person person) throws NotFoundException, AppError {
         Zone zone = findZoneById(zoneId);
         if (person == null) {
             return false;
@@ -76,7 +83,7 @@ public class ZoneService {
         // Gọi phương thức checkAccess đã cài đặt đa hình ở model
         boolean hasAccess = zone.checkAccess(person);
         if (!hasAccess) {
-            throw new RestrictedZoneViolationException(person.getCode(), zoneId, "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ.");
+            throw accessDenied(person.getCode(), zoneId, "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ.");
         }
         return hasAccess;
     }

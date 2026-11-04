@@ -1,8 +1,8 @@
 package controller;
 
-import exception.DuplicateZoneIdException;
-import exception.RestrictedZoneViolationException;
-import exception.ZoneNotFoundException;
+import exception.AppError;
+import exception.AppError;
+import exception.NotFoundException;
 import model.RestrictedZone;
 import model.Zone;
 import service.ZoneService;
@@ -72,7 +72,7 @@ public class ZoneController {
                 RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
                 zoneService.addZone(restrictedZone);
             }
-        } catch (DuplicateZoneIdException e) {
+        } catch (AppError e) {
             System.out.println("Zone Error: " + e.getMessage());
         }
     }
