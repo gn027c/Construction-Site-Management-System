@@ -1,77 +1,77 @@
 package model;
 
+import exception.AppError;
 import java.io.Serializable;
 
-/**
- * NHIỆM VỤ: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ:
- * - Lớp đại diện cho một bản ghi điểm danh vào/ra (Check-in / Check-out) tại công trường.
- * - Chịu trách nhiệm quản lý mã bản ghi (recordId), mã nhân sự (personCode), mã khu vực (zoneId),
- *   thời điểm quẹt thẻ (timestamp) và loại thao tác (CHECK_IN / CHECK_OUT).
- */
 public class AttendanceRecord implements Serializable {
     public enum CheckType {
         CHECK_IN,
         CHECK_OUT
     }
 
-    private String recordId;
-    private String personCode;
-    private String zoneId;
-    private String timestamp;
-    private CheckType checkType;
+    private final String recordId;
+    private final String personCode;
+    private final String zoneId;
+    private final String timestamp;
+    private final CheckType checkType;
 
     public AttendanceRecord(String recordId, String personCode, String zoneId, String timestamp, CheckType checkType) {
-        this.recordId = recordId;
-        this.personCode = personCode;
-        this.zoneId = zoneId;
-        this.timestamp = timestamp;
-        this.checkType = checkType;
+        this.recordId = util.ValidationHelper.requireText(recordId, "recordId", "Must not be empty.");
+        this.personCode = util.ValidationHelper.requireText(personCode, "personCode", "Must not be empty.");
+        this.zoneId = util.ValidationHelper.requireText(zoneId, "zoneId", "Must not be empty.");
+        this.timestamp = util.ValidationHelper.requireText(timestamp, "timestamp", "Must not be empty.");
+        this.checkType = util.ValidationHelper.requireNotNull(checkType, "checkType", "Must not be null.");
     }
 
     public String getRecordId() {
         return recordId;
     }
 
-    public void setRecordId(String recordId) {
-        this.recordId = recordId;
-    }
-
     public String getPersonCode() {
         return personCode;
-    }
-
-    public void setPersonCode(String personCode) {
-        this.personCode = personCode;
     }
 
     public String getZoneId() {
         return zoneId;
     }
 
-    public void setZoneId(String zoneId) {
-        this.zoneId = zoneId;
-    }
-
     public String getTimestamp() {
         return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
     }
 
     public CheckType getCheckType() {
         return checkType;
     }
 
-    public void setCheckType(CheckType checkType) {
-        this.checkType = checkType;
+    // Kiểm tra quy trình vào/ra hợp lệ:
+    // - Không được Check-in 2 lần liên tiếp khi chưa Check-out.
+    // - Phải Check-out đúng khu vực (zone) đã Check-in trước đó.
+    public void assertCanFollow(AttendanceRecord lastRecord) {
+        if (checkType == CheckType.CHECK_IN) {
+            if (lastRecord != null && lastRecord.getCheckType() == CheckType.CHECK_IN) {
+                throw new AppError("Attendance FSM Violation for Person [" + personCode
+                        + "]: Already CHECKED_IN at zone '" + lastRecord.getZoneId()
+                        + "'. Cannot CHECK_IN twice sequentially.");
+            }
+        } else if (checkType == CheckType.CHECK_OUT) {
+            if (lastRecord == null) {
+                throw new AppError("Attendance FSM Violation for Person [" + personCode
+                        + "]: Cannot CHECK_OUT without prior CHECK_IN record.");
+            }
+            if (lastRecord.getCheckType() == CheckType.CHECK_OUT) {
+                throw new AppError("Attendance FSM Violation for Person [" + personCode
+                        + "]: Already CHECKED_OUT. Cannot CHECK_OUT again without CHECK_IN.");
+            }
+            if (!Zone.isSameId(lastRecord.getZoneId(), zoneId)) {
+                throw new AppError("Attendance FSM Violation for Person [" + personCode
+                        + "]: Zone mismatch on CHECK_OUT! Currently inside zone '" + lastRecord.getZoneId()
+                        + "', but attempting to CHECK_OUT at zone '" + zoneId + "'.");
+            }
+        }
     }
 
     public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s",
-                recordId, personCode, zoneId, timestamp, checkType != null ? checkType.name() : "");
+        return util.CsvHelper.toCsvLine(recordId, personCode, zoneId, timestamp, checkType.name());
     }
 
     @Override

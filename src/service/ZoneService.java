@@ -1,19 +1,14 @@
 package service;
 
 import exception.AppError;
-import exception.AppError;
 import exception.NotFoundException;
 import model.Person;
 import model.RestrictedZone;
 import model.Zone;
+import model.SafetyLevel;
 import repository.ZoneRepository;
 import java.util.List;
 
-/**
- * TẦNG NGHIỆP VỤ (SERVICE LAYER)
- * PHỤ TRÁCH: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ: Xử lý các quy tắc nghiệp vụ phân vùng, kiểm soát quyền truy cập kết hợp Exception Handling.
- */
 public class ZoneService {
     private final ZoneRepository zoneRepository;
 
@@ -30,23 +25,32 @@ public class ZoneService {
     }
 
     public boolean addZone(Zone z) throws AppError {
-        if (z == null || z.getZoneId() == null || z.getZoneId().trim().isEmpty()) {
-            System.out.println("Error: Invalid zone data!");
-            return false;
+        return zoneRepository.save(z);
+    }
+
+    public void updateZone(String zoneId, String newName, SafetyLevel requiredSafetyLevel) {
+        Zone zone = findZoneById(zoneId);
+        if (zone instanceof RestrictedZone) {
+            if (requiredSafetyLevel == null || requiredSafetyLevel == SafetyLevel.NONE) {
+                throw new exception.DataValidationException(
+                        "requiredSafetyLevel", "Choose LOW, MEDIUM, HIGH or CRITICAL.");
+            }
+            zone.rename(newName);
+            ((RestrictedZone) zone).changeRequiredSafetyLevel(requiredSafetyLevel);
+        } else {
+            if (requiredSafetyLevel != null) {
+            throw new AppError("A regular zone cannot have a safety level.");
+            }
+            zone.rename(newName);
         }
-        if (zoneRepository.save(z)) {
-            System.out.println("Successfully added zone: " + z.getZoneName());
-            return true;
-        }
-        return false;
+    }
+
+    boolean deleteZone(String zoneId) {
+        return zoneRepository.deleteById(zoneId);
     }
 
     public Zone findZoneById(String zoneId) throws NotFoundException {
-        Zone zone = zoneRepository.findById(zoneId);
-        if (zone == null) {
-            throw new exception.NotFoundException("Construction zone", "ID", zoneId);
-        }
-        return zone;
+        return zoneRepository.findByIdOrThrow(zoneId);
     }
 
     private static exception.AppError accessDenied(String personCode, String zoneId, String reason) {
@@ -56,48 +60,41 @@ public class ZoneService {
         );
     }
 
-    public boolean grantZoneAccess(String zoneId, String personCode) throws NotFoundException {
+    public boolean grantZoneAccess(String zoneId, Person person) throws NotFoundException, AppError {
         Zone zone = findZoneById(zoneId);
-        if (zone instanceof RestrictedZone) {
-            ((RestrictedZone) zone).grantAccess(personCode);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean revokeZoneAccess(String zoneId, String personCode) throws NotFoundException {
-        Zone zone = findZoneById(zoneId);
-        if (zone instanceof RestrictedZone) {
-            ((RestrictedZone) zone).revokeAccess(personCode);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean verifyAccess(String zoneId, Person person) throws NotFoundException, AppError {
-        Zone zone = findZoneById(zoneId);
-        if (person == null) {
+        if (!(zone instanceof RestrictedZone)) {
             return false;
         }
-
-        // Gọi phương thức checkAccess đã cài đặt đa hình ở model
-        boolean hasAccess = zone.checkAccess(person);
-        if (!hasAccess) {
-            throw accessDenied(person.getCode(), zoneId, "Nhân sự không đủ quyền hoặc không có chứng chỉ an toàn hợp lệ.");
-        }
-        return hasAccess;
+        ((RestrictedZone) zone).grant(person);
+        return true;
     }
 
-    public boolean loadFromCsv() {
-        return loadFromCsv("data/zones.csv");
+    public boolean revokeZoneAccess(String zoneId, Person person) throws NotFoundException {
+        Zone zone = findZoneById(zoneId);
+        return zone instanceof RestrictedZone && ((RestrictedZone) zone).revoke(person);
+    }
+
+    public boolean isListed(String personCode) {
+        for (Zone zone : zoneRepository.findAll()) {
+            if (zone instanceof RestrictedZone
+                    && ((RestrictedZone) zone).getAllowedPersonCodes().contains(personCode)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void verifyAccess(String zoneId, Person person) throws NotFoundException, AppError {
+        Zone zone = findZoneById(zoneId);
+
+        String denialReason = person.canEnter(zone);
+        if (denialReason != null) {
+            throw accessDenied(person.getCode(), zoneId, denialReason);
+        }
     }
 
     public boolean loadFromCsv(String filePath) {
         return zoneRepository.loadFromCsv(filePath);
-    }
-
-    public boolean saveToCsv() {
-        return saveToCsv("data/zones.csv");
     }
 
     public boolean saveToCsv(String filePath) {

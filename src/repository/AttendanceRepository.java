@@ -4,13 +4,13 @@ import model.AttendanceRecord;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * TẦNG LƯU TRỮ (REPOSITORY LAYER)
- * PHỤ TRÁCH: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ: Quản lý lưu trữ và truy xuất tập hợp bản ghi điểm danh (AttendanceRecord).
- */
 public class AttendanceRepository {
+    private static final String HEADER = "recordId,personCode,zoneId,timestamp,checkType";
+    private static final int COLUMN_COUNT = 5;
+    private static final java.time.format.DateTimeFormatter TIMESTAMP = util.DateHelper.TIMESTAMP_FORMATTER;
+
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();
+    private final java.util.Map<String, AttendanceRecord> latestByPerson = new java.util.HashMap<>();
 
     public boolean save(AttendanceRecord record) {
         if (record == null) {
@@ -26,7 +26,7 @@ public class AttendanceRepository {
         String cleanCode = personCode.trim();
         for (int i = attendanceList.size() - 1; i >= 0; i--) {
             AttendanceRecord rec = attendanceList.get(i);
-            if (rec.getPersonCode().equalsIgnoreCase(cleanCode)) {
+            if (util.IdHelper.isSame(rec.getPersonCode(), cleanCode)) {
                 return rec;
             }
         }
@@ -37,10 +37,6 @@ public class AttendanceRepository {
         return new ArrayList<>(attendanceList);
     }
 
-    /**
-     * Chuẩn hóa thời gian điểm danh về yyyy-MM-dd HH:mm:ss (cùng định dạng code đang ghi).
-     * Chấp nhận dữ liệu cũ dd/MM/yyyy HH:mm (dữ liệu mẫu). Giá trị không nhận ra thì giữ nguyên.
-     */
     static String normalizeTimestamp(String raw) {
         if (raw == null) {
             return null;
@@ -54,43 +50,36 @@ public class AttendanceRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        List<String> lines = util.CsvHelper.readAllLines(filePath);
-        if (lines.isEmpty()) {
+        latestByPerson.clear();
+        List<AttendanceRecord> records = util.CsvHelper.readTable(
+                filePath, HEADER, COLUMN_COUNT, this::parse, AttendanceRecord::getRecordId);
+        if (records == null) {
             return false;
         }
         attendanceList.clear();
-        for (int i = 0; i < lines.size(); i++) {
-            String line = lines.get(i).trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            if (i == 0 && line.toLowerCase().startsWith("recordid")) {
-                continue;
-            }
-            String[] parts = line.split(",", -1);
-            if (parts.length >= 5) {
-                String recordId = parts[0].trim();
-                String personCode = parts[1].trim();
-                String zoneId = parts[2].trim();
-                String timestamp = normalizeTimestamp(parts[3].trim());
-                AttendanceRecord.CheckType checkType;
-                try {
-                    checkType = AttendanceRecord.CheckType.valueOf(parts[4].trim().toUpperCase());
-                } catch (Exception e) {
-                    checkType = AttendanceRecord.CheckType.CHECK_IN;
-                }
-                attendanceList.add(new AttendanceRecord(recordId, personCode, zoneId, timestamp, checkType));
-            }
-        }
+        attendanceList.addAll(records);
         return true;
+    }
+
+    private AttendanceRecord parse(List<String> columns) {
+        String timestamp = normalizeTimestamp(columns.get(3).trim());
+        java.time.LocalDateTime.parse(timestamp, TIMESTAMP);
+        AttendanceRecord record = new AttendanceRecord(
+                columns.get(0).trim(), columns.get(1).trim(), columns.get(2).trim(), timestamp,
+                AttendanceRecord.CheckType.valueOf(columns.get(4).trim()));
+        String person = record.getPersonCode().toUpperCase();
+        record.assertCanFollow(latestByPerson.get(person));
+        latestByPerson.put(person, record);
+        return record;
     }
 
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("recordId,personCode,zoneId,timestamp,checkType");
+        lines.add(HEADER);
         for (AttendanceRecord rec : attendanceList) {
             lines.add(rec.toCsvLine());
         }
         return util.CsvHelper.writeAllLines(filePath, lines);
     }
+
 }

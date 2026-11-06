@@ -1,55 +1,52 @@
 package model;
 
-/**
- * NHIỆM VỤ: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ:
- * - Lớp cơ sở đại diện cho các khu vực thi công / sinh hoạt trên công trường.
- * - Chịu trách nhiệm quản lý thông tin định danh khu vực (zoneId), tên gọi (zoneName).
- * - Định nghĩa cơ chế kiểm soát quyền ra/vào cổng checkAccess(Person person).
- */
+import util.ValidationHelper;
+
 public class Zone {
     protected String zoneId;
     protected String zoneName;
 
     public Zone(String zoneId, String zoneName) {
-        if (zoneId == null || zoneId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã khu vực (zoneId) không được để trống.");
-        }
-        if (zoneName == null || zoneName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên khu vực (zoneName) không được để trống.");
-        }
-        this.zoneId = zoneId.trim();
-        this.zoneName = zoneName.trim();
+        this.zoneId = ValidationHelper.requireText(zoneId, "Mã khu vực (zoneId) không được để trống.");
+        this.zoneName = ValidationHelper.requireText(zoneName, "Tên khu vực (zoneName) không được để trống.");
+    }
+
+    public static String normalizeId(String raw) {
+        return util.IdHelper.normalize(raw);
+    }
+
+    public static boolean isSameId(String id1, String id2) {
+        return util.IdHelper.isSame(id1, id2);
     }
 
     public String getZoneId() {
         return zoneId;
     }
 
-    public void setZoneId(String zoneId) {
-        if (zoneId == null || zoneId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã khu vực (zoneId) không được để trống.");
-        }
-        this.zoneId = zoneId.trim();
-    }
-
     public String getZoneName() {
         return zoneName;
     }
 
-    public void setZoneName(String zoneName) {
-        if (zoneName == null || zoneName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên khu vực (zoneName) không được để trống.");
+    public void rename(String newName) {
+        zoneName = ValidationHelper.requireText(newName, "zoneName", "Must not be empty.");
+    }
+
+    public String accessDenialReason(Person person) {
+        if (person == null) {
+            return "Person cannot be null";
         }
-        this.zoneName = zoneName.trim();
+        if (!person.isActive()) {
+            return "Person is inactive";
+        }
+        return null;
     }
 
     public boolean checkAccess(Person person) {
-        return person != null;
+        return accessDenialReason(person) == null;
     }
 
     public String toCsvLine() {
-        return String.format("REGULAR,%s,%s,NONE,NONE", zoneId, zoneName);
+        return util.CsvHelper.toCsvLine("REGULAR", zoneId, zoneName, "NONE", "NONE");
     }
 
     @Override

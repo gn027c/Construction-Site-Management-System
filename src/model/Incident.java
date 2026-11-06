@@ -1,13 +1,11 @@
 package model;
 
-/**
- * NHIỆM VỤ: Thành viên 4 (Nguyễn Tấn Lợi - SE211059)
- * MÔ TẢ:
- * - Lớp thực thể đại diện cho hồ sơ sự cố an toàn lao động phát sinh tại hiện trường.
- * - Chịu trách nhiệm quản lý thông tin sự cố, mức độ nguy hiểm, trạng thái xử lý và nhân sự liên quan.
- * - Cung cấp các hành vi phân công xử lý và cập nhật tiến độ giải quyết sự cố.
- */
+import exception.AppError;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Incident {
+    private static final DateTimeFormatter REPORT_TIME = util.DateHelper.TIMESTAMP_FORMATTER;
 
     public enum IncidentSeverity {
         LOW,
@@ -28,108 +26,98 @@ public class Incident {
     private IncidentSeverity severity;
     private IncidentStatus status;
     private String assignedTo;
+    private final LocalDateTime reportedAt;
 
     public Incident(String incidentId, String title, String description,
                     IncidentSeverity severity, IncidentStatus status, String assignedTo) {
-        if (incidentId == null || incidentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã sự cố (incidentId) không được để trống.");
+        this(incidentId, title, description, severity, status, assignedTo, LocalDateTime.now());
+    }
+
+    public Incident(String incidentId, String title, String description,
+                    IncidentSeverity severity, IncidentStatus status, String assignedTo,
+                    LocalDateTime reportedAt) {
+        this.incidentId = util.ValidationHelper.requireText(incidentId, "Mã sự cố (incidentId) không được để trống.");
+        this.title = util.ValidationHelper.requireText(title, "Tiêu đề sự cố không được để trống.");
+        this.description = util.ValidationHelper.requireText(description, "Mô tả sự cố không được để trống.");
+        this.severity = util.ValidationHelper.requireNotNull(severity, "Mức độ nghiêm trọng không được để trống.");
+        this.status = util.ValidationHelper.requireNotNull(status, "Trạng thái sự cố không được để trống.");
+        String assignee = (assignedTo != null) ? assignedTo.trim() : "";
+        if ((status == IncidentStatus.OPEN) != assignee.isEmpty()) {
+            throw new exception.DataValidationException(
+                    "assignedTo", "An OPEN incident has no handler; any other status needs one.");
         }
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tiêu đề sự cố không được để trống.");
-        }
-        if (description == null || description.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mô tả sự cố không được để trống.");
-        }
-        if (severity == null) {
-            throw new IllegalArgumentException("Mức độ nghiêm trọng không được để trống.");
-        }
-        if (status == null) {
-            throw new IllegalArgumentException("Trạng thái sự cố không được để trống.");
-        }
-        this.incidentId = incidentId.trim();
-        this.title = title.trim();
-        this.description = description.trim();
-        this.severity = severity;
-        this.status = status;
-        this.assignedTo = (assignedTo != null) ? assignedTo.trim() : "";
+        this.assignedTo = assignee;
+        this.reportedAt = reportedAt;
     }
 
     public String getIncidentId() {
         return incidentId;
     }
 
-    public void setIncidentId(String incidentId) {
-        if (incidentId == null || incidentId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã sự cố không được để trống.");
-        }
-        this.incidentId = incidentId.trim();
-    }
-
     public String getTitle() {
         return title;
-    }
-
-    public void setTitle(String title) {
-        if (title == null || title.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tiêu đề sự cố không được để trống.");
-        }
-        this.title = title.trim();
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        if (description == null || description.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mô tả sự cố không được để trống.");
-        }
-        this.description = description.trim();
-    }
-
     public IncidentSeverity getSeverity() {
         return severity;
-    }
-
-    public void setSeverity(IncidentSeverity severity) {
-        if (severity == null) {
-            throw new IllegalArgumentException("Mức độ nghiêm trọng không được để trống.");
-        }
-        this.severity = severity;
     }
 
     public IncidentStatus getStatus() {
         return status;
     }
 
-    public void setStatus(IncidentStatus status) {
-        if (status == null) {
-            throw new IllegalArgumentException("Trạng thái sự cố không được để trống.");
-        }
-        this.status = status;
-    }
-
     public String getAssignedTo() {
         return assignedTo;
     }
 
-    public void setAssignedTo(String assignedTo) {
-        this.assignedTo = (assignedTo != null) ? assignedTo.trim() : "";
+    public LocalDateTime getReportedAt() {
+        return reportedAt;
+    }
+
+    public String getReportedAtText() {
+        return reportedAt == null ? "" : reportedAt.format(REPORT_TIME);
+    }
+
+    public void assignTo(Person handler) {
+        if (status == IncidentStatus.RESOLVED) {
+            throw new AppError("Invalid State Transition for Incident [" + incidentId + "] currently in state ["
+                    + status.name() + "]: A resolved incident cannot be assigned again.");
+        }
+        util.ValidationHelper.requireNotNull(handler, "Handler cannot be null.");
+        if (!handler.canHandleIncidents()) {
+            throw new AppError("Person with code '" + handler.getCode() + "' is not eligible to handle incidents.");
+        }
+        this.assignedTo = handler.getCode();
+        this.status = IncidentStatus.ASSIGNED;
+    }
+
+    public void resolve() {
+        if (status != IncidentStatus.ASSIGNED) {
+            throw new AppError("Invalid State Transition for Incident [" + incidentId + "] currently in state ["
+                    + status.name() + "]: Only ASSIGNED incidents can be transitioned to RESOLVED.");
+        }
+        this.status = IncidentStatus.RESOLVED;
     }
 
     public String toCsvLine() {
-        return String.format("%s,%s,%s,%s,%s,%s",
+        return util.CsvHelper.toCsvLine(
                 incidentId,
-                util.CsvHelper.escapeSpecialCharacters(title),
-                util.CsvHelper.escapeSpecialCharacters(description),
+                title,
+                description,
                 severity != null ? severity.name() : "",
                 status != null ? status.name() : "",
-                assignedTo != null ? assignedTo : "");
+                assignedTo != null ? assignedTo : "",
+                getReportedAtText());
     }
 
     @Override
     public String toString() {
-        return String.format("Incident{incidentId='%s', title='%s', severity=%s, status=%s, assignedTo='%s'}",
-                incidentId, title, severity, status, assignedTo.isEmpty() ? "None" : assignedTo);
+        return String.format("Incident{incidentId='%s', title='%s', severity=%s, status=%s, assignedTo='%s', reportedAt='%s'}",
+                incidentId, title, severity, status, assignedTo.isEmpty() ? "None" : assignedTo,
+                getReportedAtText().isEmpty() ? "Unknown" : getReportedAtText());
     }
 }

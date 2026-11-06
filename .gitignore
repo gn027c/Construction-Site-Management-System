@@ -57,3 +57,4 @@ Workshop/
 # Agents configuration & rules
 .agents/
 
+.claude/

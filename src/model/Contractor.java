@@ -1,51 +1,46 @@
 package model;
 
-/**
- * NHIỆM VỤ: Thành viên 2 (Trần Ngọc Anh Tuấn - SE201513)
- * MÔ TẢ:
- * - Lớp đại diện cho đối tượng Nhà thầu phụ hoặc đối tác thi công.
- * - Kế thừa từ lớp trừu tượng Person.
- * - Quản lý thông tin công ty thầu (companyName), hợp đồng thi công (contractId).
- * - Cài đặt các hành vi displayDetails() và toCsvLine().
- */
 public class Contractor extends Person {
     private String companyName;
     private String contractId;
 
-    // Parameterized Constructor - Bắt buộc đầy đủ thông tin
     public Contractor(String id, String code, String name, String phoneNumber,
                       String companyName, String contractId) {
-        super(id, code, name, phoneNumber, Role.CONTRACTOR);
-        if (companyName == null || companyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
-        }
-        if (contractId == null || contractId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
-        }
-        this.companyName = companyName.trim();
-        this.contractId = contractId.trim();
+        super(id, code, name, phoneNumber);
+        this.companyName = required(companyName, "companyName");
+        this.contractId = required(contractId, "contractId");
     }
 
     public String getCompanyName() {
         return companyName;
     }
 
-    public void setCompanyName(String companyName) {
-        if (companyName == null || companyName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Tên công ty (companyName) không được để trống.");
-        }
-        this.companyName = companyName.trim();
-    }
-
     public String getContractId() {
         return contractId;
     }
 
-    public void setContractId(String contractId) {
-        if (contractId == null || contractId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã hợp đồng (contractId) không được để trống.");
-        }
-        this.contractId = contractId.trim();
+    @Override
+    public boolean hasValidSafetyCredential() {
+        return contractId != null
+                && !contractId.trim().isEmpty()
+                && contractId.startsWith("CTR-");
+    }
+
+    @Override
+    public String[] profileLabels() {
+        return new String[] {"Company", "Contract"};
+    }
+
+    @Override
+    public String[] profileValues() {
+        return new String[] {companyName, contractId};
+    }
+
+    @Override
+    protected void applyProfile(String[] values) {
+        String nextCompany = required(values[0], "companyName");
+        contractId = required(values[1], "contractId");
+        companyName = nextCompany;
     }
 
     @Override
@@ -55,30 +50,20 @@ public class Contractor extends Person {
         System.out.println("Mã nhà thầu: " + getCode());
         System.out.println("Họ tên đại diện: " + getName());
         System.out.println("Số điện thoại: " + getPhoneNumber());
-        System.out.println("Vai trò: " + getRole());
+        System.out.println("Chức vụ: " + (getPosition().isEmpty() ? "-" : getPosition()));
         System.out.println("Tên công ty: " + companyName);
         System.out.println("Mã hợp đồng: " + contractId);
         System.out.println("===========================================");
     }
 
-    // Valid when contractId is not empty and starts with "CTR-"
     @Override
-    public boolean hasValidSafetyCredential() {
-        return contractId != null
-                && !contractId.trim().isEmpty()
-                && contractId.startsWith("CTR-");
+    public String toCsvLine() {
+        return csvLine("CONTRACTOR", contractId, companyName, "");
     }
-
-    @Override
-public String toCsvLine() {
-    // CONTRACTOR,id,code,name,phoneNumber,role,contractId,companyName
-    return baseCsv("CONTRACTOR") + "," + contractId + "," + companyName;
-}
 
     @Override
     public String toString() {
         return String.format("Contractor{%s, companyName='%s', contractId='%s'}",
                 super.toString(), companyName, contractId);
     }
-
 }

@@ -1,113 +1,177 @@
-import view.MenuView;
-import util.InputHelper;
 import controller.SiteManagerController;
 import exception.DataValidationException;
 import exception.SiteManagementException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
+import model.Account;
+import model.Permission;
+import service.AuthenticationService;
+import util.InputHelper;
+import view.ConsoleUi;
+import view.MenuView;
 
-/**
- * NHIỆM VỤ: Thành viên 1 (Huỳnh Nguyễn Hoàng Khang - SE201461) - Nhóm trưởng
- * MÔ TẢ:
- * - Application Bootstrap & Console View Entry Point.
- * - Giao tiếp duy nhất với SiteManagerController (Facade Pattern).
- * - Quản lý vòng lặp Menu chính, bắt sự kiện lựa chọn và xử lý Exception toàn cục.
- */
 public class Main {
+    private static final int SIGN_IN_ATTEMPTS = 3;
 
     public static void main(String[] args) {
-        
-        SiteManagerController siteController = new SiteManagerController();
+        SiteManagerController site = new SiteManagerController();
         Scanner scanner = new Scanner(System.in);
-        boolean exit = false;
 
-        System.out.println("=================================================");
-        System.out.println("    WELCOME TO SMARTSITE MANAGEMENT SYSTEM        ");
-        System.out.println("=================================================");
+        ConsoleUi.banner("WELCOME TO SMARTSITE MANAGEMENT SYSTEM", null);
 
-        // Task 1.2: Tự động nạp dữ liệu khi bắt đầu chương trình
+        String loadProblem = load(site);
+        if (!site.isAccountsReady()) {
+            System.err.println("Sign-in is unavailable: " + loadProblem);
+            System.err.println("Fix accounts.csv and start again.");
+            scanner.close();
+            return;
+        }
+
         try {
-            siteController.loadAllData();
-            System.out.println("✅ [SYSTEM] All CSV data loaded successfully!");
-        } catch (Exception e) {
-            System.err.println("⚠️ [SYSTEM WARNING] Failed to auto-load initial data: " + e.getMessage());
-        }
-
-        while (!exit) {
-            try {
-                
-                MenuView.showMainMenu();
-
-                // Nâng giới hạn lựa chọn từ (0-4) lên (0-5)
-                int choice = InputHelper.getInt(scanner, "Enter your choice (0-5): ", 0, 5);
-
-                switch (choice) {
-                    case 1:
-                        siteController.handlePersonMenu(scanner);
-                        break;
-                    case 2:
-                        siteController.handleZoneMenu(scanner);
-                        break;
-                    case 3:
-                        siteController.handleAttendanceMenu(scanner);
-                        break;
-                    case 4:
-                        siteController.handleIncidentMenu(scanner);
-                        break;
-                    case 5:
-                        // Task 1.3: Quản lý sao lưu / nạp lại dữ liệu thủ công
-                        handleDataManagementMenu(siteController, scanner);
-                        break;
-                    case 0:
-                        // Task 1.2: Tự động lưu dữ liệu trước khi thoát[cite: 1]
-                        siteController.saveAllData();
-                        exit = true;
-                        System.out.println("\n✅ Data saved successfully!");
-                        System.out.println("Thank you for using SmartSite System! Goodbye.");
-                        break;
-                    default:
-                        System.out.println("Invalid selection!");
+            boolean running = true;
+            while (running && signIn(site.authentication(), scanner)) {
+                if (site.authentication().currentAccount().mustChangePassword()) {
+                    forcePasswordChange(site.authentication(), scanner);
                 }
-            } catch (DataValidationException e) {
-                System.err.println("⚠️ [DATA VALIDATION ERROR] " + e.getMessage());
-            } catch (SiteManagementException e) {
-                System.err.println("❌ [SITE MANAGEMENT ERROR] " + e.getMessage());
-            } catch (Exception e) {
-                System.err.println("💥 [UNEXPECTED ERROR] " + e.getMessage());
+                if (!site.isDataReady()) {
+                    System.err.println("[WARN] Data is not loaded: " + site.loadProblem());
+                }
+                running = homeMenu(site, scanner);
             }
-
-            System.out.println();
+            System.out.println("Thank you for using SmartSite System! Goodbye.");
+        } catch (NoSuchElementException e) {
+            System.err.println("Input ended. Unsaved changes were not written.");
         }
-
         scanner.close();
     }
 
-    /**
-     * Sub-routine xử lý Menu quản lý sao lưu / nạp lại dữ liệu thủ công (Task 1.3)[cite: 1]
-     */
-    private static void handleDataManagementMenu(SiteManagerController siteController, Scanner scanner) {
+    private static String load(SiteManagerController site) {
+        try {
+            site.loadAllData();
+            System.out.println("[OK] [SYSTEM] All CSV data loaded successfully!");
+            return null;
+        } catch (SiteManagementException e) {
+            return e.getMessage();
+        }
+    }
+
+    private static boolean signIn(AuthenticationService authentication, Scanner scanner) {
+        for (int attempt = 1; attempt <= SIGN_IN_ATTEMPTS; attempt++) {
+            String username = InputHelper.getString(scanner, "Username (0 to exit): ");
+            if (username.equals("0")) {
+                return false;
+            }
+            String password = InputHelper.getString(scanner, "Password: ");
+            try {
+                Account account = authentication.login(username, password);
+                System.out.println("Signed in as " + account.getUsername() + " (" + account.getRole() + ").");
+                return true;
+            } catch (SiteManagementException e) {
+                System.err.println("[ERROR] " + e.getMessage());
+            }
+        }
+        System.err.println("Too many failed attempts.");
+        return false;
+    }
+
+    private static void forcePasswordChange(AuthenticationService authentication, Scanner scanner) {
+        System.out.println("You must change your password before continuing.");
+        while (authentication.currentAccount().mustChangePassword()) {
+            changePassword(authentication, scanner);
+        }
+    }
+
+    private static void changePassword(AuthenticationService authentication, Scanner scanner) {
+        String currentPassword = InputHelper.getString(scanner, "Current password: ");
+        String newPassword = InputHelper.getString(scanner, "New password: ");
+        try {
+            authentication.changeOwnPassword(currentPassword, newPassword);
+            System.out.println("[OK] Password changed.");
+        } catch (SiteManagementException e) {
+            System.err.println("[ERROR] " + e.getMessage());
+        }
+    }
+
+    private static boolean homeMenu(SiteManagerController site, Scanner scanner) {
+        while (true) {
+            try {
+                MenuView.showMainMenu(site.authentication().currentAccount());
+                int choice = InputHelper.getInt(scanner, "Enter your choice (0-9): ", 0, 9);
+                switch (choice) {
+                    case 1:
+                        site.handlePersonMenu(scanner);
+                        break;
+                    case 2:
+                        site.handleZoneMenu(scanner);
+                        break;
+                    case 3:
+                        site.handleAttendanceMenu(scanner);
+                        break;
+                    case 4:
+                        site.handleIncidentMenu(scanner);
+                        break;
+                    case 5:
+                        handleDataManagementMenu(site, scanner);
+                        break;
+                    case 6:
+                        site.handleAccountMenu(scanner);
+                        break;
+                    case 7:
+                        changePassword(site.authentication(), scanner);
+                        break;
+                    case 8:
+                        saveIfReady(site);
+                        site.authentication().logout();
+                        return true;
+                    case 9:
+                        site.handleReportMenu(scanner);
+                        break;
+                    default:
+                        saveIfReady(site);
+                        site.authentication().logout();
+                        return false;
+                }
+            } catch (DataValidationException e) {
+                System.err.println("[WARN] [DATA VALIDATION ERROR] " + e.getMessage());
+            } catch (SiteManagementException e) {
+                System.err.println("[ERROR] [SITE MANAGEMENT ERROR] " + e.getMessage());
+            }
+            System.out.println();
+        }
+    }
+
+    private static void saveIfReady(SiteManagerController site) {
+        if (site.isDataReady()) {
+            site.saveAllData();
+            System.out.println("\n[OK] Data saved successfully!");
+        } else {
+            System.out.println("\nData files were left unchanged because they could not be loaded.");
+        }
+    }
+
+    private static void handleDataManagementMenu(SiteManagerController site, Scanner scanner) {
         boolean back = false;
         while (!back) {
             try {
                 MenuView.showDataMenu();
                 int choice = InputHelper.getInt(scanner, "Enter your choice (0-2): ", 0, 2);
-
                 switch (choice) {
                     case 1:
-                        siteController.loadAllData();
-                        System.out.println("✅ Data reloaded successfully from CSV files.");
+                        site.authentication().require(Permission.RELOAD_DATA);
+                        site.loadAllData();
+                        System.out.println("[OK] Data reloaded successfully from CSV files.");
                         break;
                     case 2:
-                        siteController.saveAllData();
-                        System.out.println("✅ Data saved manually to CSV files successfully.");
-                        break;
-                    case 0:
-                        back = true;
+                        site.authentication().require(Permission.RELOAD_DATA);
+                        site.saveAllData();
+                        System.out.println("[OK] Data saved manually to CSV files successfully.");
                         break;
                     default:
-                        System.out.println("Invalid selection!");
+                        back = true;
+                        break;
                 }
-            } catch (Exception e) {
-                System.err.println("⚠️ [DATA MANAGEMENT ERROR] " + e.getMessage());
+            } catch (SiteManagementException e) {
+                System.err.println("[WARN] [DATA MANAGEMENT ERROR] " + e.getMessage());
             }
             System.out.println();
         }

@@ -1,97 +1,107 @@
 package model;
 
+import exception.AppError;
 import java.util.HashSet;
 import java.util.Set;
+import util.ValidationHelper;
 
-/**
- * NHIỆM VỤ: Thành viên 3 (Lê Tấn Thiên - SE201852)
- * MÔ TẢ:
- * - Lớp đại diện cho khu vực nguy hiểm / hạn chế tiếp cận trên công trường.
- * - Kế thừa từ lớp cơ sở Zone.
- * - Quản lý cấp độ an toàn yêu cầu (requiredSafetyLevel) và danh sách mã nhân sự được cấp phép (allowedPersonCodes).
- * - Ghi đè phương thức checkAccess(Person person) để kiểm tra quyền truy cập nghiêm ngặt.
- * - Khai báo Enum SafetyLevel bên trong để định nghĩa cấp độ an toàn.
- */
 public class RestrictedZone extends Zone {
-
-    public enum SafetyLevel {
-        LOW,
-        MEDIUM,
-        HIGH,
-        CRITICAL
-    }
-
     private SafetyLevel requiredSafetyLevel;
     private Set<String> allowedPersonCodes;
 
-    // Parameterized Constructor
     public RestrictedZone(String zoneId, String zoneName, SafetyLevel requiredSafetyLevel, Set<String> allowedPersonCodes) {
         super(zoneId, zoneName);
-        if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
-        }
-        if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự được cấp phép không được null.");
-        }
-        this.requiredSafetyLevel = requiredSafetyLevel;
-        this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
+        this.requiredSafetyLevel = validateSafetyLevel(requiredSafetyLevel);
+        this.allowedPersonCodes = new HashSet<>(
+                ValidationHelper.requireNotNull(allowedPersonCodes, "Danh sách nhân sự được cấp phép không được null.")
+        );
     }
 
     public SafetyLevel getRequiredSafetyLevel() {
         return requiredSafetyLevel;
     }
 
-    public void setRequiredSafetyLevel(SafetyLevel requiredSafetyLevel) {
-        if (requiredSafetyLevel == null) {
-            throw new IllegalArgumentException("Cấp độ an toàn (SafetyLevel) không được để trống (null).");
-        }
-        this.requiredSafetyLevel = requiredSafetyLevel;
-    }
-
     public Set<String> getAllowedPersonCodes() {
-        return allowedPersonCodes;
+        return new HashSet<>(allowedPersonCodes);
     }
 
-    public void setAllowedPersonCodes(Set<String> allowedPersonCodes) {
-        if (allowedPersonCodes == null) {
-            throw new IllegalArgumentException("Danh sách nhân sự không được null.");
+    public void changeRequiredSafetyLevel(SafetyLevel nextLevel) {
+        requiredSafetyLevel = validateSafetyLevel(nextLevel);
+    }
+
+    public void grant(Person person) {
+        ValidationHelper.requireNotNull(person, "Person cannot be null");
+        if (!person.canHoldZoneAccess()) {
+            throw new AppError("Visitor cannot be granted access to restricted zone");
         }
-        this.allowedPersonCodes = new HashSet<>(allowedPersonCodes);
-    }
-
-    public void grantAccess(String personCode) {
-        if (personCode != null && !personCode.trim().isEmpty()) {
-            allowedPersonCodes.add(personCode.trim());
+        for (String allowed : allowedPersonCodes) {
+            if (util.IdHelper.isSame(allowed, person.getCode())) {
+                return;
+            }
         }
+        allowedPersonCodes.add(person.getCode());
     }
 
-    public void revokeAccess(String personCode) {
-        if (personCode != null) {
-            allowedPersonCodes.remove(personCode.trim());
-        }
-    }
-
-    // TODO (WS6 - Thành viên 3: Lê Tấn Thiên - SE201852, nhánh thientt-final-verification):
-    // requiredSafetyLevel hiện chỉ được lưu/nạp từ zones.csv, chưa tham gia vào checkAccess(). Đối chiếu với Task 3.1
-    // (chặn truy cập khi thiếu cấp độ an toàn), kiểm tra whitelist phân tách bằng ';' và ghi log TC-ZONE-01..05.
-    @Override
-    public boolean checkAccess(Person person) {
-        if (person == null || person.getCode() == null) {
+    public boolean revoke(Person person) {
+        if (person == null) {
             return false;
         }
-        boolean isAccessGranted = allowedPersonCodes.contains(person.getCode().trim());
-        boolean hasValidSafety = person.hasValidSafetyCredential();
+        String toRemove = null;
+        for (String allowed : allowedPersonCodes) {
+            if (util.IdHelper.isSame(allowed, person.getCode())) {
+                toRemove = allowed;
+                break;
+            }
+        }
+        return toRemove != null && allowedPersonCodes.remove(toRemove);
+    }
 
-        return isAccessGranted && hasValidSafety;
+    @Override
+    public String accessDenialReason(Person person) {
+        if (person == null) {
+            return "Person cannot be null";
+        }
+        if (!person.isActive()) {
+            return "Person is inactive";
+        }
+        boolean listed = false;
+        for (String allowed : allowedPersonCodes) {
+            if (util.IdHelper.isSame(allowed, person.getCode())) {
+                listed = true;
+                break;
+            }
+        }
+        if (!listed) {
+            return "Person is not on the allowed list for restricted zone " + zoneId;
+        }
+        if (!person.hasValidSafetyCredential()) {
+            return "Missing valid safety credential";
+        }
+        if (!person.getSafetyLevel().covers(requiredSafetyLevel)) {
+            return "Safety level " + person.getSafetyLevel() + " does not meet required " + requiredSafetyLevel;
+        }
+        return null;
+    }
+
+    @Override
+    public boolean checkAccess(Person person) {
+        return accessDenialReason(person) == null;
+    }
+
+    private static SafetyLevel validateSafetyLevel(SafetyLevel level) {
+        ValidationHelper.requireNotNull(level, "requiredSafetyLevel", "Choose LOW, MEDIUM, HIGH or CRITICAL.");
+        if (level == SafetyLevel.NONE) {
+            throw new exception.DataValidationException("requiredSafetyLevel", "Choose LOW, MEDIUM, HIGH or CRITICAL.");
+        }
+        return level;
     }
 
     @Override
     public String toCsvLine() {
-        String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty()) 
-                ? "NONE" 
+        String codesStr = (allowedPersonCodes == null || allowedPersonCodes.isEmpty())
+                ? "NONE"
                 : String.join(";", allowedPersonCodes);
-        return String.format("RESTRICTED,%s,%s,%s,%s", 
-                zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
+        return util.CsvHelper.toCsvLine("RESTRICTED", zoneId, zoneName, requiredSafetyLevel.name(), codesStr);
     }
 
     @Override

@@ -5,21 +5,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Scanner;
 
-/**
- * TASK: Member 1 (Huynh Nguyen Hoang Khang - SE201461)
- * DESCRIPTION:
- * - Utility class to handle safe input operations from Console.
- * - Prevents Scanner buffer issues and handles data type exceptions.
- */
 public class InputHelper {
 
     public static void validateString(String input, String fieldName) throws DataValidationException {
-        if (input == null || input.trim().isEmpty()) {
-            throw new DataValidationException(fieldName, "Cannot be empty or whitespace.");
-        }
+        ValidationHelper.requireText(input, fieldName, "Cannot be empty or whitespace.");
     }
 
-    
     public static void validateInt(String input, String fieldName, int min, int max) throws DataValidationException {
         validateString(input, fieldName);
         try {
@@ -32,7 +23,6 @@ public class InputHelper {
         }
     }
 
-    
     public static void validateDate(String input, String fieldName) throws DataValidationException {
         validateString(input, fieldName);
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -44,7 +34,6 @@ public class InputHelper {
         }
     }
 
-   
     public static String getString(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
@@ -58,7 +47,6 @@ public class InputHelper {
         }
     }
 
-    
     public static int getInt(Scanner scanner, String prompt, int min, int max) {
         while (true) {
             System.out.print(prompt);
@@ -72,7 +60,6 @@ public class InputHelper {
         }
     }
 
-    
     public static String getDate(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
