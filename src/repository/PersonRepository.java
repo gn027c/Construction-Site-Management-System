@@ -1,60 +1,64 @@
 package repository;
 
-import exception.DuplicatePersonCodeException;
-import exception.PersonNotFoundException;
-import model.person.Person;
+import exception.AppError;
+import exception.DataValidationException;
+import exception.NotFoundException;
+import model.Contractor;
+import model.Person;
+import model.SafetyLevel;
+import model.Visitor;
+import model.Worker;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 
 public class PersonRepository {
+    private static final String HEADER =
+            "type,id,code,name,phoneNumber,position,active,safetyLevel,extra1,extra2,extra3";
+    private static final int COLUMN_COUNT = 11;
+
     private final Map<String, Person> store = new LinkedHashMap<>();
 
-    public boolean save(Person person) throws DuplicatePersonCodeException {
+    public boolean save(Person person) throws AppError {
         if (person == null || person.getCode() == null || person.getCode().trim().isEmpty()) {
             return false;
         }
         String code = person.getCode().trim();
-        if (store.containsKey(code)) {
-            throw new DuplicatePersonCodeException(code);
+        if (findByCode(code) != null) {
+            throw new exception.AppError("Personnel code already exists in the system: " + code);
         }
-        for (Person existing : store.values()) {
-            if (existing.getId().equals(person.getId())) {
-                throw new exception.DataValidationException("id", "Already belongs to another personnel record.");
-            }
-        }
-        store.put(code, person);
+        store.put(code.toUpperCase(), person);
         return true;
     }
 
     public Person findByCode(String code) {
-        if (code == null) {
+        if (code == null || code.trim().isEmpty()) {
             return null;
         }
-        return store.get(util.IdentifierHelper.normalizeForLookup(code));
+        Person direct = store.get(code.trim().toUpperCase());
+        if (direct != null) {
+            return direct;
+        }
+        for (Person p : store.values()) {
+            if (util.IdHelper.isSame(p.getCode(), code)) {
+                return p;
+            }
+        }
+        return null;
     }
 
-    public Person findByCodeOrThrow(String code) throws PersonNotFoundException {
+    public Person findByCodeOrThrow(String code) throws NotFoundException {
         Person person = findByCode(code);
         if (person == null) {
-            throw new PersonNotFoundException(code != null ? code.trim() : "null");
+            throw new exception.NotFoundException("Personnel record", "code", code != null ? code.trim() : "null");
         }
         return person;
     }
 
-    public void replace(Person replacement) throws PersonNotFoundException {
-        Person existing = findByCodeOrThrow(replacement.getCode());
-        if (!existing.getId().equals(replacement.getId())) {
-            throw new exception.DataValidationException("id", "A replacement must keep the internal ID.");
-        }
-        store.put(existing.getCode(), replacement);
-    }
-
-    public boolean deleteByCode(String code) throws PersonNotFoundException {
+    public boolean deleteByCode(String code) throws NotFoundException {
         Person p = findByCodeOrThrow(code);
-        return store.remove(p.getCode()) != null;
+        return store.remove(p.getCode().toUpperCase()) != null;
     }
 
     public List<Person> findAll() {
@@ -62,71 +66,55 @@ public class PersonRepository {
     }
 
     public boolean loadFromCsv(String filePath) {
-        PersonRepository staged = new PersonRepository();
-        try {
-            List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty()
-                    || !Arrays.equals(
-                            rows.get(0),
-                            new String[] {
-                                    "type", "id", "code", "name", "phoneNumber",
-                                    "role", "extra1", "extra2", "extra3", "active", "safetyLevel"
-                            }
-                    )) {
-                return false;
-            }
-            for (int i = 1; i < rows.size(); i++) {
-                String[] p = rows.get(i);
-                if (util.CsvHelper.isBlankRow(p)) {
-                    continue;
-                }
-                if (p.length != 11 || !(p[9].equals("true") || p[9].equals("false"))) {
-                    return false;
-                }
-                Person person;
-                switch (p[0]) {
-                    case "WORKER":
-                        person = new model.person.Worker(p[1], p[2], p[3], p[4], p[7], p[6], p[8]);
-                        break;
-                    case "CONTRACTOR":
-                        if (!p[8].isEmpty()) {
-                            return false;
-                        }
-                        person = new model.person.Contractor(p[1], p[2], p[3], p[4], p[7], p[6]);
-                        break;
-                    case "VISITOR":
-                        person = new model.person.Visitor(p[1], p[2], p[3], p[4], p[6], p[7], p[8]);
-                        break;
-                    case "STAFF":
-                        if (!p[8].isEmpty()) {
-                            return false;
-                        }
-                        person = new model.person.Staff(p[1], p[2], p[3], p[4], p[7], p[6]);
-                        break;
-                    default:
-                        return false;
-                }
-                if (!person.getRole().name().equals(p[5])) {
-                    return false;
-                }
-                person.setActive(Boolean.parseBoolean(p[9]));
-                person.setSafetyLevel(model.common.SafetyLevel.valueOf(p[10]));
-                staged.save(person);
-            }
-        } catch (RuntimeException e) {
+        List<Person> people = util.CsvHelper.readTable(filePath, HEADER, COLUMN_COUNT, this::parse, Person::getCode);
+        if (people == null) {
             return false;
         }
         store.clear();
-        store.putAll(staged.store);
+        for (Person person : people) {
+            store.put(person.getCode().toUpperCase(), person);
+        }
         return true;
+    }
+
+    private Person parse(List<String> columns) {
+        String type = columns.get(0).trim();
+        String id = columns.get(1).trim();
+        String code = columns.get(2).trim();
+        String name = columns.get(3).trim();
+        String phone = columns.get(4).trim();
+        String active = columns.get(6).trim();
+        String first = columns.get(8).trim();
+        String second = columns.get(9).trim();
+        String third = columns.get(10).trim();
+
+        Person person;
+        if (type.equals("WORKER")) {
+            person = new Worker(id, code, name, phone, first, second, third);
+        } else if (type.equals("CONTRACTOR")) {
+            person = new Contractor(id, code, name, phone, second, first);
+        } else if (type.equals("VISITOR")) {
+            person = new Visitor(id, code, name, phone, first, second, third);
+        } else {
+            throw new DataValidationException("Unknown person type " + type + ".");
+        }
+        person.setSafetyLevel(SafetyLevel.valueOf(columns.get(7).trim()));
+        person.restorePosition(columns.get(5));
+        if (active.equals("false")) {
+            person.deactivate();
+        } else if (!active.equals("true")) {
+            throw new DataValidationException("Active must be true or false.");
+        }
+        return person;
     }
 
     public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        lines.add("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel");
+        lines.add(HEADER);
         for (Person p : store.values()) {
             lines.add(p.toCsvLine());
         }
         return util.CsvHelper.writeAllLines(filePath, lines);
     }
+
 }

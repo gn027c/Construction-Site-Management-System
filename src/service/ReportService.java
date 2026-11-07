@@ -1,270 +1,200 @@
 package service;
 
-import exception.DataValidationException;
 import java.time.DayOfWeek;
-import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
-import model.attendance.AttendanceRecord;
-import model.incident.Incident;
-import util.DateTimeHelper;
-import util.IdentifierHelper;
+import model.AttendanceRecord;
+import model.Incident;
+import util.CsvHelper;
 
-public final class ReportService {
-    public enum Period {
-        DAY,
-        WEEK,
-        MONTH
+public class ReportService {
+    private static final java.time.format.DateTimeFormatter TIMESTAMP = util.DateHelper.TIMESTAMP_FORMATTER;
+
+    private final AttendanceService attendanceService;
+    private final IncidentService incidentService;
+
+    public ReportService(AttendanceService attendanceService, IncidentService incidentService) {
+        if (attendanceService == null || incidentService == null) {
+            throw new IllegalArgumentException("Report services are required.");
+        }
+        this.attendanceService = attendanceService;
+        this.incidentService = incidentService;
     }
 
-    private ReportService() {
+    public ReportPeriod currentWeek() {
+        LocalDate today = LocalDate.now();
+        return new ReportPeriod(
+                today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)),
+                today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY)));
     }
 
-    public static List<AttendanceRecord> filterAttendance(
-            List<AttendanceRecord> records,
-            LocalDate from,
-            LocalDate to,
-            String personCode,
-            String zoneId
-    ) {
-        checkRange(from, to);
-        String person = optionalCode(personCode);
-        String zone = optionalCode(zoneId);
-        List<AttendanceRecord> matching = new ArrayList<>();
-        for (AttendanceRecord record : records) {
-            LocalDate date = DateTimeHelper.parseTimestamp(record.getTimestamp()).toLocalDate();
-            if (within(date, from, to)
-                    && (person.isEmpty() || person.equals(record.getPersonCode()))
-                    && (zone.isEmpty() || zone.equals(record.getZoneId()))) {
-                matching.add(record);
+    public ReportPeriod currentMonth() {
+        LocalDate today = LocalDate.now();
+        return new ReportPeriod(today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()));
+    }
+
+    public List<AttendanceRecord> attendanceBetween(ReportPeriod period) {
+        List<AttendanceRecord> result = new ArrayList<>();
+        for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
+            LocalDate date = LocalDateTime.parse(record.getTimestamp(), TIMESTAMP).toLocalDate();
+            if (period.includes(date)) {
+                result.add(record);
             }
         }
-        matching.sort(
-                Comparator.comparing(AttendanceRecord::getTimestamp)
-                        .thenComparing(AttendanceRecord::getRecordId, IdentifierHelper.NATURAL_ORDER)
-        );
-        return matching;
+        return result;
     }
 
-    private static String optionalCode(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return "";
+    public List<Incident> incidentsBetween(ReportPeriod period) {
+        List<Incident> result = new ArrayList<>();
+        for (Incident incident : incidentService.getAllIncidents()) {
+            if (incident.getReportedAt() != null && period.includes(incident.getReportedAt().toLocalDate())) {
+                result.add(incident);
+            }
         }
-        return IdentifierHelper.normalize(value);
+        return result;
     }
 
-    public static List<String[]> summarizeAttendance(
-            List<AttendanceRecord> records,
-            LocalDate from,
-            LocalDate to,
-            String personCode,
-            String zoneId,
-            Period period
-    ) {
-        checkPeriod(period);
-        Map<LocalDate, int[]> counts = new TreeMap<>();
-        for (AttendanceRecord record : filterAttendance(records, from, to, personCode, zoneId)) {
-            LocalDate date = DateTimeHelper.parseTimestamp(record.getTimestamp()).toLocalDate();
-            int[] values = counts.computeIfAbsent(bucket(date, period), ignored -> new int[2]);
-            int column = record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN ? 0 : 1;
-            values[column]++;
+    public List<Incident> incidentsWithoutReportedAt() {
+        List<Incident> result = new ArrayList<>();
+        for (Incident incident : incidentService.getAllIncidents()) {
+            if (incident.getReportedAt() == null) {
+                result.add(incident);
+            }
         }
-        List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { "period", "checkIns", "checkOuts" });
-        for (Map.Entry<LocalDate, int[]> entry : counts.entrySet()) {
-            rows.add(new String[] {
-                    entry.getKey().toString(),
-                    Integer.toString(entry.getValue()[0]),
-                    Integer.toString(entry.getValue()[1])
-            });
-        }
-        return rows;
+        return result;
     }
 
-    public static List<String[]> summarizeHours(
-            List<AttendanceRecord> records,
-            LocalDate from,
-            LocalDate to,
-            String personCode,
-            String zoneId,
-            Period period
-    ) {
-        checkRange(from, to);
-        checkPeriod(period);
-        String person = optionalCode(personCode);
-        String zone = optionalCode(zoneId);
-        List<AttendanceRecord> ordered = new ArrayList<>(records);
-        ordered.sort(
-                Comparator.comparing(AttendanceRecord::getTimestamp)
-                        .thenComparing(AttendanceRecord::getRecordId, IdentifierHelper.NATURAL_ORDER)
-        );
-        Map<String, AttendanceRecord> openEntries = new HashMap<>();
-        Map<String, long[]> totals = new TreeMap<>(
-                Comparator.comparing((String key) -> key.split("\\|", -1)[0])
-                        .thenComparing(key -> key.split("\\|", -1)[1], IdentifierHelper.NATURAL_ORDER)
-        );
-        for (AttendanceRecord record : ordered) {
-            String code = record.getPersonCode();
+    public Map<AttendanceRecord.CheckType, Integer> attendanceSummary(ReportPeriod period) {
+        Map<AttendanceRecord.CheckType, Integer> summary = new EnumMap<>(AttendanceRecord.CheckType.class);
+        for (AttendanceRecord.CheckType type : AttendanceRecord.CheckType.values()) {
+            summary.put(type, 0);
+        }
+        for (AttendanceRecord record : attendanceBetween(period)) {
+            summary.put(record.getCheckType(), summary.get(record.getCheckType()) + 1);
+        }
+        return summary;
+    }
+
+    public Map<Incident.IncidentSeverity, Integer> incidentSeveritySummary(ReportPeriod period) {
+        Map<Incident.IncidentSeverity, Integer> summary = new EnumMap<>(Incident.IncidentSeverity.class);
+        for (Incident.IncidentSeverity severity : Incident.IncidentSeverity.values()) {
+            summary.put(severity, 0);
+        }
+        for (Incident incident : incidentsBetween(period)) {
+            summary.put(incident.getSeverity(), summary.get(incident.getSeverity()) + 1);
+        }
+        return summary;
+    }
+
+    public Map<Incident.IncidentStatus, Integer> incidentStatusSummary(ReportPeriod period) {
+        Map<Incident.IncidentStatus, Integer> summary = new EnumMap<>(Incident.IncidentStatus.class);
+        for (Incident.IncidentStatus status : Incident.IncidentStatus.values()) {
+            summary.put(status, 0);
+        }
+        for (Incident incident : incidentsBetween(period)) {
+            summary.put(incident.getStatus(), summary.get(incident.getStatus()) + 1);
+        }
+        return summary;
+    }
+
+    public Map<String, Integer> currentOccupancy() {
+        Map<String, AttendanceRecord> latest = new LinkedHashMap<>();
+        for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
+            String personCode = record.getPersonCode().toUpperCase();
+            AttendanceRecord current = latest.get(personCode);
+            if (current == null || LocalDateTime.parse(record.getTimestamp(), TIMESTAMP)
+                    .isAfter(LocalDateTime.parse(current.getTimestamp(), TIMESTAMP))) {
+                latest.put(personCode, record);
+            }
+        }
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (AttendanceRecord record : latest.values()) {
             if (record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN) {
-                openEntries.put(code, record);
-                continue;
-            }
-            AttendanceRecord entry = openEntries.remove(code);
-            if (entry != null && includesSession(entry, from, to, person, zone)) {
-                long[] values = totals.computeIfAbsent(hoursKey(entry, period), ignored -> new long[3]);
-                values[0]++;
-                values[1] += Duration.between(
-                        DateTimeHelper.parseTimestamp(entry.getTimestamp()),
-                        DateTimeHelper.parseTimestamp(record.getTimestamp())
-                ).toMinutes();
+                counts.put(record.getZoneId(), counts.containsKey(record.getZoneId())
+                        ? counts.get(record.getZoneId()) + 1 : 1);
             }
         }
-        for (AttendanceRecord entry : openEntries.values()) {
-            if (includesSession(entry, from, to, person, zone)) {
-                totals.computeIfAbsent(hoursKey(entry, period), ignored -> new long[3])[2]++;
+        return counts;
+    }
+
+    public String attendanceCsv(ReportPeriod period) {
+        List<String> lines = new ArrayList<>();
+        lines.add("recordId,personCode,zoneId,timestamp,checkType");
+        for (AttendanceRecord record : attendanceBetween(period)) {
+            lines.add(record.toCsvLine());
+        }
+        return String.join(System.lineSeparator(), lines);
+    }
+
+    public String incidentCsv(ReportPeriod period) {
+        List<String> lines = new ArrayList<>();
+        lines.add("incidentId,title,description,severity,status,assignedTo,reportedAt");
+        for (Incident incident : incidentsBetween(period)) {
+            lines.add(incident.toCsvLine());
+        }
+        return String.join(System.lineSeparator(), lines);
+    }
+
+    public boolean export(ReportPeriod period, String directory) {
+        java.nio.file.Path output = java.nio.file.Paths.get(directory);
+        try {
+            java.nio.file.Files.createDirectories(output);
+        } catch (java.io.IOException e) {
+            return false;
+        }
+        List<String> attendance = new ArrayList<>();
+        attendance.add("recordId,personCode,zoneId,timestamp,checkType");
+        for (AttendanceRecord record : attendanceBetween(period)) {
+            attendance.add(record.toCsvLine());
+        }
+        List<String> incidents = new ArrayList<>();
+        incidents.add("incidentId,title,description,severity,status,assignedTo,reportedAt");
+        for (Incident incident : incidentsBetween(period)) {
+            incidents.add(incident.toCsvLine());
+        }
+        List<String> undated = new ArrayList<>();
+        undated.add("incidentId,title,description,severity,status,assignedTo,reportedAt");
+        for (Incident incident : incidentsWithoutReportedAt()) {
+            undated.add(incident.toCsvLine());
+        }
+        return CsvHelper.writeAllLines(output.resolve("attendance-report.csv").toString(), attendance)
+                && CsvHelper.writeAllLines(output.resolve("incident-report.csv").toString(), incidents)
+                && CsvHelper.writeAllLines(output.resolve("incident-undated.csv").toString(), undated);
+    }
+
+    public static final class ReportPeriod {
+        private final LocalDate from;
+        private final LocalDate to;
+
+        public ReportPeriod(LocalDate from, LocalDate to) {
+            if (from == null || to == null || to.isBefore(from)) {
+                throw new IllegalArgumentException("Invalid report period.");
             }
+            this.from = from;
+            this.to = to;
         }
-        List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] { "period", "personCode", "sessions", "hours", "openSessions" });
-        for (Map.Entry<String, long[]> entry : totals.entrySet()) {
-            String[] key = entry.getKey().split("\\|", -1);
-            long[] values = entry.getValue();
-            rows.add(new String[] {
-                    key[0],
-                    key[1],
-                    Long.toString(values[0]),
-                    String.format(Locale.ROOT, "%.2f", values[1] / 60.0),
-                    Long.toString(values[2])
-            });
+
+        public LocalDate getFrom() {
+            return from;
         }
-        return rows;
-    }
 
-    private static boolean includesSession(
-            AttendanceRecord entry, LocalDate from, LocalDate to, String person, String zone
-    ) {
-        LocalDate date = DateTimeHelper.parseTimestamp(entry.getTimestamp()).toLocalDate();
-        return within(date, from, to)
-                && (person.isEmpty() || person.equals(entry.getPersonCode()))
-                && (zone.isEmpty() || zone.equals(entry.getZoneId()));
-    }
-
-    private static String hoursKey(AttendanceRecord entry, Period period) {
-        LocalDate date = DateTimeHelper.parseTimestamp(entry.getTimestamp()).toLocalDate();
-        return bucket(date, period) + "|" + entry.getPersonCode();
-    }
-
-    public static List<String[]> summarizeIncidents(
-            List<Incident> incidents,
-            LocalDate from,
-            LocalDate to,
-            Period period
-    ) {
-        checkRange(from, to);
-        checkPeriod(period);
-        Map<LocalDate, int[]> counts = new TreeMap<>();
-        int[] unknown = new int[8];
-        for (Incident incident : incidents) {
-            if (incident.getReportedAt().isEmpty()) {
-                unknown[6]++;
-                addStatus(unknown, incident);
-            } else {
-                LocalDate reported = DateTimeHelper.parseTimestamp(incident.getReportedAt()).toLocalDate();
-                if (within(reported, from, to)) {
-                    int[] values = counts.computeIfAbsent(bucket(reported, period), ignored -> new int[8]);
-                    values[0]++;
-                    addStatus(values, incident);
-                }
-            }
-            if (incident.isResolved()) {
-                if (incident.getResolvedAt().isEmpty()) {
-                    unknown[7]++;
-                } else {
-                    LocalDate resolved = DateTimeHelper.parseTimestamp(incident.getResolvedAt()).toLocalDate();
-                    if (within(resolved, from, to)) {
-                        int[] values = counts.computeIfAbsent(bucket(resolved, period), ignored -> new int[8]);
-                        values[1]++;
-                    }
-                }
-            }
+        public LocalDate getTo() {
+            return to;
         }
-        List<String[]> rows = new ArrayList<>();
-        rows.add(new String[] {
-                "period", "reported", "resolved", "open", "assigned", "resolvedStatus",
-                "archived", "unknownReportedAt", "unknownResolvedAt"
-        });
-        for (Map.Entry<LocalDate, int[]> entry : counts.entrySet()) {
-            rows.add(summaryRow(entry.getKey().toString(), entry.getValue()));
+
+        public boolean includes(LocalDate date) {
+            return date != null && !date.isBefore(from) && !date.isAfter(to);
         }
-        rows.add(summaryRow("UNKNOWN", unknown));
-        return rows;
-    }
 
-    private static void addStatus(int[] values, Incident incident) {
-        switch (incident.getStatus()) {
-            case OPEN:
-                values[2]++;
-                break;
-            case ASSIGNED:
-                values[3]++;
-                break;
-            case RESOLVED:
-                values[4]++;
-                break;
-            default:
-                throw new IllegalStateException("Unsupported incident status.");
-        }
-        if (incident.isArchived()) {
-            values[5]++;
-        }
-    }
-
-    private static String[] summaryRow(String label, int[] values) {
-        String[] row = new String[values.length + 1];
-        row[0] = label;
-        for (int i = 0; i < values.length; i++) {
-            row[i + 1] = Integer.toString(values[i]);
-        }
-        return row;
-    }
-
-    public static LocalDate weekStart(LocalDate date) {
-        return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-    }
-
-    private static LocalDate bucket(LocalDate date, Period period) {
-        switch (period) {
-            case DAY:
-                return date;
-            case WEEK:
-                return weekStart(date);
-            case MONTH:
-                return date.withDayOfMonth(1);
-            default:
-                throw new IllegalArgumentException("Unsupported reporting period.");
-        }
-    }
-
-    private static boolean within(LocalDate date, LocalDate from, LocalDate to) {
-        return !date.isBefore(from) && !date.isAfter(to);
-    }
-
-    private static void checkRange(LocalDate from, LocalDate to) {
-        if (from == null || to == null || from.isAfter(to)) {
-            throw new DataValidationException("dateRange", "Provide a start date that does not follow the end date.");
-        }
-    }
-
-    private static void checkPeriod(Period period) {
-        if (period == null) {
-            throw new DataValidationException("period", "Must not be null.");
+        @Override
+        public String toString() {
+            return from + " to " + to;
         }
     }
 }

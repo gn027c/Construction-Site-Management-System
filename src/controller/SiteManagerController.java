@@ -1,787 +1,151 @@
 package controller;
 
-import model.person.*;
-import model.zone.*;
-import model.attendance.*;
-import model.incident.*;
-import model.auth.*;
-import model.common.*;
-import service.*;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
+import exception.AppError;
+import repository.AccountRepository;
+import service.AuthenticationService;
+import service.PersonRemovalService;
+import service.ZoneRemovalService;
+import service.PersonnelService;
+import service.ZoneService;
+import service.AttendanceService;
+import service.IncidentService;
+import service.ReportService;
+import java.util.Scanner;
 
 public class SiteManagerController {
-    private static final int PERSON_ID_CAPACITY = 90000;
-    private final Path directory;
+
+    private final PersonnelService personnelService;
+    private final ZoneService zoneService;
+    private final AttendanceService attendanceService;
+    private final IncidentService incidentService;
+
+    private final PersonnelController personnelController;
+    private final ZoneController zoneController;
+    private final AttendanceController attendanceController;
+    private final IncidentController incidentController;
+    private final ReportController reportController;
+    private final AccountController accountController;
     private final AuthenticationService authentication;
-    private PersonnelService personnelService;
-    private ZoneService zoneService;
-    private AttendanceService attendanceService;
-    private IncidentService incidentService;
-    private PersonnelController personnelController;
-    private ZoneController zoneController;
-    private AttendanceController attendanceController;
-    private IncidentController incidentController;
+    private final util.DataPaths dataPaths;
     private boolean dataReady;
+    private boolean accountsReady;
+    private String loadProblem;
 
-    private static final String[] FILES = { "persons.csv", "zones.csv", "attendance.csv", "incidents.csv" };
-
-    public SiteManagerController() throws IOException {
-        this(Paths.get("data"));
+    public SiteManagerController() {
+        this(System.getProperty("smartsite.dataDir", "data"));
     }
 
-    public SiteManagerController(Path directory) throws IOException {
-        this.directory = directory.toAbsolutePath().normalize();
-        authentication = new AuthenticationService(this.directory);
-        PersonnelService people = new PersonnelService();
-        ZoneService zones = new ZoneService();
-        useServices(people, zones, new AttendanceService(people, zones), new IncidentService(people));
+    public SiteManagerController(String dataDirectory) {
+        this.dataPaths = new util.DataPaths(dataDirectory);
+
+        this.personnelService = new PersonnelService();
+        this.zoneService = new ZoneService();
+        this.attendanceService = new AttendanceService(personnelService, zoneService);
+        this.incidentService = new IncidentService(personnelService);
+        this.authentication = new AuthenticationService(new AccountRepository(), personnelService, dataPaths.accounts());
+
+        this.personnelController = new PersonnelController(
+                personnelService, authentication,
+                new PersonRemovalService(personnelService, zoneService, attendanceService, incidentService, authentication));
+        this.zoneController = new ZoneController(
+                zoneService, personnelService, authentication,
+                new ZoneRemovalService(zoneService, attendanceService, authentication));
+        this.attendanceController = new AttendanceController(attendanceService, personnelService, authentication);
+        this.incidentController = new IncidentController(incidentService, authentication);
+        this.reportController = new ReportController(
+                new ReportService(attendanceService, incidentService), authentication);
+        this.accountController = new AccountController(authentication);
     }
 
-    private void useServices(
-            PersonnelService people,
-            ZoneService zones,
-            AttendanceService attendance,
-            IncidentService incidents
-    ) {
-        personnelService = people;
-        zoneService = zones;
-        attendanceService = attendance;
-        incidentService = incidents;
-        authentication.bindPersonnel(people);
-        personnelController = new PersonnelController(this);
-        zoneController = new ZoneController(this);
-        attendanceController = new AttendanceController(this);
-        incidentController = new IncidentController(this);
-    }
-
-    public void loadAllData() throws IOException {
+    public void loadAllData() {
+        dataReady = false;
+        accountsReady = false;
+        loadProblem = null;
         try {
-            loadValidatedData();
-        } catch (IOException | RuntimeException e) {
-            throw new IOException("Business data rejected. Administrator review required: " + e.getMessage(), e);
-        }
-    }
-
-    private void loadValidatedData() throws IOException {
-        int existing = 0;
-        for (String file : FILES) {
-            if (Files.exists(directory.resolve(file))) {
-                existing++;
-            }
-        }
-        if (existing != 0 && existing != FILES.length) {
-            throw new IOException("Incomplete CSV set: all four data files are required.");
-        }
-        PersonnelService people = new PersonnelService();
-        ZoneService zones = new ZoneService();
-        AttendanceService attendance = new AttendanceService(people, zones);
-        IncidentService incidents = new IncidentService(people);
-        if (existing != 0) {
-            if (!people.loadFromCsv(directory.resolve(FILES[0]).toString())) {
-                throw new IOException("Invalid persons.csv");
-            }
-            if (!zones.loadFromCsv(directory.resolve(FILES[1]).toString())) {
-                throw new IOException("Invalid zones.csv");
-            }
-            if (!attendance.loadFromCsv(directory.resolve(FILES[2]).toString())) {
-                throw new IOException("Invalid attendance.csv: " + attendance.getLastLoadError());
-            }
-            if (!incidents.loadFromCsv(directory.resolve(FILES[3]).toString())) {
-                throw new IOException("Invalid incidents.csv");
-            }
-            validateReferences(people, zones, attendance, incidents);
-            authentication.validateLinks(people);
-        }
-        useServices(people, zones, attendance, incidents);
-        dataReady = true;
-    }
-
-    private static void validateReferences(
-            PersonnelService people,
-            ZoneService zones,
-            AttendanceService attendance,
-            IncidentService incidents
-    )
-            throws IOException {
-        try {
-            for (AttendanceRecord record : attendance.getAllAttendanceRecords()) {
-                people.findPersonByCode(record.getPersonCode());
-                zones.findZoneById(record.getZoneId());
-            }
-            for (Zone zone : zones.getAllZones()) {
-                if (zone instanceof RestrictedZone) {
-                    for (String code : ((RestrictedZone) zone).getAllowedPersonCodes()) {
-                        people.findPersonByCode(code);
-                    }
-                }
-            }
-            for (Incident incident : incidents.getAllIncidents()) {
-                if (!incident.getAssignedTo().isEmpty()) {
-                    people.findPersonByCode(incident.getAssignedTo());
-                }
-                if (!incident.getZoneId().isEmpty()) {
-                    zones.findZoneById(incident.getZoneId());
-                }
-            }
+            authentication.load();
+            accountsReady = true;
+            personnelService.loadFromCsv(dataPaths.persons());
+            zoneService.loadFromCsv(dataPaths.zones());
+            attendanceService.loadFromCsv(dataPaths.attendance());
+            incidentService.loadFromCsv(dataPaths.incidents());
+            dataReady = true;
         } catch (RuntimeException e) {
-            throw new IOException("Invalid CSV references: " + e.getMessage(), e);
+            loadProblem = e.getMessage();
+            throw e;
         }
-    }
-
-    public void saveAllData() throws IOException {
-        if (!dataReady) {
-            throw new IOException("Business data is not active; saving is blocked until administrator review.");
-        }
-        validateReferences(personnelService, zoneService, attendanceService, incidentService);
-        List<String> failed = new ArrayList<>();
-        if (!personnelService.saveToCsv(directory.resolve(FILES[0]).toString())) {
-            failed.add(FILES[0]);
-        }
-        if (!zoneService.saveToCsv(directory.resolve(FILES[1]).toString())) {
-            failed.add(FILES[1]);
-        }
-        if (!attendanceService.saveToCsv(directory.resolve(FILES[2]).toString())) {
-            failed.add(FILES[2]);
-        }
-        if (!incidentService.saveToCsv(directory.resolve(FILES[3]).toString())) {
-            failed.add(FILES[3]);
-        }
-        if (!failed.isEmpty()) {
-            throw new IOException(
-                    "Could not save " + String.join(
-                            ", ",
-                            failed
-                    ) + ". Other files may have been saved; retry Save after correcting the error."
-            );
-        }
-    }
-
-    private void saveChanges() {
-        try {
-            saveAllData();
-        } catch (IOException e) {
-            throw new exception.SiteManagementException("Save failed; changes remain in memory. " + e.getMessage(), e);
-        }
-    }
-
-    public Path exportCsv(Path destination) throws IOException {
-        authentication.require(Permission.EXPORT_REPORTS);
-        requireReady();
-        validateReferences(personnelService, zoneService, attendanceService, incidentService);
-        Map<String, List<String>> tables = new LinkedHashMap<>();
-        List<String> persons = new ArrayList<>(
-                Arrays.asList("type,id,code,name,phoneNumber,role,extra1,extra2,extra3,active,safetyLevel")
-        );
-        for (Person person : personnelService.getAllPersons()) {
-            persons.add(person.toCsvLine());
-        }
-        tables.put(FILES[0], persons);
-        List<String> zones = new ArrayList<>(
-                Arrays.asList("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes")
-        );
-        for (Zone zone : zoneService.getAllZones()) {
-            zones.add(zone.toCsvLine());
-        }
-        tables.put(FILES[1], zones);
-        List<String> attendance = new ArrayList<>(Arrays.asList("recordId,personCode,zoneId,timestamp,checkType"));
-        for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
-            attendance.add(record.toCsvLine());
-        }
-        tables.put(FILES[2], attendance);
-        List<String> incidents = new ArrayList<>(
-                Arrays.asList(repository.IncidentRepository.HEADER)
-        );
-        for (Incident incident : incidentService.getAllIncidents()) {
-            incidents.add(incident.toCsvLine());
-        }
-        tables.put(FILES[3], incidents);
-        return new CsvExportService().export(tables, destination);
-    }
-
-    public void handlePersonMenu(Scanner scanner) {
-        authentication.require(Permission.MANAGE_PERSONNEL);
-        personnelController.handleMenu(scanner);
-    }
-
-    public void handleZoneMenu(Scanner scanner) {
-        authentication.require(Permission.MANAGE_ZONES);
-        zoneController.handleMenu(scanner);
-    }
-
-    public void handleAttendanceMenu(Scanner scanner) {
-        authentication.requireAny(
-                Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE,
-                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE, Permission.VIEW_OCCUPANCY
-        );
-        attendanceController.handleMenu(scanner);
-    }
-
-    public void handleIncidentMenu(Scanner scanner) {
-        authentication.requireAny(
-                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
-                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS
-        );
-        incidentController.handleMenu(scanner);
-    }
-
-    public AuthenticationService getAuthentication() {
-        return authentication;
-    }
-
-    public void reloadData() throws IOException {
-        authentication.require(Permission.RELOAD_DATA);
-        loadAllData();
     }
 
     public boolean isDataReady() {
         return dataReady;
     }
 
-    private void requireReady() {
+    public boolean isAccountsReady() {
+        return accountsReady;
+    }
+
+    public String loadProblem() {
+        return loadProblem;
+    }
+
+    public AuthenticationService authentication() {
+        return authentication;
+    }
+
+    public PersonnelService personnel() {
+        return personnelService;
+    }
+
+    public void handleAccountMenu(Scanner scanner) {
+        accountController.handleMenu(scanner);
+    }
+
+    public util.DataPaths getDataPaths() {
+        return dataPaths;
+    }
+
+    public String path(String fileName) {
+        return dataPaths.path(fileName);
+    }
+
+    public void saveAllData() {
+        requireDataReady();
+        boolean saved = personnelService.saveToCsv(dataPaths.persons());
+        saved &= zoneService.saveToCsv(dataPaths.zones());
+        saved &= attendanceService.saveToCsv(dataPaths.attendance());
+        saved &= incidentService.saveToCsv(dataPaths.incidents());
+        if (!saved) {
+            throw new AppError("Could not write every data file. Check the data directory and save again.");
+        }
+    }
+
+    private void requireDataReady() {
         if (!dataReady) {
-            throw new exception.DataValidationException(
-                    "data", "Service temporarily unavailable. Contact an administrator."
-            );
+            throw new AppError("Data is not loaded. Fix the reported CSV file, then reload from menu 5.");
         }
     }
 
-    private <T> T operation(
-            Permission permission, java.util.function.Supplier<T> body, boolean writes
-    ) {
-        authentication.require(permission);
-        requireReady();
-        T result = body.get();
-        if (Boolean.FALSE.equals(result)) {
-            throw new exception.DataValidationException("operation", "The requested change was not accepted.");
-        }
-        if (writes) {
-            saveChanges();
-        }
-        return result;
+    public void handlePersonMenu(Scanner scanner) {
+        requireDataReady();
+        personnelController.handleMenu(scanner);
     }
 
-    public List<Person> people() {
-        return operation(Permission.MANAGE_PERSONNEL, personnelService::getAllPersons, false);
+    public void handleZoneMenu(Scanner scanner) {
+        requireDataReady();
+        zoneController.handleMenu(scanner);
     }
 
-    public Person person(String code) {
-        return operation(Permission.MANAGE_PERSONNEL,
-                () -> personnelService.findPersonByCode(code), false);
+    public void handleAttendanceMenu(Scanner scanner) {
+        requireDataReady();
+        attendanceController.handleMenu(scanner);
     }
 
-    public boolean addPerson(Person person) {
-        return operation(Permission.MANAGE_PERSONNEL,
-                () -> personnelService.addPerson(person), true);
+    public void handleIncidentMenu(Scanner scanner) {
+        requireDataReady();
+        incidentController.handleMenu(scanner);
     }
 
-    public boolean shouldProvisionAccount(Person person) {
-        return person != null && person.shouldProvisionAccount();
-    }
-
-    public Account provisionAccount(Person person) throws IOException {
-        return provisionAccount(person, "0");
-    }
-
-    public Account provisionAccount(Person person, String initialPassword) throws IOException {
-        Account.Role role = authentication.allows(Permission.MANAGE_ACCOUNTS)
-                ? resolveAccountRole(person)
-                : Account.Role.SITE_USER;
-        return provisionAccount(person, initialPassword, role);
-    }
-
-    private Account provisionAccount(Person person, String initialPassword, Account.Role role) throws IOException {
-        if (!shouldProvisionAccount(person)) {
-            throw new exception.DataValidationException(
-                    "person", "Account provisioning is not supported for " + (person == null ? "null" : person.getRole())
-            );
-        }
-        String normalizedCode = util.IdentifierHelper.normalize(person.getCode());
-        if (authentication.isPersonLinked(normalizedCode)) {
-            throw new exception.DataValidationException("personCode", "Person is already linked to an account.");
-        }
-        String username = generateProvisionedUsername(person);
-        String pass = (initialPassword == null || initialPassword.trim().isEmpty()) ? "0" : initialPassword;
-
-        authentication.provisionPersonnelAccount(username, pass, role, normalizedCode);
-        return authentication.getAccount(username);
-    }
-
-    public static String removeDiacritics(String text) {
-        if (text == null) {
-            return "";
-        }
-        String nfd = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD);
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-        return pattern.matcher(nfd).replaceAll("")
-                .replace('\u0111', 'd')
-                .replace('\u0110', 'D')
-                .replace('đ', 'd')
-                .replace('Đ', 'D');
-    }
-
-    public static String buildUsernameBase(String name, String code) {
-        if (code == null) {
-            code = "";
-        }
-        String cleanCode = code.trim().toUpperCase(java.util.Locale.ROOT);
-        if (name == null || name.trim().isEmpty()) {
-            return ("User" + cleanCode).replaceAll("[^a-zA-Z0-9_.-]", "");
-        }
-        String noAccents = removeDiacritics(name);
-        String[] words = noAccents.trim().split("\\s+");
-        List<String> validWords = new ArrayList<>();
-        for (String w : words) {
-            String cleaned = w.replaceAll("[^a-zA-Z0-9]", "");
-            if (!cleaned.isEmpty()) {
-                validWords.add(cleaned);
-            }
-        }
-        if (validWords.isEmpty()) {
-            return ("User" + cleanCode).replaceAll("[^a-zA-Z0-9_.-]", "");
-        }
-        String lastWord = validWords.get(validWords.size() - 1);
-        String givenName = Character.toUpperCase(lastWord.charAt(0))
-                + (lastWord.length() > 1 ? lastWord.substring(1).toLowerCase(java.util.Locale.ROOT) : "");
-
-        StringBuilder initials = new StringBuilder();
-        for (int i = 0; i < validWords.size() - 1; i++) {
-            initials.append(Character.toUpperCase(validWords.get(i).charAt(0)));
-        }
-
-        String base = givenName + initials.toString() + cleanCode;
-        if (base.length() < 3) {
-            base = "User" + cleanCode;
-        }
-        return base;
-    }
-
-    public String generateProvisionedUsername(Person person) {
-        String base = buildUsernameBase(person.getName(), person.getCode());
-        String candidate = base;
-        int counter = 2;
-        while (authentication.isUsernameTaken(candidate)) {
-            candidate = base + "_" + counter++;
-        }
-        return candidate;
-    }
-
-    private Account.Role resolveAccountRole(Person person) {
-        if (person instanceof Staff) {
-            Staff s = (Staff) person;
-            String pos = s.getPosition() != null ? s.getPosition().toLowerCase() : "";
-            if (pos.contains("safety")) {
-                return Account.Role.SAFETY_OFFICER;
-            } else if (pos.contains("manager") || pos.contains("supervisor")) {
-                return Account.Role.SITE_MANAGER;
-            }
-        }
-        return Account.Role.SITE_USER;
-    }
-
-    public boolean updatePerson(String code, String name, String phone) {
-        return operation(Permission.MANAGE_PERSONNEL,
-                () -> personnelService.updatePerson(code, name, phone), true);
-    }
-
-    public boolean updatePersonProfile(
-            String code, String name, String phone, String[] details, model.common.SafetyLevel level
-    ) {
-        return operation(Permission.MANAGE_PERSONNEL,
-                () -> personnelService.updateProfile(code, name, phone, details, level), true);
-    }
-
-    public boolean updatePersonProfile(
-            String code, String name, String phone, String[] details, model.common.SafetyLevel level,
-            Account.Role accountRole
-    ) {
-        if (accountRole == null) {
-            return updatePersonProfile(code, name, phone, details, level);
-        }
-        authentication.require(Permission.MANAGE_ACCOUNTS);
-        requireStaffRole(accountRole);
-        return operation(Permission.MANAGE_PERSONNEL, () -> {
-            String username = authentication.linkedUsername(personnelService.findPersonByCode(code).getCode());
-            if (username.isEmpty()) {
-                throw new exception.DataValidationException("account", "This person has no linked account.");
-            }
-            Account.Role previous = authentication.getAccount(username).getRole();
-            changeRole(username, accountRole);
-            try {
-                return personnelService.updateProfile(code, name, phone, details, level);
-            } catch (RuntimeException e) {
-                changeRole(username, previous);
-                throw e;
-            }
-        }, true);
-    }
-
-    public String changePersonType(String code, Person replacement, Account.Role accountRole) {
-        authentication.require(Permission.MANAGE_ACCOUNTS);
-        requireStaffRole(accountRole);
-        return operation(Permission.MANAGE_PERSONNEL, () -> {
-            String username = authentication.linkedUsername(personnelService.findPersonByCode(code).getCode());
-            Person original = personnelService.changeType(code, replacement);
-            try {
-                if (username.isEmpty()) {
-                    return provisionAccount(replacement, "0", accountRole).getUsername();
-                }
-                changeRole(username, accountRole);
-                return username;
-            } catch (IOException | RuntimeException e) {
-                personnelService.restorePerson(original);
-                throw new exception.SiteManagementException("The type was not changed. " + e.getMessage(), e);
-            }
-        }, true);
-    }
-
-    private void changeRole(String username, Account.Role role) {
-        try {
-            authentication.changeRole(username, role);
-        } catch (IOException e) {
-            throw new exception.SiteManagementException("The account role was not changed. " + e.getMessage(), e);
-        }
-    }
-
-    private static void requireStaffRole(Account.Role role) {
-        if (role == null || role == Account.Role.ADMIN) {
-            throw new exception.DataValidationException(
-                    "role", "Choose SITE_USER, SAFETY_OFFICER or SITE_MANAGER for a personnel account."
-            );
-        }
-    }
-
-    public Account.Role linkedAccountRole(String code) {
-        String username = linkedUsername(code);
-        return username.isEmpty() ? null : authentication.getAccount(username).getRole();
-    }
-
-    public void setPersonActive(String code, boolean active) {
-        operation(Permission.MANAGE_PERSONNEL, () -> {
-            personnelService.findPersonByCode(code).setActive(active);
-            return true;
-        }, true);
-    }
-
-    public String linkedUsername(String code) {
-        authentication.require(Permission.MANAGE_PERSONNEL);
-        return authentication.linkedUsername(code);
-    }
-
-    public void deletePerson(String code) {
-        operation(Permission.MANAGE_PERSONNEL, () -> {
-            String normalized = util.IdentifierHelper.normalize(code);
-            personnelService.findPersonByCode(normalized);
-            boolean referenced = false;
-            for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
-                referenced |= record.getPersonCode().equals(normalized);
-            }
-            for (Zone zone : zoneService.getAllZones()) {
-                if (zone instanceof RestrictedZone) {
-                    referenced |= ((RestrictedZone) zone).getAllowedPersonCodes().contains(normalized);
-                }
-            }
-            for (Incident incident : incidentService.getAllIncidents()) {
-                referenced |= incident.getAssignedTo().equals(normalized);
-            }
-            if (referenced) {
-                throw new exception.DataValidationException(
-                        "person",
-                        "People with attendance, zone access or incidents cannot be deleted; deactivate instead."
-                );
-            }
-            if (authentication.isPersonLinked(normalized)) {
-                if (!authentication.allows(Permission.MANAGE_ACCOUNTS)) {
-                    throw new exception.DataValidationException(
-                            "person", "This person has a linked account; ask an administrator to delete both."
-                    );
-                }
-                try {
-                    authentication.deleteLinkedAccount(normalized);
-                } catch (IOException e) {
-                    throw new exception.SiteManagementException(
-                            "The linked account was not deleted. " + e.getMessage(), e
-                    );
-                }
-            }
-            return personnelService.deletePerson(normalized);
-        }, true);
-    }
-
-    public List<Zone> zones() {
-        return operation(Permission.MANAGE_ZONES, zoneService::getAllZones, false);
-    }
-
-    public boolean addZone(Zone zone) {
-        return operation(Permission.MANAGE_ZONES, () -> zoneService.addZone(zone), true);
-    }
-
-    public Person zoneAccessPerson(String code) {
-        return operation(Permission.MANAGE_ZONES, () -> personnelService.findPersonByCode(code), false);
-    }
-
-    public Person attendancePerson(String code) {
-        return operation(Permission.RECORD_ATTENDANCE, () -> personnelService.findPersonByCode(code), false);
-    }
-
-    public boolean isIncidentIdTaken(String incidentId) {
-        authentication.require(Permission.REPORT_INCIDENTS);
-        requireReady();
-        return incidentService.findIncidentById(incidentId) != null;
-    }
-
-    public Incident incidentForAction(String incidentId) {
-        authentication.requireAny(Permission.ASSIGN_INCIDENTS, Permission.RESOLVE_INCIDENTS);
-        requireReady();
-        Incident incident = incidentService.findIncidentById(incidentId);
-        return incident == null || incident.isArchived() ? null : incident;
-    }
-
-    public Zone attendanceZone(String zoneId) {
-        authentication.requireAny(Permission.RECORD_ATTENDANCE, Permission.RECORD_OWN_ATTENDANCE);
-        requireReady();
-        return zoneService.findZoneById(zoneId);
-    }
-
-    public boolean updateZone(String zoneId, String zoneName, SafetyLevel level) {
-        return operation(Permission.MANAGE_ZONES, () -> zoneService.updateZone(zoneId, zoneName, level), true);
-    }
-
-    public boolean changeAccess(String zoneId, String personCode, boolean grant) {
-        return operation(Permission.MANAGE_ZONES, () -> {
-            Person person = personnelService.findPersonByCode(personCode);
-            return grant ? zoneService.grantZoneAccess(zoneId, person)
-                    : zoneService.revokeZoneAccess(zoneId, personCode);
-        }, true);
-    }
-
-    public List<AttendanceRecord> attendance(boolean personal) {
-        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_ATTENDANCE, () -> {
-                    List<AttendanceRecord> result = new ArrayList<>();
-                    String code = personal ? authentication.currentPersonCode() : "";
-                    for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
-                        if (!personal || record.getPersonCode().equals(code)) {
-                            result.add(record);
-                        }
-                    }
-                    return result;
-                }, false);
-    }
-
-    public boolean recordAttendance(
-            String personCode, String zoneId, AttendanceRecord.CheckType type, boolean personal
-    ) {
-        String subject = personal ? authentication.currentPersonCode() : personCode;
-        return operation(personal ? Permission.RECORD_OWN_ATTENDANCE : Permission.RECORD_ATTENDANCE, () -> {
-                    return attendanceService.recordAttendanceAndSave(subject, zoneId, type,
-                            directory.resolve("attendance.csv").toString());
-                }, false);
-    }
-
-    public List<List<String>> occupancy(boolean personal) {
-        return operation(personal ? Permission.VIEW_OWN_ATTENDANCE : Permission.VIEW_OCCUPANCY, () -> {
-            Map<String, AttendanceRecord> latest = new LinkedHashMap<>();
-            for (AttendanceRecord record : attendanceService.getAllAttendanceRecords()) {
-                latest.put(record.getPersonCode(), record);
-            }
-            String own = personal ? authentication.currentPersonCode() : "";
-            List<List<String>> rows = new ArrayList<>();
-            for (AttendanceRecord record : latest.values()) {
-                if (record.getCheckType() == AttendanceRecord.CheckType.CHECK_IN
-                        && (!personal || own.equals(record.getPersonCode()))) {
-                    Person person = personnelService.findPersonByCode(record.getPersonCode());
-                    rows.add(Arrays.asList(
-                            record.getZoneId(), person.getCode(), person.getName(), person.getRole().name(),
-                            record.getTimestamp(), person.isActive() ? "Active" : "Inactive"
-                    ));
-                }
-            }
-            rows.sort((first, second) -> {
-                int zoneOrder = util.IdentifierHelper.NATURAL_ORDER.compare(first.get(0), second.get(0));
-                if (zoneOrder != 0) {
-                    return zoneOrder;
-                }
-                return util.IdentifierHelper.NATURAL_ORDER.compare(first.get(1), second.get(1));
-            });
-            return rows;
-        }, false);
-    }
-
-    public List<Incident> incidents(boolean archived) {
-        return operation(Permission.VIEW_INCIDENTS,
-                () -> archived ? incidentService.getAllIncidents() : incidentService.getActiveIncidents(), false);
-    }
-
-    public boolean reportIncident(
-            String id, String title, String description, Incident.IncidentSeverity severity, String zoneId
-    ) {
-        return operation(Permission.REPORT_INCIDENTS, () -> {
-            Zone zone = zoneService.findZoneById(zoneId);
-            String reporter = authentication.currentAccount().getUsername();
-            return incidentService.reportIncident(id, title, description, severity, zone.getZoneId(), reporter);
-        }, true);
-    }
-
-    public List<Zone> incidentZones() {
-        return operation(Permission.REPORT_INCIDENTS, zoneService::getAllZones, false);
-    }
-
-    public boolean assignIncident(String id, String code) {
-        return operation(Permission.ASSIGN_INCIDENTS,
-                () -> incidentService.assignIncident(id, code), true);
-    }
-
-    public List<Person> candidateAssignees() {
-        return operation(Permission.ASSIGN_INCIDENTS, () -> {
-            List<Person> result = new ArrayList<>();
-            for (Person person : personnelService.getAllPersons()) {
-                if (person.canHandleIncidents()) {
-                    result.add(person);
-                }
-            }
-            return result;
-        }, false);
-    }
-
-    public boolean resolveIncident(String id, String note) {
-        return operation(Permission.RESOLVE_INCIDENTS,
-                () -> incidentService.resolveIncident(id, note), true);
-    }
-
-    public int archiveIncidents() {
-        return operation(Permission.PURGE_INCIDENTS,
-                incidentService::archiveResolvedIncidents, true);
-    }
-
-    public List<String[]> report(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,
-            boolean incidents, String personCode, String zoneId) {
-        return operation(Permission.EXPORT_REPORTS, () -> incidents
-                ? ReportService.summarizeIncidents(incidentService.getAllIncidents(), from, to, period)
-                : ReportService.summarizeAttendance(
-                        attendanceService.getAllAttendanceRecords(), from, to, personCode, zoneId, period
-                ), false);
-    }
-
-    public List<String[]> workingHours(java.time.LocalDate from, java.time.LocalDate to, ReportService.Period period,
-            String personCode, String zoneId) {
-        return operation(Permission.EXPORT_REPORTS, () -> ReportService.summarizeHours(
-                attendanceService.getAllAttendanceRecords(), from, to, personCode, zoneId, period
-        ), false);
-    }
-
-    public java.time.LocalDate[] getReportDateBounds(boolean incidents) {
-        authentication.require(Permission.EXPORT_REPORTS);
-        java.time.LocalDate min = null;
-        java.time.LocalDate max = null;
-        if (incidents) {
-            for (Incident inc : incidentService.getAllIncidents()) {
-                if (inc.getReportedAt() != null && !inc.getReportedAt().isEmpty()) {
-                    try {
-                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(inc.getReportedAt()).toLocalDate();
-                        if (min == null || d.isBefore(min)) min = d;
-                        if (max == null || d.isAfter(max)) max = d;
-                    } catch (RuntimeException ignored) {}
-                }
-                if (inc.getResolvedAt() != null && !inc.getResolvedAt().isEmpty()) {
-                    try {
-                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(inc.getResolvedAt()).toLocalDate();
-                        if (min == null || d.isBefore(min)) min = d;
-                        if (max == null || d.isAfter(max)) max = d;
-                    } catch (RuntimeException ignored) {}
-                }
-            }
-        } else {
-            for (AttendanceRecord r : attendanceService.getAllAttendanceRecords()) {
-                if (r.getTimestamp() != null && !r.getTimestamp().isEmpty()) {
-                    try {
-                        java.time.LocalDate d = util.DateTimeHelper.parseTimestamp(r.getTimestamp()).toLocalDate();
-                        if (min == null || d.isBefore(min)) min = d;
-                        if (max == null || d.isAfter(max)) max = d;
-                    } catch (RuntimeException ignored) {}
-                }
-            }
-        }
-        if (min == null || max == null) {
-            java.time.LocalDate now = java.time.LocalDate.now();
-            return new java.time.LocalDate[] { now.minusMonths(1), now };
-        }
-        return new java.time.LocalDate[] { min, max };
-    }
-
-    public Path exportReport(List<String[]> rows, Path destination) throws IOException {
-        authentication.require(Permission.EXPORT_REPORTS);
-        requireReady();
-        Map<String, List<String>> tables = new LinkedHashMap<>();
-        List<String> lines = new ArrayList<>();
-        for (String[] row : rows) {
-            lines.add(util.CsvHelper.toCsvLine(row));
-        }
-        tables.put("report.csv", lines);
-        return new CsvExportService().export(tables, destination);
-    }
-
-    public String suggestNextPersonId() {
-        return generateRandomPersonId();
-    }
-
-    public String generateRandomPersonId() {
-        Set<String> existingIds = new HashSet<>();
-        for (Person p : personnelService.getAllPersons()) {
-            if (p.getId() != null && p.getId().toUpperCase().matches("P[1-9][0-9]{4}")) {
-                existingIds.add(p.getId().toUpperCase());
-            }
-        }
-        if (existingIds.size() >= PERSON_ID_CAPACITY) {
-            throw new exception.DataValidationException("id", "All internal person IDs P10000-P99999 are in use.");
-        }
-        Random random = new Random();
-        String candidate;
-        do {
-            candidate = "P" + (10000 + random.nextInt(PERSON_ID_CAPACITY));
-        } while (existingIds.contains(candidate));
-        return candidate;
-    }
-
-    public String suggestNextPersonCode(int type) {
-        String prefix;
-        switch (type) {
-            case 1:
-                prefix = "W";
-                break;
-            case 2:
-                prefix = "C";
-                break;
-            case 3:
-                prefix = "V";
-                break;
-            case 4:
-                prefix = "S";
-                break;
-            default:
-                prefix = "P";
-                break;
-        }
-        List<String> codes = new ArrayList<>();
-        for (Person p : personnelService.getAllPersons()) {
-            codes.add(p.getCode());
-        }
-        return util.IdentifierHelper.next(prefix, codes, 0);
-    }
-
-    public String suggestNextZoneId() {
-        List<String> ids = new ArrayList<>();
-        for (Zone z : zoneService.getAllZones()) {
-            ids.add(z.getZoneId());
-        }
-        return util.IdentifierHelper.next("Z", ids, 0);
-    }
-
-    public String suggestNextIncidentId() {
-        List<String> ids = new ArrayList<>();
-        for (Incident inc : incidentService.getAllIncidents()) {
-            ids.add(inc.getIncidentId());
-        }
-        return util.IdentifierHelper.next("INC", ids, 100);
+    public void handleReportMenu(Scanner scanner) {
+        requireDataReady();
+        reportController.handleMenu(scanner);
     }
 }

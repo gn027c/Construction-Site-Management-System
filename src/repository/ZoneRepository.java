@@ -1,93 +1,104 @@
 package repository;
 
-import exception.DuplicateZoneIdException;
-import model.zone.RestrictedZone;
-import model.zone.Zone;
-import java.io.*;
+import exception.AppError;
+import exception.DataValidationException;
+import exception.NotFoundException;
+import model.RestrictedZone;
+import model.SafetyLevel;
+import model.Zone;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class ZoneRepository {
+    private static final String HEADER = "type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes";
+    private static final int COLUMN_COUNT = 5;
+
     private final List<Zone> zoneList = new ArrayList<>();
 
-    public boolean save(Zone zone) throws DuplicateZoneIdException {
+    public boolean save(Zone zone) throws AppError {
         if (zone == null || zone.getZoneId() == null || zone.getZoneId().trim().isEmpty()) {
             return false;
         }
         if (findById(zone.getZoneId()) != null) {
-            throw new DuplicateZoneIdException(zone.getZoneId());
+            throw new exception.AppError("Zone ID already exists in the system: " + zone.getZoneId());
         }
         return zoneList.add(zone);
     }
 
     public Zone findById(String zoneId) {
-        String normalized = util.IdentifierHelper.normalizeForLookup(zoneId);
-        if (normalized == null) {
+        if (zoneId == null || zoneId.trim().isEmpty()) {
             return null;
         }
         for (Zone z : zoneList) {
-            if (z.getZoneId().equals(normalized)) {
+            if (Zone.isSameId(z.getZoneId(), zoneId)) {
                 return z;
             }
         }
         return null;
     }
 
+    public Zone findByIdOrThrow(String zoneId) throws NotFoundException {
+        Zone z = findById(zoneId);
+        if (z == null) {
+            throw new exception.NotFoundException("Construction zone", "ID", zoneId);
+        }
+        return z;
+    }
+
     public List<Zone> findAll() {
         return new ArrayList<>(zoneList);
     }
 
+    public boolean deleteById(String zoneId) throws NotFoundException {
+        Zone zone = findByIdOrThrow(zoneId);
+        return zoneList.remove(zone);
+    }
+
     public boolean loadFromCsv(String filePath) {
-        ZoneRepository staged = new ZoneRepository();
-        try {
-            List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !Arrays.equals(rows.get(0), new String[] {
-                    "type", "zoneId", "zoneName", "requiredSafetyLevel", "allowedPersonCodes"
-            })) {
-                return false;
-            }
-            for (int i = 1; i < rows.size(); i++) {
-                String[] p = rows.get(i);
-                if (util.CsvHelper.isBlankRow(p)) {
-                    continue;
-                }
-                if (p.length != 5) {
-                    return false;
-                }
-                if (p[0].equals("REGULAR")) {
-                    staged.save(new Zone(p[1], p[2]));
-                } else if (p[0].equals("RESTRICTED")) {
-                    Set<String> codes = new HashSet<>();
-                    if (!p[4].equals("NONE") && !p[4].isEmpty()) {
-                        for (String code : p[4].split(";", -1)) {
-                            if (code.trim().isEmpty()) {
-                                return false;
-                            }
-                            codes.add(code.trim());
-                        }
-                    }
-                    staged.save(new RestrictedZone(p[1], p[2], model.common.SafetyLevel.valueOf(p[3]), codes));
-                } else {
-                    return false;
-                }
-            }
-        } catch (RuntimeException e) {
+        List<Zone> zones = util.CsvHelper.readTable(filePath, HEADER, COLUMN_COUNT, this::parse, Zone::getZoneId);
+        if (zones == null) {
             return false;
         }
         zoneList.clear();
-        zoneList.addAll(staged.zoneList);
+        zoneList.addAll(zones);
         return true;
     }
 
-    public boolean saveToCsv(String filePath) {
-        List<String> rows = new ArrayList<>();
-        rows.add("type,zoneId,zoneName,requiredSafetyLevel,allowedPersonCodes");
-        for (Zone zone : zoneList) {
-            rows.add(zone.toCsvLine());
+    private Zone parse(List<String> columns) {
+        String type = columns.get(0).trim();
+        String zoneId = columns.get(1).trim();
+        String zoneName = columns.get(2).trim();
+        if (type.equals("REGULAR")) {
+            if (!columns.get(3).trim().equals("NONE") || !columns.get(4).trim().equals("NONE")) {
+                throw new DataValidationException("A regular zone has no safety level or access list.");
+            }
+            return new Zone(zoneId, zoneName);
         }
-        return util.CsvHelper.writeAllLines(filePath, rows);
+        if (!type.equals("RESTRICTED")) {
+            throw new DataValidationException("Unknown zone type " + type + ".");
+        }
+        Set<String> allowedCodes = new HashSet<>();
+        String codes = columns.get(4).trim();
+        if (!codes.equals("NONE") && !codes.isEmpty()) {
+            for (String code : codes.split(";")) {
+                if (!code.trim().isEmpty()) {
+                    allowedCodes.add(code.trim());
+                }
+            }
+        }
+        return new RestrictedZone(zoneId, zoneName, SafetyLevel.valueOf(columns.get(3).trim()), allowedCodes);
     }
+
+    public boolean saveToCsv(String filePath) {
+        List<String> lines = new ArrayList<>();
+        lines.add(HEADER);
+        for (Zone zone : zoneList) {
+            lines.add(zone.toCsvLine());
+        }
+        return util.CsvHelper.writeAllLines(filePath, lines);
+    }
+
 }

@@ -1,9 +1,9 @@
 package service;
 
-import exception.DuplicatePersonCodeException;
-import exception.InvalidPhoneNumberException;
-import exception.PersonNotFoundException;
-import model.person.Person;
+import exception.AppError;
+import exception.DataValidationException;
+import exception.NotFoundException;
+import model.Person;
 import repository.PersonRepository;
 import java.util.List;
 
@@ -18,61 +18,44 @@ public class PersonnelService {
         this.personRepository = (personRepository != null) ? personRepository : new PersonRepository();
     }
 
-    public boolean addPerson(Person p) throws DuplicatePersonCodeException, InvalidPhoneNumberException {
-        if (p == null || p.getCode() == null || p.getCode().trim().isEmpty()) {
-            return false;
-        }
+    public boolean addPerson(Person p) throws AppError, DataValidationException {
+        util.ValidationHelper.requireNotNull(p, "person", "Must not be null.");
         return personRepository.save(p);
     }
 
-    public boolean shouldProvisionAccount(Person p) {
-        return p != null && p.shouldProvisionAccount();
-    }
-
-    public Person findPersonByCode(String code) throws PersonNotFoundException {
+    public Person findPersonByCode(String code) throws NotFoundException {
         return personRepository.findByCodeOrThrow(code);
     }
 
     public boolean updatePerson(String code, String newName, String newPhone)
-            throws PersonNotFoundException, InvalidPhoneNumberException {
-        Person p = findPersonByCode(code);
-        String name = newName == null || newName.trim().isEmpty() ? p.getName() : newName;
-        p.updateContactDetails(name, newPhone);
+            throws NotFoundException, DataValidationException {
+        findPersonByCode(code).updateContactDetails(newName, newPhone);
         return true;
     }
 
-    public boolean updateProfile(
-            String code, String name, String phone, String[] details, model.common.SafetyLevel level
-    ) throws PersonNotFoundException {
-        findPersonByCode(code).updateProfile(name, phone, details, level);
-        return true;
+    public void updateProfile(String code, String... values) {
+        findPersonByCode(code).updateProfile(values);
     }
 
-    public Person changeType(String code, Person replacement) throws PersonNotFoundException {
-        Person existing = findPersonByCode(code);
-        if (replacement == null || !replacement.getCode().equals(existing.getCode())) {
-            throw new exception.DataValidationException("code", "A type change must keep the person code.");
+    public void setActive(String code, boolean active) {
+        Person person = findPersonByCode(code);
+        if (active) {
+            person.activate();
+        } else {
+            person.deactivate();
         }
-        if (replacement.getRole() == existing.getRole()) {
-            throw new exception.DataValidationException(
-                    "type", "Choose a type different from " + existing.getRole() + "."
-            );
-        }
-        if (!replacement.shouldProvisionAccount()) {
-            throw new exception.DataValidationException(
-                    "type", "A person cannot become a visitor; deactivate the record instead."
-            );
-        }
-        replacement.setActive(existing.isActive());
-        personRepository.replace(replacement);
-        return existing;
     }
 
-    public void restorePerson(Person original) throws PersonNotFoundException {
-        personRepository.replace(original);
+    public void setSafetyLevel(String code, model.SafetyLevel level) {
+        findPersonByCode(code).setSafetyLevel(level);
     }
 
-    public boolean deletePerson(String code) throws PersonNotFoundException {
+    public void setVisitDate(String code, String date) {
+        findPersonByCode(code).changeVisitDate(date);
+    }
+
+    // Đặt default để bên controllere không thể gọi bừa, mà phải dùng bên PersonReemovalService.
+    boolean deletePerson(String code) throws NotFoundException {
         return personRepository.deleteByCode(code);
     }
 
@@ -80,16 +63,8 @@ public class PersonnelService {
         return personRepository.findAll();
     }
 
-    public boolean loadFromCsv() {
-        return loadFromCsv("data/persons.csv");
-    }
-
     public boolean loadFromCsv(String filePath) {
         return personRepository.loadFromCsv(filePath);
-    }
-
-    public boolean saveToCsv() {
-        return saveToCsv("data/persons.csv");
     }
 
     public boolean saveToCsv(String filePath) {

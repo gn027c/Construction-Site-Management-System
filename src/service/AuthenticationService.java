@@ -1,89 +1,101 @@
 package service;
 
-import exception.AccessDeniedException;
-import exception.AuthenticationException;
-import exception.DataValidationException;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayList;
+import exception.AppError;
+import exception.NotFoundException;
 import java.util.List;
 import java.util.Set;
-import model.auth.Account;
-import model.auth.Permission;
+import model.Account;
+import model.Permission;
+import model.Person;
 import repository.AccountRepository;
-import util.PasswordHelper;
 
-public final class AuthenticationService {
-    private final AccountRepository repository;
-    private String currentUsername;
-    private PersonnelService personnel;
+public class AuthenticationService {
+    private final AccountRepository accountRepository;
+    private final PersonnelService personnelService;
+    private final String filePath;
+    private final String personFilePath;
+    private Account current;
 
-    public AuthenticationService(Path directory) throws IOException {
-        repository = new AccountRepository(directory.resolve("accounts.csv"));
-        if (repository.exists()) {
-            repository.load();
-        } else {
-            List<Account> initial = new ArrayList<>();
-            initial.add(new Account(
-                    "admin", PasswordHelper.validate("admin"), Account.Role.ADMIN,
-                    true, Account.Role.ADMIN.defaultPermissions(), "", true
-            ));
-            repository.replaceAll(initial);
+    public AuthenticationService(
+            AccountRepository accountRepository, PersonnelService personnelService, String filePath
+    ) {
+        this(accountRepository, personnelService, filePath, null);
+    }
+
+    public AuthenticationService(
+            AccountRepository accountRepository, PersonnelService personnelService,
+            String filePath, String personFilePath
+    ) {
+        this.accountRepository = accountRepository;
+        this.personnelService = personnelService;
+        this.filePath = filePath;
+        this.personFilePath = personFilePath;
+    }
+
+    public void load() {
+        if (personFilePath != null && new java.io.File(personFilePath).exists()) {
+            personnelService.loadFromCsv(personFilePath);
+        }
+        if (!accountRepository.loadFromCsv(filePath)) {
+            accountRepository.clear();
+            accountRepository.save(new Account(
+                    "admin", "admin", Account.Role.ADMIN, true, Account.Role.ADMIN.defaultPermissions(), "", true));
+            persist();
+        }
+        persistPersonData();
+        if (current != null) {
+            current = accountRepository.findByUsername(current.getUsername());
+        }
+    }
+
+    private void persist() {
+        if (!accountRepository.saveToCsv(filePath)) {
+            throw new AppError("Could not write the accounts file. Check the data directory and try again.");
+        }
+    }
+
+    public void persistPersonData() {
+        if (personFilePath != null && !personnelService.saveToCsv(personFilePath)) {
+            throw new AppError("Could not write the personnel file. Check the data directory.");
         }
     }
 
     public Account login(String username, String password) {
-        currentUsername = null;
-        Account account = null;
-        try {
-            account = repository.find(Account.normalizeUsername(username));
-        } catch (DataValidationException ignored) {
+        Account account = accountRepository.findByUsername(username);
+        if (account == null) {
+            throw Account.signInFailure();
         }
-        if (account == null || !account.isEnabled() || !PasswordHelper.matches(password, account.getPassword())
-                || linksInactivePerson(account)) {
-            throw new AuthenticationException();
-        }
-        currentUsername = account.getUsername();
+        account.signIn(password, isLinkedPersonActive(account));
+        current = account;
         return account;
     }
 
-    private boolean linksInactivePerson(Account account) {
-        if (account.getPersonCode().isEmpty() || personnel == null) {
-            return false;
+    private boolean isLinkedPersonActive(Account account) {
+        if (!account.isLinked()) {
+            return true;
         }
         try {
-            return !personnel.findPersonByCode(account.getPersonCode()).isActive();
-        } catch (exception.PersonNotFoundException e) {
+            return personnelService.findPersonByCode(account.getPersonCode()).isActive();
+        } catch (NotFoundException e) {
             return false;
         }
     }
 
     public void logout() {
-        if (isLoggedIn()) {
-        }
-        currentUsername = null;
-    }
-
-    public boolean isLoggedIn() {
-        Account account = currentUsername == null ? null : repository.find(currentUsername);
-        return account != null && account.isEnabled();
+        current = null;
     }
 
     public Account currentAccount() {
-        if (!isLoggedIn()) {
-            throw new AccessDeniedException("sign in before using this operation");
-        }
-        return repository.find(currentUsername);
+        return current;
     }
 
     public boolean allows(Permission permission) {
-        return isLoggedIn() && currentAccount().allows(permission);
+        return current != null && current.allows(permission);
     }
 
     public void require(Permission permission) {
-        boolean adminOnly = permission == Permission.MANAGE_ACCOUNTS;
-        if (!allows(permission) || (adminOnly && currentAccount().getRole() != Account.Role.ADMIN)) {
-            throw new AccessDeniedException(permission.name());
+        if (!allows(permission)) {
+            throw new AppError("Permission denied: " + permission);
         }
     }
 
@@ -93,201 +105,264 @@ public final class AuthenticationService {
                 return;
             }
         }
-        throw new AccessDeniedException("no permission for this menu");
+        throw new AppError("Permission denied: " + java.util.Arrays.toString(permissions));
+    }
+
+    public String currentPersonCode() {
+        if (current == null || !current.isLinked()) {
+            throw new AppError("This account is not linked to a person. Ask an administrator to link it.");
+        }
+        return current.getPersonCode();
+    }
+
+    public void changeOwnPassword(String currentPassword, String newPassword) {
+        if (current == null) {
+            throw new AppError("Sign in first.");
+        }
+        current.changePassword(currentPassword, newPassword);
+        persist();
+    }
+
+    public Account findAccount(String username) {
+        return accountRepository.findByUsername(username);
+    }
+
+    public Account accountOf(String personCode) {
+        return accountRepository.findByPersonCode(personCode);
+    }
+
+    private Account requireAccount(String username) {
+        return accountRepository.findByUsernameOrThrow(username);
     }
 
     public List<Account> listAccounts() {
         require(Permission.MANAGE_ACCOUNTS);
-        return repository.findAll();
+        return accountRepository.findAll();
     }
 
-    public void createAccount(String username, String password, Account.Role role) throws IOException {
-        createAccount(username, password, role, "");
+    public int listAccountsForBootstrapCheck() {
+        return accountRepository.findAll().size();
     }
 
-    public void createAccount(String username, String password, Account.Role role, String personCode)
-            throws IOException {
-        createAccount(username, password, role, personCode, true);
+    public void setPersonActive(String personCode, boolean active) {
+        require(Permission.MANAGE_PERSONNEL);
+        Person person = personnelService.findPersonByCode(personCode);
+        if (!active && isLastUsableAdministrator(person)) {
+            throw new AppError("The last usable administrator cannot be deactivated.");
+        }
+        personnelService.setActive(personCode, active);
+        persistPersonData();
+    }
+
+    private boolean isLastUsableAdministrator(Person person) {
+        int usableAdministrators = 0;
+        for (Account account : accountRepository.findAll()) {
+            if (account.getRole() == Account.Role.ADMIN && account.isEnabled()
+                    && (!account.isLinked() || account.getPersonCode().equalsIgnoreCase(person.getCode())
+                    || isLinkedPersonActive(account))) {
+                usableAdministrators++;
+            }
+        }
+        Account linked = accountRepository.findByPersonCode(person.getCode());
+        return linked != null && linked.getRole() == Account.Role.ADMIN
+                && linked.isEnabled() && usableAdministrators <= 1;
     }
 
     public void createAccount(
-            String username, String password, Account.Role role, String personCode, boolean mustChangePassword
-    ) throws IOException {
+            String username, String password, Account.Role role, String personCode, String position
+    ) {
         require(Permission.MANAGE_ACCOUNTS);
-        addAccount(username, password, role, personCode, mustChangePassword);
-    }
-
-    public void provisionPersonnelAccount(String username, String password, Account.Role role, String personCode)
-            throws IOException {
-        if (!allows(Permission.MANAGE_ACCOUNTS)) {
-            require(Permission.MANAGE_PERSONNEL);
-            if (role != Account.Role.SITE_USER) {
-                throw new AccessDeniedException(Permission.MANAGE_ACCOUNTS.name());
-            }
+        String cleanUsername = Account.normalizeUsername(username);
+        if (accountRepository.findByUsername(cleanUsername) != null) {
+            throw new AppError("Username already exists: " + cleanUsername);
         }
-        if (personCode == null || personCode.trim().isEmpty()) {
-            throw new DataValidationException("personCode", "A personnel account must be linked to a person.");
-        }
-        addAccount(username, password, role, personCode, true);
-    }
-
-    private void addAccount(
-            String username, String password, Account.Role role, String personCode, boolean mustChangePassword
-    ) throws IOException {
-        String normalized = Account.normalizeUsername(username);
-        if (repository.find(normalized) != null) {
-            throw new DataValidationException("username", "Already exists.");
-        }
-        if (role == null) {
-            throw new DataValidationException("role", "Must not be null.");
-        }
-        List<Account> accounts = repository.findAll();
-        Account added = new Account(
-                normalized, PasswordHelper.validate(password), role, true,
-                role.defaultPermissions(), personCode, mustChangePassword
-        );
-        validatePersonLink(added);
-        accounts.add(added);
-        repository.replaceAll(accounts);
-    }
-
-    public void changeRole(String username, Account.Role role) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        replace(findRequired(username).withRole(role));
-    }
-
-    public void changePermissions(String username, Set<Permission> permissions) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        replace(findRequired(username).withPermissions(permissions));
-    }
-
-    public void setEnabled(String username, boolean enabled) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        Account account = findRequired(username);
-        if (!enabled && account.getUsername().equals(currentUsername)) {
-            throw new DataValidationException("account", "Cannot disable your own signed-in account.");
-        }
-        replace(account.withEnabled(enabled));
-    }
-
-    public void resetPassword(String username, String password) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        replace(findRequired(username).withResetPassword(password));
-    }
-
-    public Account getAccount(String username) {
-        return repository.find(Account.normalizeUsername(username));
-    }
-
-    public boolean isUsernameTaken(String username) {
-        try {
-            return repository.find(Account.normalizeUsername(username)) != null;
-        } catch (DataValidationException e) {
-            return false;
-        }
-    }
-
-    public void changePassword(String currentPassword, String nextPassword) throws IOException {
-        Account account = currentAccount();
-        if (!PasswordHelper.matches(currentPassword, account.getPassword())) {
-            throw new AuthenticationException();
-        }
-        if (currentPassword.equals(nextPassword)) {
-            throw new DataValidationException("password", "The new password must differ from the current one.");
-        }
-        replace(account.withPassword(nextPassword));
-    }
-
-    private Account findRequired(String username) {
-        Account account = repository.find(Account.normalizeUsername(username));
-        if (account == null) {
-            throw new DataValidationException("username", "Account does not exist.");
-        }
-        return account;
-    }
-
-    private void replace(Account replacement) throws IOException {
-        List<Account> accounts = repository.findAll();
-        for (int i = 0; i < accounts.size(); i++) {
-            if (accounts.get(i).getUsername().equalsIgnoreCase(replacement.getUsername())) {
-                if (!accounts.get(i).getPersonCode().equals(replacement.getPersonCode())) {
-                    validatePersonLink(replacement);
-                }
-                accounts.set(i, replacement);
-                repository.replaceAll(accounts);
-                return;
-            }
-        }
-        throw new DataValidationException("username", "Account does not exist.");
-    }
-
-    public void bindPersonnel(PersonnelService service) {
-        personnel = service;
-    }
-
-    public void validateLinks(PersonnelService service) {
-        for (Account account : repository.findAll()) {
-            if (!account.getPersonCode().isEmpty()) {
-                service.findPersonByCode(account.getPersonCode());
-            }
-        }
-    }
-
-    private void validatePersonLink(Account account) {
-        if (!account.getPersonCode().isEmpty()) {
-            if (personnel == null) {
-                throw new DataValidationException("personCode", "Personnel must be loaded before linking accounts.");
-            }
-            if (!personnel.findPersonByCode(account.getPersonCode()).shouldProvisionAccount()) {
-                throw new DataValidationException("personCode", "Visitors cannot have an account.");
-            }
-        }
-    }
-
-    public void linkPerson(String username, String personCode) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        replace(findRequired(username).withPersonCode(personCode));
-    }
-
-    public String currentPersonCode() {
-        String code = currentAccount().getPersonCode();
-        if (code.isEmpty()) {
-            throw new DataValidationException("personCode", "Ask an administrator to link your personnel record.");
-        }
-        return code;
-    }
-
-    public String linkedUsername(String code) {
-        String normalized = util.IdentifierHelper.normalize(code);
-        for (Account account : repository.findAll()) {
-            if (normalized.equals(account.getPersonCode())) {
-                return account.getUsername();
-            }
-        }
-        return "";
-    }
-
-    public void deleteLinkedAccount(String personCode) throws IOException {
-        require(Permission.MANAGE_ACCOUNTS);
-        String username = linkedUsername(personCode);
-        if (username.isEmpty()) {
+        boolean linked = personCode != null && !personCode.trim().isEmpty();
+        if (!linked) {
+            accountRepository.save(new Account(cleanUsername, password, role, true, role.defaultPermissions(), "", true));
+            persist();
             return;
         }
-        if (username.equals(currentUsername)) {
-            throw new DataValidationException("account", "Cannot delete your own signed-in account.");
+        Person person = personnelService.findPersonByCode(personCode);
+        requireUnlinked(person);
+        Account.Role startRole = Account.Role.SITE_USER;
+        Account account = new Account(
+                cleanUsername, password, startRole, true, startRole.defaultPermissions(), person.getCode(), true);
+        boolean hasPosition = position != null && !position.trim().isEmpty();
+        if (role.requiresPosition() || hasPosition) {
+            person.changePosition(position, account, role, current);
+        } else {
+            account.changeRole(current, role);
         }
-        List<Account> accounts = repository.findAll();
-        accounts.removeIf(account -> account.getUsername().equals(username));
-        repository.replaceAll(accounts);
+        accountRepository.save(account);
+        persist();
+        persistPersonData();
     }
 
-    public boolean isPersonLinked(String code) {
-        String normalized = util.IdentifierHelper.normalize(code);
-        for (Account account : repository.findAll()) {
-            if (normalized.equals(account.getPersonCode())) {
+    private void requireUnlinked(Person person) {
+        if (accountRepository.findByPersonCode(person.getCode()) != null) {
+            throw new AppError("Person " + person.getCode() + " already has an account.");
+        }
+    }
+
+    public void changeRole(String username, Account.Role role) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        if (account.isLinked() && role != null && role.requiresPosition()
+                && personnelService.findPersonByCode(account.getPersonCode()).getPosition().isEmpty()) {
+            throw new AppError("Set the person's position together with a management role.");
+        }
+        account.changeRole(current, role);
+        persist();
+        persistPersonData();
+    }
+
+    public void changePosition(String personCode, String position, Account.Role role) {
+        require(Permission.MANAGE_PERSONNEL);
+        Person person = personnelService.findPersonByCode(personCode);
+        Account account = accountRepository.findByPersonCode(person.getCode());
+        if (account != null) {
+            require(Permission.MANAGE_ACCOUNTS);
+        }
+        person.changePosition(position, account, role, current);
+        persist();
+        persistPersonData();
+    }
+
+    public void setEnabled(String username, boolean enabled) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        if (enabled) {
+            account.enable();
+        } else {
+            account.disable(current);
+        }
+        persist();
+    }
+
+    public void resetPassword(String username, String password) {
+        require(Permission.MANAGE_ACCOUNTS);
+        requireAccount(username).resetPassword(password);
+        persist();
+    }
+
+    public void linkPerson(String username, String personCode, String position) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        if (account.isLinked()) {
+            throw new AppError("Account " + account.getUsername() + " is already linked to a person.");
+        }
+        Person person = personnelService.findPersonByCode(personCode);
+        requireUnlinked(person);
+        if (account.getRole() == Account.Role.ADMIN && !person.isActive() && !hasOtherUsableAdministrator(account)) {
+            throw new AppError("The last usable administrator cannot be linked to an inactive person.");
+        }
+        if (account.getRole().requiresPosition()) {
+            person.changePosition(position, account, account.getRole(), current);
+        }
+        account.linkTo(person);
+        persist();
+        persistPersonData();
+    }
+
+    private boolean hasOtherUsableAdministrator(Account excluded) {
+        for (Account account : accountRepository.findAll()) {
+            if (account == excluded || account.getRole() != Account.Role.ADMIN || !account.isEnabled()) {
+                continue;
+            }
+            if (!account.isLinked() || isLinkedPersonActive(account)) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void grantPermissions(String username, Set<Permission> permissions) {
+        require(Permission.MANAGE_ACCOUNTS);
+        requireAccount(username).grantPermissions(permissions);
+        persist();
+    }
+
+    public void revokePermissions(String username, Set<Permission> permissions) {
+        require(Permission.MANAGE_ACCOUNTS);
+        requireAccount(username).revokePermissions(permissions);
+        persist();
+    }
+
+    public void removeLinkedAccount(Account account) {
+        require(Permission.MANAGE_ACCOUNTS);
+        if (current != null && current.getUsername().equalsIgnoreCase(account.getUsername())) {
+            throw new AppError("The signed-in account cannot be deleted.");
+        }
+        accountRepository.delete(account);
+        persist();
+    }
+
+    public void unlinkPerson(String username) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        if (!account.isLinked()) {
+            throw new AppError("Account " + account.getUsername() + " is not linked to any person.");
+        }
+        if (account.getRole() == Account.Role.SITE_USER) {
+            throw new AppError("A site user account must remain linked to a person.");
+        }
+        try {
+            Person oldPerson = personnelService.findPersonByCode(account.getPersonCode());
+            if (oldPerson != null && account.getRole().requiresPosition()) {
+                oldPerson.changePosition("", account, Account.Role.SITE_USER, current);
+            }
+        } catch (NotFoundException ignored) {
+        }
+        account.unlink();
+        persist();
+        persistPersonData();
+    }
+
+    public void relinkPerson(String username, String newPersonCode, String position) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        Person newPerson = personnelService.findPersonByCode(newPersonCode);
+        requireUnlinked(newPerson);
+        if (account.getRole() == Account.Role.ADMIN && !newPerson.isActive() && !hasOtherUsableAdministrator(account)) {
+            throw new AppError("The last usable administrator cannot be linked to an inactive person.");
+        }
+        if (account.isLinked()) {
+            try {
+                Person oldPerson = personnelService.findPersonByCode(account.getPersonCode());
+                if (oldPerson != null && account.getRole().requiresPosition()) {
+                    oldPerson.changePosition("", account, Account.Role.SITE_USER, current);
+                }
+            } catch (NotFoundException ignored) {
+            }
+        }
+        if (account.getRole().requiresPosition()) {
+            newPerson.changePosition(position, account, account.getRole(), current);
+        }
+        account.linkTo(newPerson);
+        persist();
+        persistPersonData();
+    }
+
+    public void deleteAccount(String username) {
+        require(Permission.MANAGE_ACCOUNTS);
+        Account account = requireAccount(username);
+        if (current != null && current.getUsername().equalsIgnoreCase(account.getUsername())) {
+            throw new AppError("The signed-in account cannot be deleted.");
+        }
+        if (account.getRole() == Account.Role.ADMIN && !hasOtherUsableAdministrator(account)) {
+            throw new AppError("Cannot delete the last usable administrator account.");
+        }
+        if (account.isLinked()) {
+            try {
+                Person person = personnelService.findPersonByCode(account.getPersonCode());
+                if (person != null && account.getRole().requiresPosition()) {
+                    person.changePosition("", account, Account.Role.SITE_USER, current);
+                }
+            } catch (NotFoundException ignored) {
+            }
+        }
+        accountRepository.delete(account);
+        persist();
+        persistPersonData();
     }
 }

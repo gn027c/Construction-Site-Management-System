@@ -1,8 +1,5 @@
 # Đề tài 7: SmartSite: Hệ Thống Quản Lý Công Trường Tích Hợp AI
 
-> Xem [hướng dẫn bản triển khai hiện tại](src/README.md).
-> Các mục dưới đây mô tả yêu cầu đề tài.
-
 ## 1. Bối cảnh
 Ứng dụng này hỗ trợ quản lý công việc hàng ngày của công nhân, nhà thầu và khách tham quan tại một công trường xây dựng, xoay quanh ba vai trò phối hợp:
 - **Công nhân, nhà thầu và khách tham quan**: Điểm danh vào/ra bằng mã đơn giản thay vì quét sinh trắc học, có thể xem lại lịch sử điểm danh của chính mình.

@@ -1,127 +1,106 @@
 package repository;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import exception.DataValidationException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import model.auth.Account;
-import model.auth.Permission;
-import util.CsvHelper;
+import model.Account;
+import model.Permission;
 
-public final class AccountRepository {
+public class AccountRepository {
     private static final String HEADER = "username,password,role,enabled,permissions,personCode,mustChangePassword";
-    private final Path file;
-    private Map<String, Account> accounts = new LinkedHashMap<>();
+    private static final int COLUMN_COUNT = 7;
 
-    public AccountRepository(Path file) {
-        this.file = file;
+    private final List<Account> accounts = new ArrayList<>();
+
+    public void save(Account account) {
+        accounts.add(account);
     }
 
-    public boolean exists() {
-        return Files.exists(file, java.nio.file.LinkOption.NOFOLLOW_LINKS);
+    public void delete(Account account) {
+        accounts.remove(account);
     }
 
-    public void load() throws IOException {
-        try {
-            List<String[]> rows = CsvHelper.readRows(file.toString());
-            if (rows.isEmpty() || !Arrays.equals(rows.get(0), HEADER.split(","))) {
-                throw new IllegalArgumentException("Invalid account header.");
-            }
-            List<Account> staged = new ArrayList<>();
-            for (int i = 1; i < rows.size(); i++) {
-                String[] fields = rows.get(i);
-                if (CsvHelper.isBlankRow(fields)) {
-                    continue;
-                }
-                if (fields.length != 7 || !isBoolean(fields[3]) || !isBoolean(fields[6])) {
-                    throw new IllegalArgumentException("Invalid account row " + (i + 1) + ".");
-                }
-                Set<Permission> permissions = EnumSet.noneOf(Permission.class);
-                if (!fields[4].isEmpty()) {
-                    for (String name : fields[4].split(";", -1)) {
-                        if (!permissions.add(Permission.valueOf(name))) {
-                            throw new IllegalArgumentException("Duplicate permission.");
-                        }
-                    }
-                }
-                staged.add(new Account(
-                        fields[0], fields[1], Account.Role.valueOf(fields[2]),
-                        Boolean.parseBoolean(fields[3]), permissions, fields[5], Boolean.parseBoolean(fields[6])
-                ));
-            }
-            accounts = validate(staged);
-        } catch (RuntimeException e) {
-            throw new IOException("Invalid accounts.csv; existing credentials were not reset.", e);
-        }
+    public void clear() {
+        accounts.clear();
     }
 
-    public void replaceAll(List<Account> replacement) throws IOException {
-        Map<String, Account> staged;
-        try {
-            staged = validate(replacement);
-        } catch (RuntimeException e) {
-            throw new IOException(e.getMessage(), e);
-        }
-        List<String> rows = new ArrayList<>();
-        rows.add(HEADER);
-        for (Account account : staged.values()) {
-            rows.add(account.toCsvLine());
-        }
-        if (!CsvHelper.writeAllLines(file.toString(), rows)) {
-            throw new IOException("Could not save accounts.csv; account changes were not applied.");
-        }
-        accounts = staged;
-    }
-
-    private static boolean isBoolean(String value) {
-        return value.equals("true") || value.equals("false");
-    }
-
-    private static Map<String, Account> validate(List<Account> records) {
-        Map<String, Account> staged = new LinkedHashMap<>();
-        boolean hasAdmin = false;
-        Set<String> linked = new java.util.HashSet<>();
-        Set<String> lowerUsernames = new java.util.HashSet<>();
-        for (Account account : records) {
-            if (account == null
-                    || !lowerUsernames.add(account.getUsername().toLowerCase(java.util.Locale.ROOT))
-                    || staged.putIfAbsent(account.getUsername(), account) != null) {
-                throw new IllegalArgumentException("Duplicate or missing account.");
-            }
-            hasAdmin |= account.isEnabled() && account.getRole() == Account.Role.ADMIN;
-            if (!account.getPersonCode().isEmpty() && !linked.add(account.getPersonCode())) {
-                throw new IllegalArgumentException("A person may only be linked to one account.");
+    public Account findByUsername(String username) {
+        for (Account account : accounts) {
+            if (account.getUsername().equalsIgnoreCase(username == null ? "" : username.trim())) {
+                return account;
             }
         }
-        if (!hasAdmin) {
-            throw new IllegalArgumentException("At least one enabled administrator is required.");
-        }
-        return staged;
+        return null;
     }
 
-    public Account find(String username) {
-        if (username == null) {
-            return null;
+    public Account findByUsernameOrThrow(String username) throws exception.NotFoundException {
+        Account account = findByUsername(username);
+        if (account == null) {
+            throw new exception.NotFoundException("Account", "username", username);
         }
-        Account direct = accounts.get(username);
-        if (direct != null) {
-            return direct;
-        }
-        for (Account a : accounts.values()) {
-            if (a.getUsername().equalsIgnoreCase(username)) {
-                return a;
+        return account;
+    }
+
+    public Account findByPersonCode(String personCode) {
+        for (Account account : accounts) {
+            if (account.isLinked() && account.getPersonCode().equalsIgnoreCase(personCode)) {
+                return account;
             }
         }
         return null;
     }
 
     public List<Account> findAll() {
-        return new ArrayList<>(accounts.values());
+        return new ArrayList<>(accounts);
     }
+
+    public boolean loadFromCsv(String filePath) {
+        List<Account> rows = util.CsvHelper.readTable(
+                filePath, HEADER, COLUMN_COUNT, this::parse, Account::getUsername);
+        if (rows == null) {
+            return false;
+        }
+        boolean hasAdministrator = false;
+        for (Account account : rows) {
+            hasAdministrator |= account.getRole() == Account.Role.ADMIN && account.isEnabled();
+        }
+        if (!hasAdministrator) {
+            throw new DataValidationException("accounts.csv: at least one enabled ADMIN account is required.");
+        }
+        accounts.clear();
+        accounts.addAll(rows);
+        return true;
+    }
+
+    private Account parse(List<String> columns) {
+        Set<Permission> permissions = EnumSet.noneOf(Permission.class);
+        for (String name : columns.get(4).split(";")) {
+            if (!name.trim().isEmpty()) {
+                permissions.add(Permission.valueOf(name.trim()));
+            }
+        }
+        return new Account(
+                columns.get(0), columns.get(1), Account.Role.valueOf(columns.get(2).trim()),
+                parseBoolean(columns.get(3)), permissions, columns.get(5), parseBoolean(columns.get(6)));
+    }
+
+    private static boolean parseBoolean(String value) {
+        String clean = value.trim();
+        if (!clean.equals("true") && !clean.equals("false")) {
+            throw new DataValidationException("Expected true or false, found " + clean + ".");
+        }
+        return clean.equals("true");
+    }
+
+    public boolean saveToCsv(String filePath) {
+        List<String> lines = new ArrayList<>();
+        lines.add(HEADER);
+        for (Account account : accounts) {
+            lines.add(account.toCsvLine());
+        }
+        return util.CsvHelper.writeAllLines(filePath, lines);
+    }
+
 }

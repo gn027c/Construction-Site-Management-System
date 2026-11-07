@@ -1,229 +1,197 @@
 package controller;
 
-import exception.DuplicateZoneIdException;
-import exception.RestrictedZoneViolationException;
-import exception.ZoneNotFoundException;
-import model.zone.RestrictedZone;
-import model.zone.Zone;
-import service.ZoneService;
+import exception.AppError;
+import exception.NotFoundException;
+import model.Permission;
+import model.Person;
+import model.RestrictedZone;
+import model.Zone;
 import service.AuthenticationService;
-import model.auth.Permission;
+import service.PersonnelService;
+import service.ZoneService;
+import service.ZoneRemovalService;
 import view.MenuView;
+import view.ConsoleUi;
 import util.InputHelper;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 
 public class ZoneController {
-    private final SiteManagerController site;
+    private final ZoneService zoneService;
+    private final PersonnelService personnelService;
+    private final AuthenticationService authentication;
+    private final ZoneRemovalService zoneRemoval;
 
-    public ZoneController(SiteManagerController site) {
-        this.site = site;
+    public ZoneController(
+            ZoneService zoneService, PersonnelService personnelService,
+            AuthenticationService authentication, ZoneRemovalService zoneRemoval
+    ) {
+        this.zoneService = zoneService;
+        this.personnelService = personnelService;
+        this.authentication = authentication;
+        this.zoneRemoval = zoneRemoval;
     }
 
     public void handleMenu(Scanner scanner) {
-        site.getAuthentication().require(Permission.MANAGE_ZONES);
-        while (true) {
-            MenuView.showZoneMenu();
-            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-5): ", 5);
-            view.ConsoleScreen.begin();
+        boolean back = false;
+        while (!back) {
+            MenuView.showZoneMenu(authentication.currentAccount());
+            int choice = InputHelper.getInt(scanner, "Enter option (0-6): ", 0, 6);
             switch (choice) {
                 case 1:
+                    authentication.require(Permission.MANAGE_ZONES);
                     addZoneFlow(scanner);
                     break;
                 case 2:
-                    displayZoneListFlow(scanner);
+                    authentication.requireAny(Permission.MANAGE_ZONES, Permission.VIEW_OCCUPANCY);
+                    displayZoneListFlow();
                     break;
                 case 3:
+                    authentication.require(Permission.MANAGE_ZONES);
+                    changeAccessFlow(scanner, true);
+                    break;
                 case 4:
-                    changeAccessFlow(scanner, choice == 3);
+                    authentication.require(Permission.MANAGE_ZONES);
+                    changeAccessFlow(scanner, false);
                     break;
                 case 5:
-                    editZoneFlow(scanner);
+                    authentication.require(Permission.MANAGE_ZONES);
+                    updateZoneFlow(scanner);
+                    break;
+                case 6:
+                    authentication.require(Permission.MANAGE_ZONES);
+                    deleteZoneFlow(scanner);
                     break;
                 case 0:
-                    return;
+                    back = true;
+                    break;
             }
-        }
-    }
-
-    private void changeAccessFlow(Scanner scanner, boolean grant) {
-        view.ConsoleTheme.breadcrumb("ZONES / " + (grant ? "GRANT ACCESS" : "REVOKE ACCESS"));
-        List<Zone> restrictedZones = site.zones().stream()
-                .filter(z -> z instanceof RestrictedZone)
-                .collect(java.util.stream.Collectors.toList());
-        if (!restrictedZones.isEmpty()) {
-            System.out.println("Restricted zones: " + restrictedZones.stream()
-                    .map(z -> z.getZoneId() + " (" + z.getZoneName() + ")")
-                    .collect(java.util.stream.Collectors.joining(", ")));
-        }
-        String zoneId = InputHelper.getString(scanner, "Zone ID: ");
-        Zone targetZone = findZone(zoneId);
-        if (targetZone == null) {
-            view.ConsoleTheme.error("Zone '" + zoneId + "' not found.");
-            return;
-        }
-        if (!(targetZone instanceof RestrictedZone)) {
-            view.ConsoleTheme.warning("Choose a restricted zone.");
-            return;
-        }
-        RestrictedZone rz = (RestrictedZone) targetZone;
-        if (!grant && !rz.getAllowedPersonCodes().isEmpty()) {
-            System.out.println("Currently authorized personnel: " + String.join(", ", rz.getAllowedPersonCodes()));
-        }
-        String personCode = InputHelper.getString(scanner, "Person code: ");
-        model.person.Person person;
-        try {
-            person = site.zoneAccessPerson(personCode);
-        } catch (exception.PersonNotFoundException e) {
-            view.ConsoleTheme.error(e.getMessage());
-            return;
-        }
-        boolean listed = rz.getAllowedPersonCodes().contains(person.getCode());
-        if (grant && listed) {
-            view.ConsoleTheme.warning(person.getCode() + " is already on the allowed list of " + rz.getZoneId() + ".");
-            return;
-        }
-        if (!grant && !listed) {
-            view.ConsoleTheme.warning(person.getCode() + " is not on the allowed list of " + rz.getZoneId() + ".");
-            return;
-        }
-        if (!grant && !InputHelper.confirm(scanner, "Are you sure you want to revoke access for '"
-                + person.getCode() + "' from zone '" + rz.getZoneId() + "'?")) {
-            view.ConsoleTheme.warning("Revocation cancelled.");
-            return;
-        }
-        try {
-            site.changeAccess(rz.getZoneId(), person.getCode(), grant);
-            view.ConsoleTheme.success("Access list updated: " + person.getCode()
-                    + (grant ? " granted " : " revoked from ") + rz.getZoneId() + ".");
-        } catch (exception.DataValidationException e) {
-            view.ConsoleTheme.error(e.getMessage());
-        }
-    }
-
-    private Zone findZone(String zoneId) {
-        String key = util.IdentifierHelper.normalizeForLookup(zoneId);
-        return site.zones().stream()
-                .filter(z -> z.getZoneId().equals(key))
-                .findFirst().orElse(null);
-    }
-
-    private void editZoneFlow(Scanner scanner) {
-        view.ConsoleTheme.breadcrumb("ZONES / EDIT ZONE");
-        String zoneId = InputHelper.getString(scanner, "Zone ID: ");
-        Zone zone = findZone(zoneId);
-        if (zone == null) {
-            view.ConsoleTheme.error("Zone '" + zoneId + "' not found.");
-            return;
-        }
-        String name = InputHelper.readLine(scanner, "New Zone Name [" + zone.getZoneName() + "]: ").trim();
-        if (name.isEmpty()) {
-            name = zone.getZoneName();
-        }
-        model.common.SafetyLevel level = model.common.SafetyLevel.NONE;
-        if (zone instanceof RestrictedZone) {
-            level = selectZoneLevel(scanner, ((RestrictedZone) zone).getRequiredSafetyLevel());
-        }
-        try {
-            site.updateZone(zone.getZoneId(), name, level);
-            view.ConsoleTheme.success("Zone " + zone.getZoneId() + " updated.");
-        } catch (exception.DataValidationException e) {
-            view.ConsoleTheme.error(e.getMessage());
-        }
-    }
-
-    private model.common.SafetyLevel selectZoneLevel(Scanner scanner, model.common.SafetyLevel current) {
-        model.common.SafetyLevel[] levels = model.common.SafetyLevel.values();
-        System.out.println("Required safety level: 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");
-        while (true) {
-            String input = InputHelper.readLine(scanner, "Choice (1-4) [" + current + "]: ").trim();
-            if (input.isEmpty()) {
-                return current;
-            }
-            if (input.matches("[1-4]")) {
-                return levels[Integer.parseInt(input)];
-            }
-            view.ConsoleTheme.warning("Choose a number from 1 to 4, or press Enter to keep " + current + ".");
         }
     }
 
     private void addZoneFlow(Scanner scanner) {
-        view.ConsoleTheme.breadcrumb("ZONES / ADD NEW ZONE");
-        int type = InputHelper.getMenuChoice(
-                scanner,
-                "Select zone type: 1. Normal Zone │ 2. Restricted Zone (0-Cancel): ",
-                2
-        );
-        if (type == 0) {
-            return;
-        }
-        String defaultZoneId = site.suggestNextZoneId();
-        String zoneId = getValidatedZoneId(scanner, defaultZoneId);
+        System.out.println("\n--- ADD NEW ZONE ---");
+        int type = InputHelper.getInt(scanner, "Select zone type: 1. Normal Zone | 2. Restricted Zone (0-Cancel): ", 0, 2);
+        if (type == 0) return;
+
+        String rawZoneId = InputHelper.getString(scanner, "Enter Zone ID (e.g., Z1, Z2): ");
+        String zoneId = Zone.normalizeId(rawZoneId);
         String zoneName = InputHelper.getString(scanner, "Enter Zone Name: ");
+
         try {
             if (type == 1) {
                 Zone zone = new Zone(zoneId, zoneName);
-                if (site.addZone(zone)) {
-                    view.ConsoleTheme.success("Zone added.");
+                if (zoneService.addZone(zone)) {
+                    System.out.println("Successfully added zone: " + zone.getZoneName());
                 }
             } else {
-                System.out.println("Select Safety Level: 1. LOW │ 2. MEDIUM │ 3. HIGH │ 4. CRITICAL");
+                ConsoleUi.menu("SELECT REQUIRED SAFETY LEVEL",
+                        "1. LOW", "2. MEDIUM", "3. HIGH", "4. CRITICAL");
                 int levelOpt = InputHelper.getInt(scanner, "Choice (1-4): ", 1, 4);
-                model.common.SafetyLevel level;
+
+                model.SafetyLevel level;
                 switch (levelOpt) {
-                    case 1:
-                        level = model.common.SafetyLevel.LOW;
-                        break;
-                    case 3:
-                        level = model.common.SafetyLevel.HIGH;
-                        break;
-                    case 4:
-                        level = model.common.SafetyLevel.CRITICAL;
-                        break;
-                    default:
-                        level = model.common.SafetyLevel.MEDIUM;
-                        break;
+                    case 1: level = model.SafetyLevel.LOW; break;
+                    case 3: level = model.SafetyLevel.HIGH; break;
+                    case 4: level = model.SafetyLevel.CRITICAL; break;
+                    default: level = model.SafetyLevel.MEDIUM; break;
                 }
+
                 RestrictedZone restrictedZone = new RestrictedZone(zoneId, zoneName, level, new HashSet<>());
-                if (site.addZone(restrictedZone)) {
-                    view.ConsoleTheme.success("Restricted zone added.");
+                if (zoneService.addZone(restrictedZone)) {
+                    System.out.println("Successfully added zone: " + restrictedZone.getZoneName());
                 }
             }
-        } catch (DuplicateZoneIdException e) {
-            view.ConsoleTheme.error("Zone Error: " + e.getMessage());
+        } catch (AppError e) {
+            System.out.println("Zone Error: " + e.getMessage());
         }
     }
 
-    private String getValidatedZoneId(Scanner scanner, String defaultZoneId) {
-        while (true) {
-            String input = InputHelper.readLine(scanner, "Enter Zone ID (e.g., " + defaultZoneId + ", blank for default): ").trim();
-            if (input.isEmpty()) {
-                return defaultZoneId;
-            }
-            try {
-                String normalized = util.IdentifierHelper.normalize(input, "zoneId");
-                boolean duplicate = site.zones().stream().anyMatch(z -> z.getZoneId().equalsIgnoreCase(normalized));
-                if (duplicate) {
-                    view.ConsoleTheme.warning("Zone ID '" + normalized + "' already exists. Please choose a different ID.");
-                    continue;
-                }
-                return normalized;
-            } catch (exception.DataValidationException e) {
-                view.ConsoleTheme.warning("Invalid zone ID: " + e.getMessage());
-            }
+    private void displayZoneListFlow() {
+        System.out.println("\n--- ZONE LIST ---");
+        List<Zone> zones = zoneService.getAllZones();
+        if (zones.isEmpty()) {
+            System.out.println("No zones available.");
+            return;
+        }
+        String[] headers = { "ID", "NAME", "TYPE", "REQUIRED LEVEL", "ALLOWED COUNT" };
+        List<String[]> rows = new java.util.ArrayList<>();
+        for (Zone zone : zones) {
+            String type = zone instanceof RestrictedZone ? "RESTRICTED" : "REGULAR";
+            String level = zone instanceof RestrictedZone
+                    ? ((RestrictedZone) zone).getRequiredSafetyLevel().name() : "-";
+            String count = zone instanceof RestrictedZone
+                    ? String.valueOf(((RestrictedZone) zone).getAllowedPersonCodes().size()) : "-";
+            rows.add(new String[] { zone.getZoneId(), zone.getZoneName(), type, level, count });
+        }
+        ConsoleUi.table(headers, rows);
+    }
+
+    private void changeAccessFlow(Scanner scanner, boolean grant) {
+        String zoneId = InputHelper.getString(scanner, "Enter Zone ID: ");
+        try {
+            zoneService.findZoneById(zoneId);
+            String code = InputHelper.getString(scanner, "Enter Person Code: ");
+            Person person = personnelService.findPersonByCode(code);
+            boolean changed = grant
+                    ? zoneService.grantZoneAccess(zoneId, person)
+                    : zoneService.revokeZoneAccess(zoneId, person);
+            System.out.println(changed
+                    ? "Success: Access list of zone '" + zoneId + "' has been updated."
+                    : "No change: The zone is not restricted or the person is not listed.");
+        } catch (NotFoundException | AppError e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
-    private void displayZoneListFlow(Scanner scanner) {
-        view.ListView.showTable(
-                scanner,
-                "ZONES",
-                site.zones(),
-                view.ZoneView.TABLE_HEADERS,
-                view.ZoneView::tableRow,
-                view.ZoneView::formatSummary,
-                java.util.Comparator.comparing(Zone::getZoneId, util.IdentifierHelper.NATURAL_ORDER)
-        );
+    private void updateZoneFlow(Scanner scanner) {
+        String zoneId = InputHelper.getString(scanner, "Enter Zone ID: ");
+        try {
+            Zone zone = zoneService.findZoneById(zoneId);
+            System.out.print("New Zone Name [" + zone.getZoneName() + "]: ");
+            String name = scanner.nextLine().trim();
+            if (name.isEmpty()) {
+                name = zone.getZoneName();
+            }
+            model.SafetyLevel level = null;
+            if (zone instanceof RestrictedZone) {
+                level = chooseSafetyLevel(scanner, ((RestrictedZone) zone).getRequiredSafetyLevel());
+            }
+            zoneService.updateZone(zoneId, name, level);
+            System.out.println("[OK] Zone updated successfully.");
+        } catch (exception.SiteManagementException e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        }
+    }
+
+    private model.SafetyLevel chooseSafetyLevel(Scanner scanner, model.SafetyLevel current) {
+        ConsoleUi.menu("UPDATE SAFETY LEVEL",
+                "Current: " + current, "1. LOW", "2. MEDIUM", "3. HIGH", "4. CRITICAL");
+        int choice = InputHelper.getInt(scanner, "New level (1-4, 0 keep current): ", 0, 4);
+        if (choice == 0) {
+            return current;
+        }
+        switch (choice) {
+            case 1: return model.SafetyLevel.LOW;
+            case 2: return model.SafetyLevel.MEDIUM;
+            case 3: return model.SafetyLevel.HIGH;
+            default: return model.SafetyLevel.CRITICAL;
+        }
+    }
+
+    private void deleteZoneFlow(Scanner scanner) {
+        String zoneId = InputHelper.getString(scanner, "Enter Zone ID: ");
+        try {
+            zoneService.findZoneById(zoneId);
+            int confirm = InputHelper.getInt(scanner, "Delete this zone? 1. Yes | 0. Cancel: ", 0, 1);
+            if (confirm == 0) {
+                return;
+            }
+            zoneRemoval.delete(zoneId);
+            System.out.println("[OK] Zone deleted successfully.");
+        } catch (exception.SiteManagementException e) {
+            System.out.println("[ERROR] " + e.getMessage());
+        }
     }
 }

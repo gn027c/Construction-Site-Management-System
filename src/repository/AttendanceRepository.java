@@ -1,63 +1,32 @@
 package repository;
 
-import model.attendance.AttendanceRecord;
+import model.AttendanceRecord;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.time.format.DateTimeParseException;
-import util.DateTimeHelper;
 
 public class AttendanceRepository {
+    private static final String HEADER = "recordId,personCode,zoneId,timestamp,checkType";
+    private static final int COLUMN_COUNT = 5;
+    private static final java.time.format.DateTimeFormatter TIMESTAMP = util.DateHelper.TIMESTAMP_FORMATTER;
+
     private final List<AttendanceRecord> attendanceList = new ArrayList<>();
-    private String lastLoadError = "";
+    private final java.util.Map<String, AttendanceRecord> latestByPerson = new java.util.HashMap<>();
 
     public boolean save(AttendanceRecord record) {
-        if (!canAppend(record)) {
+        if (record == null) {
             return false;
         }
         return attendanceList.add(record);
     }
 
-    private boolean canAppend(AttendanceRecord record) {
-        if (record == null) {
-            return false;
-        }
-        try {
-            DateTimeHelper.parseTimestamp(record.getTimestamp());
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-        for (AttendanceRecord existing : attendanceList) {
-            if (existing.getRecordId().equals(record.getRecordId())) {
-                return false;
-            }
-        }
-        record.assertCanFollow(findLastByPersonCode(record.getPersonCode()));
-        return true;
-    }
-
-    public boolean saveAndPersist(AttendanceRecord record, String filePath) {
-        if (!canAppend(record)) {
-            return false;
-        }
-        List<AttendanceRecord> candidate = new ArrayList<>(attendanceList);
-        candidate.add(record);
-        if (!writeRecords(filePath, candidate)) {
-            return false;
-        }
-        attendanceList.add(record);
-        return true;
-    }
-
     public AttendanceRecord findLastByPersonCode(String personCode) {
-        String cleanCode = util.IdentifierHelper.normalizeForLookup(personCode);
-        if (cleanCode == null) {
+        if (personCode == null || personCode.trim().isEmpty()) {
             return null;
         }
+        String cleanCode = personCode.trim();
         for (int i = attendanceList.size() - 1; i >= 0; i--) {
             AttendanceRecord rec = attendanceList.get(i);
-            if (rec.getPersonCode().equals(cleanCode)) {
+            if (util.IdHelper.isSame(rec.getPersonCode(), cleanCode)) {
                 return rec;
             }
         }
@@ -68,69 +37,49 @@ public class AttendanceRepository {
         return new ArrayList<>(attendanceList);
     }
 
-    public String getLastLoadError() {
-        return lastLoadError;
+    static String normalizeTimestamp(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(\\d{2})/(\\d{2})/(\\d{4}) (\\d{2}):(\\d{2})").matcher(raw);
+        if (m.matches()) {
+            return m.group(3) + "-" + m.group(2) + "-" + m.group(1) + " " + m.group(4) + ":" + m.group(5) + ":00";
+        }
+        return raw;
     }
 
     public boolean loadFromCsv(String filePath) {
-        AttendanceRepository staged = new AttendanceRepository();
-        lastLoadError = "";
-        String location = "header";
-        try {
-            List<String[]> rows = util.CsvHelper.readRows(filePath);
-            if (rows.isEmpty() || !java.util.Arrays.equals(rows.get(0), new String[] {
-                    "recordId", "personCode", "zoneId", "timestamp", "checkType"
-            })) {
-                lastLoadError = "Expected the attendance CSV header with five columns.";
-                return false;
-            }
-            for (int i = 1; i < rows.size(); i++) {
-                String[] p = rows.get(i);
-                location = "row " + (i + 1);
-                if (util.CsvHelper.isBlankRow(p)) {
-                    continue;
-                }
-                if (p.length != 5 || p[0].trim().isEmpty() || p[1].trim().isEmpty() || p[2].trim().isEmpty()) {
-                    lastLoadError = location + ": expected five columns with record, person and zone identifiers.";
-                    return false;
-                }
-                location += " / " + p[0];
-                if (
-                        !staged.save(
-                                new AttendanceRecord(p[0], p[1], p[2], p[3], AttendanceRecord.CheckType.valueOf(p[4]))
-                        )
-                ) {
-                    lastLoadError = location + ": invalid or duplicate attendance record.";
-                    return false;
-                }
-            }
-        } catch (RuntimeException e) {
-            lastLoadError = location + ": " + e.getMessage();
+        latestByPerson.clear();
+        List<AttendanceRecord> records = util.CsvHelper.readTable(
+                filePath, HEADER, COLUMN_COUNT, this::parse, AttendanceRecord::getRecordId);
+        if (records == null) {
             return false;
         }
         attendanceList.clear();
-        attendanceList.addAll(staged.attendanceList);
+        attendanceList.addAll(records);
         return true;
     }
 
-    public boolean saveToCsv(String filePath) {
-        return writeRecords(filePath, attendanceList);
+    private AttendanceRecord parse(List<String> columns) {
+        String timestamp = normalizeTimestamp(columns.get(3).trim());
+        java.time.LocalDateTime.parse(timestamp, TIMESTAMP);
+        AttendanceRecord record = new AttendanceRecord(
+                columns.get(0).trim(), columns.get(1).trim(), columns.get(2).trim(), timestamp,
+                AttendanceRecord.CheckType.valueOf(columns.get(4).trim()));
+        String person = record.getPersonCode().toUpperCase();
+        record.assertCanFollow(latestByPerson.get(person));
+        latestByPerson.put(person, record);
+        return record;
     }
 
-    private boolean writeRecords(String filePath, List<AttendanceRecord> records) {
+    public boolean saveToCsv(String filePath) {
         List<String> lines = new ArrayList<>();
-        Map<String, AttendanceRecord> previous = new HashMap<>();
-        lines.add("recordId,personCode,zoneId,timestamp,checkType");
-        for (AttendanceRecord rec : records) {
-            try {
-                DateTimeHelper.parseTimestamp(rec.getTimestamp());
-                rec.assertCanFollow(previous.get(rec.getPersonCode()));
-            } catch (RuntimeException e) {
-                return false;
-            }
-            previous.put(rec.getPersonCode(), rec);
+        lines.add(HEADER);
+        for (AttendanceRecord rec : attendanceList) {
             lines.add(rec.toCsvLine());
         }
         return util.CsvHelper.writeAllLines(filePath, lines);
     }
+
 }

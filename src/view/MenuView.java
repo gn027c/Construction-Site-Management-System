@@ -1,137 +1,154 @@
 package view;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import model.auth.Permission;
-import service.AuthenticationService;
+import java.util.ArrayList;
+import java.util.List;
+import model.Account;
+import model.Permission;
 
 public final class MenuView {
     private MenuView() {
     }
 
-    public static void showMainMenu(AuthenticationService authentication) {
-        Map<String, Map<Integer, String>> sections = new LinkedHashMap<>();
-
-        Map<Integer, String> operations = new LinkedHashMap<>();
-        add(operations, 1, "Personnel", authentication, Permission.MANAGE_PERSONNEL);
-        add(operations, 2, "Zones and permissions", authentication, Permission.MANAGE_ZONES);
-        add(operations, 3, "Attendance", authentication, Permission.RECORD_ATTENDANCE, Permission.VIEW_ATTENDANCE,
-                Permission.RECORD_OWN_ATTENDANCE, Permission.VIEW_OWN_ATTENDANCE, Permission.VIEW_OCCUPANCY);
-        add(operations, 4, "Safety incidents", authentication,
-                Permission.REPORT_INCIDENTS, Permission.VIEW_INCIDENTS, Permission.ASSIGN_INCIDENTS,
-                Permission.RESOLVE_INCIDENTS, Permission.PURGE_INCIDENTS);
-        sections.put("SITE OPERATIONS", operations);
-
-        Map<Integer, String> reports = new LinkedHashMap<>();
-        add(reports, 5, "CSV data and export", authentication, Permission.RELOAD_DATA, Permission.EXPORT_REPORTS);
-        add(reports, 6, "Attendance report", authentication, Permission.EXPORT_REPORTS);
-        add(reports, 7, "Incident report", authentication, Permission.EXPORT_REPORTS);
-        sections.put("DATA & REPORTS", reports);
-
-        Map<Integer, String> workspace = new LinkedHashMap<>();
-        add(workspace, 8, "Manage accounts", authentication, Permission.MANAGE_ACCOUNTS);
-        workspace.put(9, "Change my password");
-        workspace.put(10, "Sign out");
-        sections.put("SECURITY & WORKSPACE", workspace);
-
-        ConsoleTheme.categorizedMenuOptions(
-                "HOME / " + authentication.currentAccount().getUsername() + " / "
-                        + authentication.currentAccount().getRole(),
-                "Site operations, reporting and workspace administration.",
-                sections, "Save and exit"
-        );
+    public static void showMainMenu() {
+        showMainMenu(null);
     }
 
-    public static void showPersonMenu(java.util.List<model.person.Person> people) {
-        showPersonMenu(people, false);
-    }
-
-    public static void showPersonMenu(java.util.List<model.person.Person> people, boolean canChangeType) {
-        ConsoleScreen.begin();
-        System.out.println();
-        ConsoleTheme.breadcrumb("PERSONNEL", "Manage personnel records, roles and site access status.");
-        System.out.println(ConsoleTheme.color("90", "  " + String.join("", java.util.Collections.nCopies(70, "─"))));
-        System.out.println();
-        if (people == null || people.isEmpty()) {
-            System.out.println("  No personnel records found.");
-        } else {
-            java.util.List<java.util.List<String>> rows = new java.util.ArrayList<>();
-            int limit = Math.min(people.size(), 15);
-            for (int i = 0; i < limit; i++) {
-                rows.add(PersonnelView.tableRow(people.get(i)));
-            }
-            ListView.printTable(PersonnelView.TABLE_HEADERS, rows);
-            if (people.size() > 15) {
-                System.out.println(ConsoleTheme.color("90", "  Showing 15 of " + people.size()
-                        + " personnel records (select [2] to search and page all)."));
-            } else {
-                System.out.println(ConsoleTheme.color("90", "  Total: " + people.size() + " personnel record(s)."));
-            }
+    public static void showMainMenu(Account account) {
+        List<String> items = new ArrayList<>();
+        if (account == null || account.allows(Permission.MANAGE_PERSONNEL)) {
+            items.add("[1] Person Management");
         }
-        System.out.println();
-        System.out.println("  " + ConsoleTheme.color("36", " [1]") + " Add person");
-        System.out.println("  " + ConsoleTheme.color("36", " [2]") + " View and update personnel");
-        System.out.println("  " + ConsoleTheme.color("36", " [3]") + " Activate or deactivate");
-        System.out.println("  " + ConsoleTheme.color("36", " [4]") + " Delete unreferenced person");
-        if (canChangeType) {
-            System.out.println("  " + ConsoleTheme.color("36", " [5]") + " Change type and account role");
+        if (account == null || account.allows(Permission.MANAGE_ZONES)
+                || account.allows(Permission.VIEW_OCCUPANCY)) {
+            items.add("[2] Zone Management");
         }
-        System.out.println();
-        System.out.println("  " + ConsoleTheme.color("33", " [0]") + " Back");
-        System.out.println();
+        if (account == null || account.allows(Permission.RECORD_ATTENDANCE)
+                || account.allows(Permission.RECORD_OWN_ATTENDANCE)
+                || account.allows(Permission.VIEW_ATTENDANCE)
+                || account.allows(Permission.VIEW_OWN_ATTENDANCE)) {
+            items.add("[3] Attendance Management");
+        }
+        if (account == null || account.allows(Permission.REPORT_INCIDENTS)
+                || account.allows(Permission.VIEW_INCIDENTS)
+                || account.allows(Permission.ASSIGN_INCIDENTS)
+                || account.allows(Permission.RESOLVE_INCIDENTS)
+                || account.allows(Permission.PURGE_INCIDENTS)) {
+            items.add("[4] Incident Management");
+        }
+        if (account == null || account.allows(Permission.RELOAD_DATA)) {
+            items.add("[5] Data Management / Persistence");
+        }
+        if (account == null || account.allows(Permission.MANAGE_ACCOUNTS)) {
+            items.add("[6] Account Management");
+        }
+        items.add("[7] Change My Password");
+        items.add("[8] Sign Out");
+        if (account == null || account.allows(Permission.EXPORT_REPORTS)) {
+            items.add("[9] Reports and Export");
+        }
+        items.add("[0] Exit Program");
+        String context = account == null ? "No active session" :
+                "Signed in: " + account.getUsername() + " | Role: " + account.getRole();
+        ConsoleUi.menuWithContext(
+                "SMARTSITE CONSTRUCTION MANAGEMENT SYSTEM",
+                context,
+                items.toArray(new String[0]));
     }
 
     public static void showPersonMenu() {
-        showPersonMenu(null);
+        ConsoleUi.menu(
+                "PERSON MANAGEMENT",
+                "1. Add New Person",
+                "2. Display Person List",
+                "3. Search / Update Person",
+                "4. Activate / Deactivate Person",
+                "5. Set Safety Level",
+                "6. Change Visitor Date",
+                "7. Change Position",
+                "8. Delete Person",
+                "9. Update Profile",
+                "0. Back to Main Menu");
     }
 
     public static void showZoneMenu() {
-        ConsoleTheme.menuWithDescription(
-                "ZONES",
-                "Manage site zones, restricted boundaries and entry permissions.",
-                "Add zone", "View zones", "Grant access", "Revoke access", "Edit zone"
-        );
+        showZoneMenu(null);
     }
 
-    public static void showAttendanceMenu(AuthenticationService authentication) {
-        Map<Integer, String> options = new LinkedHashMap<>();
-        add(options, 1, "Check in or out", authentication, Permission.RECORD_ATTENDANCE);
-        add(options, 2, "View history", authentication, Permission.VIEW_ATTENDANCE);
-        add(options, 3, "My check in or out", authentication, Permission.RECORD_OWN_ATTENDANCE);
-        add(options, 4, "My attendance history", authentication, Permission.VIEW_OWN_ATTENDANCE);
-        add(options, 5, "People currently in each zone", authentication, Permission.VIEW_OCCUPANCY);
-        add(options, 6, "My current zone", authentication, Permission.VIEW_OWN_ATTENDANCE);
-        ConsoleTheme.menuOptions("ATTENDANCE", "Track zone check-ins, check-outs and live site occupancy.", options, "Back");
+    public static void showZoneMenu(Account account) {
+        boolean manage = account == null || account.allows(Permission.MANAGE_ZONES);
+        boolean view = account == null || account.allows(Permission.VIEW_OCCUPANCY);
+        ConsoleUi.menu("ZONE MANAGEMENT",
+                accessItem("1. Add New Zone", manage),
+                accessItem("2. Display Zone List", manage || view),
+                accessItem("3. Grant Restricted Access", manage),
+                accessItem("4. Revoke Restricted Access", manage),
+                accessItem("5. Update Zone", manage),
+                accessItem("6. Delete Zone", manage),
+                "0. Back to Main Menu");
     }
 
-    public static void showIncidentMenu(AuthenticationService authentication) {
-        Map<Integer, String> options = new LinkedHashMap<>();
-        add(options, 1, "Report incident", authentication, Permission.REPORT_INCIDENTS);
-        add(options, 2, "View incidents", authentication, Permission.VIEW_INCIDENTS);
-        add(options, 3, "Assign handler", authentication, Permission.ASSIGN_INCIDENTS);
-        add(options, 4, "Resolve incident", authentication, Permission.RESOLVE_INCIDENTS);
-        add(options, 5, "Archive resolved incidents", authentication, Permission.PURGE_INCIDENTS);
-        add(options, 6, "Include archived incidents", authentication, Permission.VIEW_INCIDENTS);
-        ConsoleTheme.menuOptions("INCIDENTS", "Log, assign and track safety incidents and resolutions.", options, "Back");
+    public static void showAttendanceMenu() {
+        showAttendanceMenu(null);
     }
 
-    public static void showDataMenu(AuthenticationService authentication) {
-        Map<Integer, String> options = new LinkedHashMap<>();
-        add(options, 1, "Reload CSV files", authentication, Permission.RELOAD_DATA);
-        add(options, 2, "Save CSV files", authentication, Permission.RELOAD_DATA);
-        add(options, 3, "Export CSV files", authentication, Permission.EXPORT_REPORTS);
-        ConsoleTheme.menuOptions("CSV DATA AND EXPORT", "Synchronize, persist and export system CSV records.", options, "Back");
+    public static void showAttendanceMenu(Account account) {
+        boolean record = account == null || account.allows(Permission.RECORD_ATTENDANCE)
+                || account.allows(Permission.RECORD_OWN_ATTENDANCE);
+        boolean view = account == null || account.allows(Permission.VIEW_ATTENDANCE)
+                || account.allows(Permission.VIEW_OWN_ATTENDANCE);
+        ConsoleUi.menu("ATTENDANCE MANAGEMENT",
+                accessItem("1. Record Check-In / Check-Out", record),
+                accessItem("2. View Attendance History", view),
+                "0. Back to Main Menu");
     }
 
-    private static void add(
-            Map<Integer, String> options, int number, String label,
-            AuthenticationService authentication, Permission... permissions
-    ) {
-        for (Permission permission : permissions) {
-            if (authentication.allows(permission)) {
-                options.put(number, label);
-                return;
-            }
-        }
+    public static void showIncidentMenu() {
+        showIncidentMenu(null);
+    }
+
+    public static void showIncidentMenu(Account account) {
+        ConsoleUi.menu("INCIDENT MANAGEMENT",
+                accessItem("1. Report New Incident", account == null || account.allows(Permission.REPORT_INCIDENTS)),
+                accessItem("2. Display Incident List", account == null || account.allows(Permission.VIEW_INCIDENTS)),
+                accessItem("3. Assign Incident Handler", account == null || account.allows(Permission.ASSIGN_INCIDENTS)),
+                accessItem("4. Resolve Incident", account == null || account.allows(Permission.RESOLVE_INCIDENTS)),
+                accessItem("5. Purge Resolved Incidents", account == null || account.allows(Permission.PURGE_INCIDENTS)),
+                "0. Back to Main Menu");
+    }
+
+    public static void showAccountMenu() {
+        ConsoleUi.menu(
+                "ACCOUNT MANAGEMENT",
+                "1. List Accounts",
+                "2. Create Account",
+                "3. Change Role",
+                "4. Enable / Disable Account",
+                "5. Reset Password",
+                "6. Link Person",
+                "7. Grant Permission",
+                "8. Revoke Permission",
+                "0. Back to Main Menu");
+    }
+
+    public static void showDataMenu() {
+        ConsoleUi.menu(
+                "DATA MANAGEMENT / PERSISTENCE",
+                "1. Reload Data From CSV Files",
+                "2. Save Data Manually To CSV Files",
+                "0. Back to Main Menu");
+    }
+
+    public static void showReportMenu() {
+        ConsoleUi.menu(
+                "REPORTS & EXPORT",
+                "1. Current Week Report",
+                "2. Current Month Report",
+                "3. Custom Period Report",
+                "4. Export Report CSV Files",
+                "0. Back to Main Menu");
+    }
+
+    private static String accessItem(String label, boolean allowed) {
+        return allowed ? label : label + "  [locked]";
     }
 }

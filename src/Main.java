@@ -1,146 +1,179 @@
 import controller.SiteManagerController;
-import controller.AccountController;
-import controller.WorkspaceController;
-import model.auth.Permission;
-import model.auth.Account;
+import exception.DataValidationException;
+import exception.SiteManagementException;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
+import model.Account;
+import model.Permission;
 import service.AuthenticationService;
 import util.InputHelper;
-import view.ConsoleTheme;
-import view.ConsoleScreen;
+import view.ConsoleUi;
 import view.MenuView;
-import java.nio.file.*;
-import java.util.*;
 
 public class Main {
+    private static final int SIGN_IN_ATTEMPTS = 3;
+
     public static void main(String[] args) {
-        Path directory = Paths.get(System.getProperty("smartsite.dataDir", "data"));
-        try (Scanner scanner = new Scanner(System.in)) {
-            ConsoleScreen.attach(scanner);
-            SiteManagerController controller = new SiteManagerController(directory);
-            String startupFailure = "";
-            try {
-                controller.loadAllData();
-            } catch (java.io.IOException e) {
-                startupFailure = e.getMessage();
-            }
-            AuthenticationService authentication = controller.getAuthentication();
-            AccountController accounts = new AccountController(authentication);
-            WorkspaceController workspace = new WorkspaceController(controller);
-            boolean exit = false;
-            while (!exit) {
-                try {
-                    if (!authentication.isLoggedIn()) {
-                        if (!accounts.signIn(scanner)) {
-                            break;
-                        }
-                        if (!controller.isDataReady()) {
-                            if (isAdministrator(authentication)) {
-                                ConsoleTheme.error(startupFailure);
-                                ConsoleTheme.warning("Business actions are blocked. Correct the CSV file, then reload it with menu 5.");
-                            } else {
-                                ConsoleTheme.warning("Service temporarily unavailable. Contact an administrator.");
-                            }
-                        }
-                    }
-                    MenuView.showMainMenu(authentication);
-                    int choice = InputHelper.getMenuChoice(scanner, "Choice (0-10): ", 10);
-                    ConsoleScreen.begin();
-                    switch (choice) {
-                        case 1:
-                            controller.handlePersonMenu(scanner);
-                            break;
-                        case 2:
-                            controller.handleZoneMenu(scanner);
-                            break;
-                        case 3:
-                            controller.handleAttendanceMenu(scanner);
-                            break;
-                        case 4:
-                            controller.handleIncidentMenu(scanner);
-                            break;
-                        case 5:
-                            authentication.requireAny(Permission.RELOAD_DATA, Permission.EXPORT_REPORTS);
-                            MenuView.showDataMenu(authentication);
-                            int action = InputHelper.getMenuChoice(scanner, "Choice (0-3): ", 3);
-                            if (action == 1) {
-                                authentication.require(Permission.RELOAD_DATA);
-                                String answer = InputHelper.getString(
-                                        scanner,
-                                        "Discard unsaved changes and reload CSV files? (yes/no): "
-                                );
-                                if (answer.equalsIgnoreCase("yes")) {
-                                    controller.reloadData();
-                                    ConsoleTheme.success("CSV data reloaded.");
-                                }
-                            } else if (action == 2) {
-                                authentication.require(Permission.RELOAD_DATA);
-                                controller.saveAllData();
-                                ConsoleTheme.success("CSV data saved.");
-                            } else if (action == 3) {
-                                authentication.require(Permission.EXPORT_REPORTS);
-                                String path = InputHelper.getString(scanner, "Export parent directory: ");
-                                ConsoleTheme.success("Export completed: " + controller.exportCsv(Paths.get(path)));
-                            }
-                            break;
-                        case 6:
-                            workspace.attendanceReport(scanner);
-                            break;
-                        case 7:
-                            workspace.incidentReport(scanner);
-                            break;
-                        case 8:
-                            accounts.handleMenu(scanner);
-                            break;
-                        case 9:
-                            accounts.changeOwnPassword(scanner);
-                            break;
-                        case 10:
-                            if (controller.isDataReady()) {
-                                controller.saveAllData();
-                            }
-                            authentication.logout();
-                            ConsoleScreen.identityBoundary();
-                            ConsoleTheme.success("Signed out.");
-                            break;
-                        case 0:
-                            if (controller.isDataReady()) {
-                                controller.saveAllData();
-                                ConsoleTheme.success("CSV data saved. Goodbye.");
-                            } else {
-                                ConsoleTheme.success("Goodbye.");
-                            }
-                            exit = true;
-                            break;
-                    }
-                } catch (exception.InputCancelledException e) {
-                    ConsoleTheme.warning("Current entry cancelled. Returned to the main menu.");
-                } catch (NoSuchElementException e) {
-                    if (authentication.isLoggedIn() && controller.isDataReady()) {
-                        controller.saveAllData();
-                        ConsoleTheme.success("Input closed. CSV data saved.");
-                    } else if (!authentication.isLoggedIn()) {
-                        ConsoleTheme.success("Input closed before sign-in.");
-                    } else {
-                        ConsoleTheme.success("Session closed.");
-                    }
-                    exit = true;
-                } catch (Exception e) {
-                    if (!isAdministrator(authentication) && (!controller.isDataReady()
-                            || e instanceof java.io.IOException
-                            || e.getClass() == exception.SiteManagementException.class)) {
-                        ConsoleTheme.error("Operation unavailable. Contact an administrator.");
-                    } else {
-                        ConsoleTheme.error(e.getMessage());
-                    }
+        SiteManagerController site = new SiteManagerController();
+        Scanner scanner = new Scanner(System.in);
+
+        ConsoleUi.banner("WELCOME TO SMARTSITE MANAGEMENT SYSTEM", null);
+
+        String loadProblem = load(site);
+        if (!site.isAccountsReady()) {
+            System.err.println("Sign-in is unavailable: " + loadProblem);
+            System.err.println("Fix accounts.csv and start again.");
+            scanner.close();
+            return;
+        }
+
+        try {
+            boolean running = true;
+            while (running && signIn(site.authentication(), scanner)) {
+                if (site.authentication().currentAccount().mustChangePassword()) {
+                    forcePasswordChange(site.authentication(), scanner);
                 }
+                if (!site.isDataReady()) {
+                    System.err.println("[WARN] Data is not loaded: " + site.loadProblem());
+                }
+                running = homeMenu(site, scanner);
             }
-        } catch (Exception e) {
-            ConsoleTheme.error("Session unavailable. Contact an administrator.");
-            System.exit(1);
+            System.out.println("Thank you for using SmartSite System! Goodbye.");
+        } catch (NoSuchElementException e) {
+            System.err.println("Input ended. Unsaved changes were not written.");
+        }
+        scanner.close();
+    }
+
+    private static String load(SiteManagerController site) {
+        try {
+            site.loadAllData();
+            System.out.println("[OK] [SYSTEM] All CSV data loaded successfully!");
+            return null;
+        } catch (SiteManagementException e) {
+            return e.getMessage();
         }
     }
 
-    private static boolean isAdministrator(AuthenticationService authentication) {
-        return authentication.isLoggedIn() && authentication.currentAccount().getRole() == Account.Role.ADMIN;
+    private static boolean signIn(AuthenticationService authentication, Scanner scanner) {
+        for (int attempt = 1; attempt <= SIGN_IN_ATTEMPTS; attempt++) {
+            String username = InputHelper.getString(scanner, "Username (0 to exit): ");
+            if (username.equals("0")) {
+                return false;
+            }
+            String password = InputHelper.getString(scanner, "Password: ");
+            try {
+                Account account = authentication.login(username, password);
+                System.out.println("Signed in as " + account.getUsername() + " (" + account.getRole() + ").");
+                return true;
+            } catch (SiteManagementException e) {
+                System.err.println("[ERROR] " + e.getMessage());
+            }
+        }
+        System.err.println("Too many failed attempts.");
+        return false;
+    }
+
+    private static void forcePasswordChange(AuthenticationService authentication, Scanner scanner) {
+        System.out.println("You must change your password before continuing.");
+        while (authentication.currentAccount().mustChangePassword()) {
+            changePassword(authentication, scanner);
+        }
+    }
+
+    private static void changePassword(AuthenticationService authentication, Scanner scanner) {
+        String currentPassword = InputHelper.getString(scanner, "Current password: ");
+        String newPassword = InputHelper.getString(scanner, "New password: ");
+        try {
+            authentication.changeOwnPassword(currentPassword, newPassword);
+            System.out.println("[OK] Password changed.");
+        } catch (SiteManagementException e) {
+            System.err.println("[ERROR] " + e.getMessage());
+        }
+    }
+
+    private static boolean homeMenu(SiteManagerController site, Scanner scanner) {
+        while (true) {
+            try {
+                MenuView.showMainMenu(site.authentication().currentAccount());
+                int choice = InputHelper.getInt(scanner, "Enter your choice (0-9): ", 0, 9);
+                switch (choice) {
+                    case 1:
+                        site.handlePersonMenu(scanner);
+                        break;
+                    case 2:
+                        site.handleZoneMenu(scanner);
+                        break;
+                    case 3:
+                        site.handleAttendanceMenu(scanner);
+                        break;
+                    case 4:
+                        site.handleIncidentMenu(scanner);
+                        break;
+                    case 5:
+                        handleDataManagementMenu(site, scanner);
+                        break;
+                    case 6:
+                        site.handleAccountMenu(scanner);
+                        break;
+                    case 7:
+                        changePassword(site.authentication(), scanner);
+                        break;
+                    case 8:
+                        saveIfReady(site);
+                        site.authentication().logout();
+                        return true;
+                    case 9:
+                        site.handleReportMenu(scanner);
+                        break;
+                    default:
+                        saveIfReady(site);
+                        site.authentication().logout();
+                        return false;
+                }
+            } catch (DataValidationException e) {
+                System.err.println("[WARN] [DATA VALIDATION ERROR] " + e.getMessage());
+            } catch (SiteManagementException e) {
+                System.err.println("[ERROR] [SITE MANAGEMENT ERROR] " + e.getMessage());
+            }
+            System.out.println();
+        }
+    }
+
+    private static void saveIfReady(SiteManagerController site) {
+        if (site.isDataReady()) {
+            site.saveAllData();
+            System.out.println("\n[OK] Data saved successfully!");
+        } else {
+            System.out.println("\nData files were left unchanged because they could not be loaded.");
+        }
+    }
+
+    private static void handleDataManagementMenu(SiteManagerController site, Scanner scanner) {
+        boolean back = false;
+        while (!back) {
+            try {
+                MenuView.showDataMenu();
+                int choice = InputHelper.getInt(scanner, "Enter your choice (0-2): ", 0, 2);
+                switch (choice) {
+                    case 1:
+                        site.authentication().require(Permission.RELOAD_DATA);
+                        site.loadAllData();
+                        System.out.println("[OK] Data reloaded successfully from CSV files.");
+                        break;
+                    case 2:
+                        site.authentication().require(Permission.RELOAD_DATA);
+                        site.saveAllData();
+                        System.out.println("[OK] Data saved manually to CSV files successfully.");
+                        break;
+                    default:
+                        back = true;
+                        break;
+                }
+            } catch (SiteManagementException e) {
+                System.err.println("[WARN] [DATA MANAGEMENT ERROR] " + e.getMessage());
+            }
+            System.out.println();
+        }
     }
 }

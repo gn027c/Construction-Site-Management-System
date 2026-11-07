@@ -1,11 +1,11 @@
 package service;
 
-import exception.DuplicateZoneIdException;
-import exception.RestrictedZoneViolationException;
-import exception.ZoneNotFoundException;
-import model.person.Person;
-import model.zone.RestrictedZone;
-import model.zone.Zone;
+import exception.AppError;
+import exception.NotFoundException;
+import model.Person;
+import model.RestrictedZone;
+import model.Zone;
+import model.SafetyLevel;
 import repository.ZoneRepository;
 import java.util.List;
 
@@ -24,80 +24,77 @@ public class ZoneService {
         return zoneRepository.findAll();
     }
 
-    public boolean addZone(Zone z) throws DuplicateZoneIdException {
-        if (z == null || z.getZoneId() == null || z.getZoneId().trim().isEmpty()) {
+    public boolean addZone(Zone z) throws AppError {
+        return zoneRepository.save(z);
+    }
+
+    public void updateZone(String zoneId, String newName, SafetyLevel requiredSafetyLevel) {
+        Zone zone = findZoneById(zoneId);
+        if (zone instanceof RestrictedZone) {
+            if (requiredSafetyLevel == null || requiredSafetyLevel == SafetyLevel.NONE) {
+                throw new exception.DataValidationException(
+                        "requiredSafetyLevel", "Choose LOW, MEDIUM, HIGH or CRITICAL.");
+            }
+            zone.rename(newName);
+            ((RestrictedZone) zone).changeRequiredSafetyLevel(requiredSafetyLevel);
+        } else {
+            if (requiredSafetyLevel != null) {
+            throw new AppError("A regular zone cannot have a safety level.");
+            }
+            zone.rename(newName);
+        }
+    }
+
+    boolean deleteZone(String zoneId) {
+        return zoneRepository.deleteById(zoneId);
+    }
+
+    public Zone findZoneById(String zoneId) throws NotFoundException {
+        return zoneRepository.findByIdOrThrow(zoneId);
+    }
+
+    private static exception.AppError accessDenied(String personCode, String zoneId, String reason) {
+        return new exception.AppError(
+                "Access Denied: Person [" + personCode + "] is not permitted to enter Restricted Zone [" + zoneId
+                        + "]. Reason: " + reason
+        );
+    }
+
+    public boolean grantZoneAccess(String zoneId, Person person) throws NotFoundException, AppError {
+        Zone zone = findZoneById(zoneId);
+        if (!(zone instanceof RestrictedZone)) {
             return false;
         }
-        if (zoneRepository.save(z)) {
-            return true;
-        }
-        return false;
-    }
-
-    public Zone findZoneById(String zoneId) throws ZoneNotFoundException {
-        Zone zone = zoneRepository.findById(zoneId);
-        if (zone == null) {
-            throw new ZoneNotFoundException(zoneId);
-        }
-        return zone;
-    }
-
-    public boolean grantZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
-        Zone zone = findZoneById(zoneId);
-        if (zone instanceof RestrictedZone) {
-            ((RestrictedZone) zone).grantAccess(personCode);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean grantZoneAccess(String zoneId, Person person) throws ZoneNotFoundException {
-        Zone zone = findZoneById(zoneId);
-        if (zone instanceof RestrictedZone) {
-            ((RestrictedZone) zone).grantAccess(person);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean updateZone(String zoneId, String zoneName, model.common.SafetyLevel level)
-            throws ZoneNotFoundException {
-        findZoneById(zoneId).updateDetails(zoneName, level);
+        ((RestrictedZone) zone).grant(person);
         return true;
     }
 
-    public boolean revokeZoneAccess(String zoneId, String personCode) throws ZoneNotFoundException {
+    public boolean revokeZoneAccess(String zoneId, Person person) throws NotFoundException {
         Zone zone = findZoneById(zoneId);
-        if (zone instanceof RestrictedZone) {
-            ((RestrictedZone) zone).revokeAccess(personCode);
-            return true;
+        return zone instanceof RestrictedZone && ((RestrictedZone) zone).revoke(person);
+    }
+
+    public boolean isListed(String personCode) {
+        for (Zone zone : zoneRepository.findAll()) {
+            if (zone instanceof RestrictedZone
+                    && ((RestrictedZone) zone).getAllowedPersonCodes().contains(personCode)) {
+                return true;
+            }
         }
         return false;
     }
 
-    public boolean verifyAccess(String zoneId, Person person)
-            throws ZoneNotFoundException, RestrictedZoneViolationException {
+    public void verifyAccess(String zoneId, Person person) throws NotFoundException, AppError {
         Zone zone = findZoneById(zoneId);
-        if (person == null) {
-            return false;
-        }
-        String reason = zone.accessDenialReason(person);
-        if (!reason.isEmpty()) {
-            throw new RestrictedZoneViolationException(person.getCode(), zoneId, reason);
-        }
-        return true;
-    }
 
-    public boolean loadFromCsv() {
-        return loadFromCsv("data/zones.csv");
+        String denialReason = person.canEnter(zone);
+        if (denialReason != null) {
+            throw accessDenied(person.getCode(), zoneId, denialReason);
+        }
     }
 
     public boolean loadFromCsv(String filePath) {
         return zoneRepository.loadFromCsv(filePath);
-    }
-
-    public boolean saveToCsv() {
-        return saveToCsv("data/zones.csv");
     }
 
     public boolean saveToCsv(String filePath) {

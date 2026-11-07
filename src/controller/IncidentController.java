@@ -1,198 +1,213 @@
 package controller;
 
-import model.incident.Incident;
-import service.IncidentService;
-import service.AuthenticationService;
-import model.auth.Permission;
-import view.MenuView;
-import util.InputHelper;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Scanner;
+import model.Incident;
+import model.Permission;
+import service.AuthenticationService;
+import service.IncidentService;
+import util.InputHelper;
+import view.ConsoleUi;
+import view.Pagination;
 
 public class IncidentController {
-    private final SiteManagerController site;
+    private final IncidentService incidentService;
     private final AuthenticationService authentication;
 
-    public IncidentController(SiteManagerController site) {
-        this.site = site;
-        authentication = site.getAuthentication();
+    public IncidentController(IncidentService incidentService, AuthenticationService authentication) {
+        this.incidentService = incidentService;
+        this.authentication = authentication;
     }
 
     public void handleMenu(Scanner scanner) {
-        while (true) {
-            MenuView.showIncidentMenu(authentication);
-            int choice = InputHelper.getMenuChoice(scanner, "Enter option (0-6): ", 6);
-            view.ConsoleScreen.begin();
-            switch (choice) {
-                case 1:
-                    authentication.require(Permission.REPORT_INCIDENTS);
-                    reportIncidentFlow(scanner);
-                    break;
-                case 2:
-                case 6:
-                    view.ListView.showTable(
-                            scanner,
-                            "INCIDENTS",
-                            site.incidents(choice == 6),
-                            view.IncidentView.TABLE_HEADERS,
-                            view.IncidentView::tableRow,
-                            view.IncidentView::formatSummary,
-                            java.util.Comparator.comparing(
-                                    Incident::getIncidentId, util.IdentifierHelper.NATURAL_ORDER
-                            )
-                    );
-                    break;
-                case 3:
-                    authentication.require(Permission.ASSIGN_INCIDENTS);
-                    assignIncidentFlow(scanner);
-                    break;
-                case 4:
-                    authentication.require(Permission.RESOLVE_INCIDENTS);
-                    resolveIncidentFlow(scanner);
-                    break;
-                case 5:
-                    authentication.require(Permission.PURGE_INCIDENTS);
-                    if (!InputHelper.confirm(scanner, "Are you sure you want to archive all resolved incidents?")) {
-                        view.ConsoleTheme.warning("Archiving cancelled.");
-                        break;
-                    }
-                    view.ConsoleTheme.success("Archived " + site.archiveIncidents() + " resolved incidents.");
-                    break;
-                case 0:
-                    return;
+        String filter = "";
+        String statusMessage = null;
+        List<Incident> incidents = fetchIncidents();
+        List<Incident> filtered = filterIncidents(incidents, filter);
+        Pagination<Incident> pagination = new Pagination<>(filtered, 8);
+        boolean back = false;
+
+        while (!back) {
+            ConsoleUi.clearScreen();
+            String breadcrumb = "INCIDENT MANAGEMENT | PAGE "
+                    + (pagination.isEmpty() ? "1/1" : (pagination.pageNumber() + "/" + pagination.pageCount()));
+            if (!filter.isEmpty()) {
+                breadcrumb += " | Filter: \"" + filter + "\"";
+            }
+            ConsoleUi.breadcrumb(breadcrumb);
+
+            showIncidentsTable(pagination.currentPage());
+
+            if (statusMessage != null) {
+                System.out.println(statusMessage);
+                statusMessage = null;
+            }
+
+            System.out.println("Actions: 1 (Report), 2 (Assign), 3 (Resolve), 4 (Purge), 0 (Back)");
+            String command = InputHelper.getString(
+                    scanner, "Select [F (Filter), C (Clear filter), N (Next), P (Prev), L (Last)]: ");
+
+            if (command.equalsIgnoreCase("1")) {
+                authentication.require(Permission.REPORT_INCIDENTS);
+                statusMessage = reportIncidentFlow(scanner);
+                incidents = fetchIncidents();
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("2")) {
+                authentication.require(Permission.ASSIGN_INCIDENTS);
+                statusMessage = assignIncidentFlow(scanner);
+                incidents = fetchIncidents();
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("3")) {
+                authentication.require(Permission.RESOLVE_INCIDENTS);
+                statusMessage = resolveIncidentFlow(scanner);
+                incidents = fetchIncidents();
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("4")) {
+                authentication.require(Permission.PURGE_INCIDENTS);
+                int count = incidentService.purgeResolvedIncidents();
+                statusMessage = "[OK] Purged " + count + " resolved incident(s).";
+                incidents = fetchIncidents();
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("F")) {
+                String term = InputHelper.getString(scanner, "Filter by ID, Title, Severity, Status, or Assignee: ");
+                filter = term.trim().toLowerCase();
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("C")) {
+                filter = "";
+                filtered = filterIncidents(incidents, filter);
+                pagination = new Pagination<>(filtered, 8);
+            } else if (command.equalsIgnoreCase("N")) {
+                pagination.next();
+            } else if (command.equalsIgnoreCase("P")) {
+                pagination.previous();
+            } else if (command.equalsIgnoreCase("L")) {
+                pagination.last();
+            } else if (command.equals("0")) {
+                back = true;
+            } else {
+                System.out.println("[WARN] Invalid command. Choose 1, 2, 3, 4, F, C, N, P, L or 0.");
             }
         }
     }
 
-    private void reportIncidentFlow(Scanner scanner) {
-        view.ConsoleTheme.breadcrumb("INCIDENTS / REPORT NEW INCIDENT");
-        String defaultId = site.suggestNextIncidentId();
-        String id = getValidatedIncidentId(scanner, defaultId);
+    private List<Incident> fetchIncidents() {
+        if (authentication.allows(Permission.VIEW_INCIDENTS)) {
+            return incidentService.getAllIncidents();
+        }
+        return Collections.emptyList();
+    }
+
+    private List<Incident> filterIncidents(List<Incident> list, String filter) {
+        if (filter == null || filter.trim().isEmpty()) {
+            return new ArrayList<>(list);
+        }
+        String term = filter.trim().toLowerCase();
+        List<Incident> matches = new ArrayList<>();
+        for (Incident inc : list) {
+            boolean match = inc.getIncidentId().toLowerCase().contains(term)
+                    || inc.getTitle().toLowerCase().contains(term)
+                    || inc.getSeverity().name().toLowerCase().contains(term)
+                    || inc.getStatus().name().toLowerCase().contains(term)
+                    || inc.getAssignedTo().toLowerCase().contains(term);
+            if (match) {
+                matches.add(inc);
+            }
+        }
+        return matches;
+    }
+
+    private void showIncidentsTable(List<Incident> list) {
+        if (list == null || list.isEmpty()) {
+            System.out.println("No incidents recorded.");
+            return;
+        }
+        String[] headers = { "ID", "SEVERITY", "STATUS", "ASSIGNED", "TITLE" };
+        List<String[]> rows = new ArrayList<>();
+        for (Incident incident : list) {
+            rows.add(new String[] {
+                    incident.getIncidentId(),
+                    incident.getSeverity().name(),
+                    incident.getStatus().name(),
+                    incident.getAssignedTo().isEmpty() ? "-" : incident.getAssignedTo(),
+                    incident.getTitle()
+            });
+        }
+        ConsoleUi.table(headers, rows);
+    }
+
+    private String reportIncidentFlow(Scanner scanner) {
+        System.out.println("\n--- REPORT NEW INCIDENT ---");
+        String id = InputHelper.getString(scanner, "Enter Incident ID (e.g., INC001, 0 to cancel): ");
+        if (id.equals("0")) {
+            return null;
+        }
         String title = InputHelper.getString(scanner, "Enter Incident Title: ");
         String description = InputHelper.getString(scanner, "Enter Incident Description: ");
-        System.out.println("Select Severity Level:");
-        System.out.println("1. LOW");
-        System.out.println("2. MEDIUM");
-        System.out.println("3. HIGH");
-        System.out.println("4. CRITICAL");
-        int sevChoice = InputHelper.getInt(scanner, "Choose severity (1-4): ", 1, 4);
+
+        ConsoleUi.menu("SELECT SEVERITY", "1. LOW", "2. MEDIUM", "3. HIGH", "4. CRITICAL");
+        int sevChoice = InputHelper.getInt(scanner, "Choose severity (1-4, 0-Cancel): ", 0, 4);
+        if (sevChoice == 0) {
+            return null;
+        }
+
         Incident.IncidentSeverity severity = Incident.IncidentSeverity.LOW;
         switch (sevChoice) {
-            case 2:
-                severity = Incident.IncidentSeverity.MEDIUM;
-                break;
-            case 3:
-                severity = Incident.IncidentSeverity.HIGH;
-                break;
-            case 4:
-                severity = Incident.IncidentSeverity.CRITICAL;
-                break;
+            case 2: severity = Incident.IncidentSeverity.MEDIUM; break;
+            case 3: severity = Incident.IncidentSeverity.HIGH; break;
+            case 4: severity = Incident.IncidentSeverity.CRITICAL; break;
         }
-        String zoneId = selectIncidentZone(scanner);
-        if (site.reportIncident(id, title, description, severity, zoneId)) {
-            view.ConsoleTheme.success("Incident reported with status OPEN.");
-        } else {
-            view.ConsoleTheme.warning("Invalid incident data or duplicate ID.");
+
+        try {
+            incidentService.reportIncident(id, title, description, severity);
+            System.out.println("Incident reported with status OPEN.");
+            return "[OK] Incident " + id + " reported with status OPEN.";
+        } catch (exception.SiteManagementException e) {
+            System.out.println("Error: " + e.getMessage());
+            return "[ERROR] " + e.getMessage();
         }
     }
 
-    private void assignIncidentFlow(Scanner scanner) {
-        view.ConsoleTheme.breadcrumb("INCIDENTS / ASSIGN HANDLER");
-        String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign: ");
-        Incident target = findActiveIncident(incidentId);
-        if (target == null) {
-            view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
-            return;
-        }
-        if (target.getStatus() == Incident.IncidentStatus.RESOLVED) {
-            view.ConsoleTheme.warning("Incident '" + incidentId + "' is already resolved.");
-            return;
-        }
-        if (target.getStatus() == Incident.IncidentStatus.ASSIGNED) {
-            System.out.println(
-                    "Currently assigned to " + target.getAssignedTo() + "; choose another person to reassign."
-            );
-        }
-        java.util.List<model.person.Person> candidates = site.candidateAssignees();
-        if (candidates.isEmpty()) {
-            view.ConsoleTheme.warning("No active site personnel can handle incidents.");
-            return;
-        }
-        System.out.println("Available assignees: " + candidates.stream()
-                .map(p -> p.getCode() + " (" + p.getName() + " - " + p.getRole() + ")")
-                .collect(java.util.stream.Collectors.joining(", ")));
-        String assigneeCode = InputHelper.getString(
-                scanner, "Enter Assignee Person Code (e.g., " + candidates.get(0).getCode() + "): "
-        );
-        String assignee = util.IdentifierHelper.normalizeForLookup(assigneeCode);
-        if (candidates.stream().noneMatch(p -> p.getCode().equals(assignee))) {
-            view.ConsoleTheme.warning("Choose an active person from the list of available assignees.");
-            return;
+    private String assignIncidentFlow(Scanner scanner) {
+        System.out.println("\n--- ASSIGN INCIDENT HANDLER ---");
+        String incidentId = InputHelper.getString(scanner, "Enter Incident ID to assign (0 to cancel): ");
+        if (incidentId.equals("0")) {
+            return null;
         }
         try {
-            site.assignIncident(target.getIncidentId(), assignee);
-            view.ConsoleTheme.success("Incident " + target.getIncidentId() + " assigned to " + assignee + ".");
+            Incident incident = incidentService.findIncidentById(incidentId);
+            if (incident == null) {
+                throw new exception.NotFoundException("Incident record", "ID", incidentId);
+            }
+            String assigneeCode = InputHelper.getString(scanner, "Enter Assignee Person Code (e.g., W01): ");
+            incidentService.assignIncident(incidentId, assigneeCode);
+            System.out.println("Incident '" + incidentId + "' assigned to '" + assigneeCode + "'. Status is now ASSIGNED.");
+            return "[OK] Incident '" + incidentId + "' assigned to '" + assigneeCode + "'.";
+        } catch (exception.NotFoundException | exception.AppError e) {
+            System.out.println("Assignment Error: " + e.getMessage());
+            return "[ERROR] Assignment Error: " + e.getMessage();
+        }
+    }
+
+    private String resolveIncidentFlow(Scanner scanner) {
+        System.out.println("\n--- RESOLVE INCIDENT ---");
+        String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve (0 to cancel): ");
+        if (incidentId.equals("0")) {
+            return null;
+        }
+        try {
+            incidentService.resolveIncident(incidentId);
+            System.out.println("Incident resolved.");
+            return "[OK] Incident '" + incidentId + "' resolved.";
         } catch (exception.SiteManagementException e) {
-            view.ConsoleTheme.warning("Assignment Error: " + e.getMessage());
-        }
-    }
-
-    private String selectIncidentZone(Scanner scanner) {
-        java.util.List<model.zone.Zone> zones = site.incidentZones();
-        System.out.println("Zones: " + zones.stream()
-                .map(z -> z.getZoneId() + " (" + z.getZoneName() + ")")
-                .collect(java.util.stream.Collectors.joining(", ")));
-        while (true) {
-            String input = InputHelper.getString(scanner, "Zone ID where it happened: ");
-            String key = util.IdentifierHelper.normalizeForLookup(input);
-            for (model.zone.Zone zone : zones) {
-                if (zone.getZoneId().equals(key)) {
-                    return zone.getZoneId();
-                }
-            }
-            view.ConsoleTheme.warning("Choose a zone from the list.");
-        }
-    }
-
-    private Incident findActiveIncident(String incidentId) {
-        return site.incidentForAction(incidentId);
-    }
-
-    private void resolveIncidentFlow(Scanner scanner) {
-        view.ConsoleTheme.breadcrumb("INCIDENTS / RESOLVE INCIDENT");
-        String incidentId = InputHelper.getString(scanner, "Enter Incident ID to resolve: ");
-        Incident target = findActiveIncident(incidentId);
-        if (target == null) {
-            view.ConsoleTheme.warning("Incident '" + incidentId + "' not found.");
-            return;
-        }
-        if (target.getStatus() != Incident.IncidentStatus.ASSIGNED) {
-            view.ConsoleTheme.warning("Only ASSIGNED incidents can be resolved. Current status: " + target.getStatus());
-            return;
-        }
-        String note = InputHelper.getString(scanner, "Resolution note (what was done): ");
-        if (site.resolveIncident(target.getIncidentId(), note)) {
-            view.ConsoleTheme.success("Incident resolved.");
-        } else {
-            view.ConsoleTheme.warning("Invalid incident ID.");
-        }
-    }
-
-    private String getValidatedIncidentId(Scanner scanner, String defaultId) {
-        while (true) {
-            String input = InputHelper.readLine(scanner, "Enter Incident ID (e.g., " + defaultId + ", blank for default): ").trim();
-            if (input.isEmpty()) {
-                input = defaultId;
-            }
-            try {
-                String normalized = util.IdentifierHelper.normalize(input, "incidentId");
-                if (site.isIncidentIdTaken(normalized)) {
-                    view.ConsoleTheme.warning("Incident ID '" + normalized + "' already exists. Please choose a different ID.");
-                    continue;
-                }
-                return normalized;
-            } catch (exception.DataValidationException e) {
-                view.ConsoleTheme.warning("Invalid incident ID: " + e.getMessage());
-            }
+            System.out.println("Incident State Error: " + e.getMessage());
+            return "[ERROR] Incident State Error: " + e.getMessage();
         }
     }
 }

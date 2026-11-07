@@ -1,0 +1,11 @@
+﻿type,id,code,name,phoneNumber,position,active,safetyLevel,extra1,extra2,extra3
+WORKER,P1,W1,Nguyen Van An,0901234567,,true,CRITICAL,Construction,CERT_01_SAFE,Team A
+WORKER,P2,W2,Tran Van Binh,0902345678,,true,HIGH,Construction,CERT_02_SAFE,Team A
+WORKER,P3,W3,Le Van Cuong,0903456789,,true,CRITICAL,Construction,CERT_03_SAFE,Team A
+WORKER,P4,W4,Pham Thi Dung,0904567890,,true,NONE,Construction,CERT_UNSAFE,Team A
+WORKER,P5,W5,Hoang Van Em,0905678901,,true,NONE,Construction,CERT_05_SAFE,Team A
+CONTRACTOR,P6,C1,Vu Dinh Phuc,0912345678,,true,HIGH,CTR-2026-A,Delta E&C,
+CONTRACTOR,P7,C2,Doan Van Giang,0913456789,,true,HIGH,CTR-2026-B,Hoa Binh Corp,
+CONTRACTOR,P8,C3,Ngo Thi Hanh,0914567890,,true,NONE,INVALID_CTR,Coteccons,
+VISITOR,P9,V1,Dang Van Hung,0923456789,,true,NONE,Khao sat tien do,W1,12/10/2026
+VISITOR,P10,V2,Bui Thi Mai,0924567890,,true,NONE,Thanh tra an toan,C1,
